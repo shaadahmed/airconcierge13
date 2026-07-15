@@ -1,0 +1,13 @@
+---
+description: Air Concierge L13 migration — behavior preservation and layering
+alwaysApply: true
+---
+
+# Migration rules
+
+- Follow `docs/migration-plan.md` as the source of truth.
+- Preserve business behavior; never silently fix suspected bugs — document, propose, wait.
+- Layering: Controller (HTTP only) → Form Request → Policy/Gate → Service → Model → Job.
+- Reference app at `/mnt/e/xampp/htdocs/airconcierge` is read-only; never copy secrets or the old tree here.
+- Do not port modules or import `migrations_fresh` until that phase/step is approved.
+- No new global helpers; no business logic in Blade; no `env()` outside config.

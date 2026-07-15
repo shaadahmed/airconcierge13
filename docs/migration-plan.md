@@ -9,7 +9,7 @@ This document is the **single source of truth** for the entire Laravel 5.1 → L
 
 The modernization spec (`docs/Laravel_5.1_to_13_Modernization_Spec.md`) is historical / requirements background. **Where this plan and the spec disagree, this plan wins** (e.g. PHP 8.3+, Spatie Permission, Laravel Sail, domain-ordered phases).
 
-Do **not** scaffold Laravel or write application code until Phase 0 is explicitly approved to start.
+Do **not** begin Phase 1+ until Phase 0 DoD is met and Phase 1 is explicitly approved to start.
 
 ---
 
@@ -421,21 +421,21 @@ Phase 0 Foundation
 
 ### Phase 0 DoD
 
-- [ ] `airconcierge13` is a real Laravel 13 app (scaffolded) and boots via **Laravel Sail**
-- [ ] PHP 8.3+ runtime in Sail containers
-- [ ] MySQL database **`airconcierge`** exists (empty of business schema; `migrations_fresh` not copied or run yet)
-- [ ] Redis up; queue worker runs against Redis
-- [ ] Scheduler process configured for local/dev (Sail)
-- [ ] **Pest** smoke test passes
-- [ ] Pint + Larastan **level 5** configured and passing on the greenfield tree
-- [ ] CI pipeline runs lint, static analysis, and tests
-- [ ] Horizon **not** required for Phase 0
-- [ ] ADRs written under `docs/adr/`
-- [ ] `docs/migration-inventory.md` produced from the reference app
-- [ ] `docs/` tracked in git (`.gitignore` no longer ignoring the whole docs tree)
-- [ ] Cursor/project rules encode behavior preservation + layering
-- [ ] Old app at `/mnt/e/xampp/htdocs/airconcierge` remains untouched
-- [ ] No production secrets copied into the new repo
+- [x] `airconcierge13` is a real Laravel 13 app (scaffolded) and boots via **Laravel Sail**
+- [x] PHP 8.3+ runtime in Sail containers
+- [x] MySQL database **`airconcierge`** exists (empty of business schema; `migrations_fresh` not copied or run yet)
+- [x] Redis up; queue worker runs against Redis
+- [x] Scheduler process configured for local/dev (Sail)
+- [x] **Pest** smoke test passes
+- [x] Pint + Larastan **level 5** configured and passing on the greenfield tree
+- [x] CI pipeline runs lint, static analysis, and tests
+- [x] Horizon **not** required for Phase 0
+- [x] ADRs written under `docs/adr/`
+- [x] `docs/migration-inventory.md` produced from the reference app
+- [x] `docs/` tracked in git (`.gitignore` no longer ignoring the whole docs tree)
+- [x] Cursor/project rules encode behavior preservation + layering
+- [x] Old app at `/mnt/e/xampp/htdocs/airconcierge` remains untouched
+- [x] No production secrets copied into the new repo
 
 ### Per-module DoD (Phases 1–6)
 
@@ -492,12 +492,12 @@ Phase 0 Foundation
 
 | Path | Status |
 |------|--------|
-| `/home/pc/projects/airconcierge13/` | Project root created |
-| `/home/pc/projects/airconcierge13/docs/` | Created |
-| `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — project source of truth (updated; Phase 0 not executed) |
-| `/home/pc/projects/airconcierge13/.gitignore` | Still contains `docs/` (temporary — un-ignore when Phase 0 execution starts) |
-| Laravel 13 scaffold / Sail | **Not started** — waiting for approval to begin Phase 0 |
-| Fresh schema (`migrations_fresh`) | **Available** in reference app at `database/migrations_fresh/` (~101 files) — **not** copied or run into `airconcierge13` yet |
+| `/home/pc/projects/airconcierge13/` | Laravel 13.19 app root (Sail PHP 8.4 slim runtime under `docker/8.4/`) |
+| `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
+| `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — project source of truth |
+| Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
+| Quality | Pest smoke tests, Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
+| Fresh schema (`migrations_fresh`) | **Not present** on reference disk at Phase 0 inventory time — re-verify before schema port; **not** copied/run into `airconcierge13` |
 | Legacy `database/migrations/` | ~51 historical files — not the L13 baseline |
 
 ---
@@ -505,6 +505,5 @@ Phase 0 Foundation
 ## 15. Next step
 
 1. Treat this document as the guide for all subsequent work.
-2. When ready: explicitly approve **Phase 0 execution** (Sail scaffold, Pest, Pint, Larastan level 5, CI, Boost, ADRs, inventory, un-ignore `docs/`).
-3. Do not begin Phase 1+ until Phase 0 DoD is met.
-4. Do **not** copy or run `database/migrations_fresh` into `airconcierge13` until separately approved (after or alongside Phase 0 as decided later).
+2. Phase 0 DoD is met — do not begin Phase 1+ until Phase 1 is explicitly approved.
+3. Do **not** copy or run `database/migrations_fresh` into `airconcierge13` until separately approved.
