@@ -30,12 +30,13 @@ Request → Controller → Form Request → Policy/Gate → Service → Model �
 - Path: `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`)
 - Never edit the reference app as part of this migration.
 - Do not copy the old tree, `vendor/`, or `.env` secrets into this repo.
-- Use the reference only to look up current behavior before implementing in L13.
+- Use the reference for **business behavior only** — not technical patterns, Entrust code, or route dumps (ADR-007).
 
 ## Schema
 
-- Do **not** copy or run `database/migrations_fresh` from the reference app until explicitly approved.
-- Phase 0 uses framework default migrations only.
+- `database/migrations_fresh/` is **reference only** — do not run it wholesale.
+- Copy specific files into `database/migrations/` when a domain phase needs those tables.
+- Phase 1 uses framework default `users` + Spatie permission migrations only.
 
 ## Local runtime
 

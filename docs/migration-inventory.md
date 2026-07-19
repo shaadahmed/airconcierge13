@@ -106,32 +106,34 @@ Use this as a tracking inventory for Phases 1–6. Do not treat checkboxes as pe
 
 ## Cron / HTTP scheduled routes
 
-Replace with Laravel Schedule + CLI/authenticated commands in Phase 1+ (preserve schedules/paths unless DevOps coordinates cutover).
+**Phase 1 (greenfield):** no public `/cron/*` HTTP in L13. Artisan command stubs + Schedule only. Mapping below is for cutover awareness (legacy URI → new command name).
 
-### `/cron/*` (Api)
+### `/cron/*` (Api) → L13 command stubs
 
-| URI | Controller@method |
-|-----|-------------------|
-| `/cron/test` | Api\CronJobsController@test |
-| `/cron/check-recurring-payments` | Api\CronJobsController@checkRecurringPayments |
-| `/cron/check-user-passwords-expiry` | Api\CronJobsController@checkPasswordsExpiry |
-| `/cron/check-property-permit-expiry` | Api\CronJobsController@checkPropertyPermitExpiry |
-| `/cron/check-property-vacancy` | Api\CronJobsController@checkVacantProperties |
-| `/cron/check-booking-month-difference` | Api\CronJobsController@checkbookingMonthDifference |
-| `/cron/check-consecutive-guest-bookings` | Api\CronJobsController@checkGuestConsecutiveBookings |
-| `/cron/check-policy-expiry-email` | Api\CronJobsController@checkInsurancePolicyExpiries |
-| `/cron/check-anti-gap-alert` | Api\CronJobsController@checkAntiGapAlert |
-| `/cron/cloud/weekly-data-backup` | Api\CloudBackupCronController@uploadFilesToGoogleDrive |
-| `/cron/check-security-deposit-alerts` | Api\CronJobsController@checkSecurityDepositAlerts |
-| `/cron/check-owner-block-reminders` | Api\CronJobsController@checkOwnerBlockReminders |
-| `/cron/check-owner-block-extensions` | Api\CronJobsController@checkOwnerBlockExtensions |
-| `/cron/check-property-audits` | Api\CronJobsController@checkPropertyAudits |
-| `/cron/check-property-audit-reminders` | Api\CronJobsController@checkPropertyAuditReminders |
-| `/cron/business-license-expiry` | Api\CronJobsController@checkBusinessLicenseExpiry |
-| `/cron/check-booking-conflicts` | Api\CronJobsController@checkBookingConflicts |
-| `/cron/dropboxformcsv` | Api\DropboxFormCSVController@to_get_workflow_instance |
-| `/cron/dropboxformsyncdb` | Api\DropboxFormCSVController@csv_read_sync_db |
-| `/cron/dropboxformstatusupdate` | Api\DropboxFormCSVController@to_get_workflow_owner_list |
+| Legacy URI | Legacy action | L13 command (stub) |
+|------------|---------------|--------------------|
+| `/cron/test` | Api\CronJobsController@test | `cron:test` |
+| `/cron/check-recurring-payments` | Api\CronJobsController@checkRecurringPayments | `alert:recurring-payments` |
+| `/cron/check-user-passwords-expiry` | Api\CronJobsController@checkPasswordsExpiry | `alert:password-expiry` |
+| `/cron/check-property-permit-expiry` | Api\CronJobsController@checkPropertyPermitExpiry | `alert:property-permit-expiry` |
+| `/cron/check-property-vacancy` | Api\CronJobsController@checkVacantProperties | `alert:property-vacancy` |
+| `/cron/check-booking-month-difference` | Api\CronJobsController@checkbookingMonthDifference | `alert:booking-month-difference` |
+| `/cron/check-consecutive-guest-bookings` | Api\CronJobsController@checkGuestConsecutiveBookings | `alert:consecutive-guest-bookings` |
+| `/cron/check-policy-expiry-email` | Api\CronJobsController@checkInsurancePolicyExpiries | `alert:insurance-policy-expiry` |
+| `/cron/check-anti-gap-alert` | Api\CronJobsController@checkAntiGapAlert | `alert:anti-gap` |
+| `/cron/cloud/weekly-data-backup` | Api\CloudBackupCronController@uploadFilesToGoogleDrive | `cloud:weekly-data-backup` |
+| `/cron/check-security-deposit-alerts` | Api\CronJobsController@checkSecurityDepositAlerts | `alert:security-deposit` |
+| `/cron/check-owner-block-reminders` | Api\CronJobsController@checkOwnerBlockReminders | `alert:owner-block-reminders` |
+| `/cron/check-owner-block-extensions` | Api\CronJobsController@checkOwnerBlockExtensions | `alert:owner-block-extensions` |
+| `/cron/check-property-audits` | Api\CronJobsController@checkPropertyAudits | `alert:property-audits` |
+| `/cron/check-property-audit-reminders` | Api\CronJobsController@checkPropertyAuditReminders | `alert:property-audit-reminders` |
+| `/cron/business-license-expiry` | Api\CronJobsController@checkBusinessLicenseExpiry | `alert:business-license-expiry` |
+| `/cron/check-booking-conflicts` | Api\CronJobsController@checkBookingConflicts | `alert:booking-conflict` |
+| `/cron/dropboxformcsv` | Api\DropboxFormCSVController@to_get_workflow_instance | `dropbox:form-csv` |
+| `/cron/dropboxformsyncdb` | Api\DropboxFormCSVController@csv_read_sync_db | `dropbox:form-sync-db` |
+| `/cron/dropboxformstatusupdate` | Api\DropboxFormCSVController@to_get_workflow_owner_list | `dropbox:form-status-update` |
+
+Also scheduled from former Artisan Kernel (not HTTP `/cron/*`): `emails:process-reviews`, `owners:payout`, `property:monthly-metrics` (+ `--full` weekly), `owner-block-abandonments:resolve`, `images:compress-uploads`, `emails:cleanup-outbound-logs`, `emails:limit-owner-block`.
 
 ### Chronology / related
 

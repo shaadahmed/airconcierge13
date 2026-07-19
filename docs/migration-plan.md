@@ -148,11 +148,13 @@ Hostaway, Zoho Sign / HelloSign, Dropbox, Google Drive, Slack, PDF generation (w
 ```
 /home/pc/projects/airconcierge13/          # NEW git root (Laravel 13 + Sail)
 ├── .gitignore                             # currently ignores docs/ (temporary — un-ignore in Phase 0)
-├── docs/                                  # project docs (track in git once Phase 0 starts)
+├── docs/                                  # project docs (tracked in git)
 │   ├── migration-plan.md                  # this file — source of truth for all phases
-│   ├── migration-inventory.md             # to be added in Phase 0
+│   ├── migration-inventory.md             # legacy inventory / cron command map
+│   ├── technical-documentation.md         # developer reference (Phase 0–1+)
+│   ├── user-documentation.md              # end-user / QA guide for the current shell
 │   ├── Laravel_5.1_to_13_Modernization_Spec.md  # background requirements
-│   └── adr/                               # architecture decision records (Phase 0)
+│   └── adr/                               # architecture decision records
 ├── app/
 │   ├── Http/Controllers/                  # thin HTTP only
 │   ├── Http/Requests/                     # Form Requests
@@ -281,15 +283,16 @@ Phase 0 Foundation
 
 ---
 
-### Phase 1 — Routing & authorization
+### Phase 1 — Routing & authorization (greenfield)
 
-- Split the ~978-line `routes.php` into `routes/web.php`, `routes/api.php`, `routes/console.php`.
-- Convert string controller references (`"Admin\BookingController@index"`) to class-based routes.
-- Migrate Entrust middleware/roles (Property Owner, Regional Manager, etc.) to Spatie Permission + Policies/Gates.
-- **Replace `OwnerAccessVerifier`** with Policies/Gates (and Spatie roles/permissions where applicable). Do **not** port the class as-is.
-- Secure or remove public HTTP cron routes (`/cron/*`) — replace with Laravel Schedule + authenticated/CLI-only commands.
-- Review webhook routes (especially Hostaway): validate signatures, return 200 quickly, queue heavy work.
-- Preserve existing cron schedules and webhook URL paths unless DevOps coordinates a cutover.
+Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy app is a **business-behavior oracle only** — no Entrust classes, helpers, or technical patterns are ported.
+
+- Scaffold `routes/web.php`, `routes/api.php`, `routes/console.php` with class-based routes; add domain routes as modules land in later phases.
+- Install **Spatie Permission** + Policies/Gates; seed business role names (superadmin, admin, Regional Manager, Property Owner, cleaner, maintenance).
+- Session auth shell (login/logout). Owner terms / active-property access as **new** middleware/Gates with stubbed domain checks until those modules exist — do **not** port `OwnerAccessVerifier`.
+- **No public `/cron/*` HTTP routes.** Artisan command stubs + Laravel Schedule only (frequencies aligned to known business schedules).
+- Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **signature verification deferred to Phase 2** (explicit TODO).
+- Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
 
 ---
 
@@ -496,14 +499,15 @@ Phase 0 Foundation
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
 | `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — project source of truth |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Quality | Pest smoke tests, Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
-| Fresh schema (`migrations_fresh`) | **Not present** on reference disk at Phase 0 inventory time — re-verify before schema port; **not** copied/run into `airconcierge13` |
+| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (signature TODO → Phase 2). See ADR-007 |
+| Quality | Pest (incl. Phase 1 auth/role/webhook tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
+| Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |
 | Legacy `database/migrations/` | ~51 historical files — not the L13 baseline |
 
 ---
 
 ## 15. Next step
 
-1. Treat this document as the guide for all subsequent work.
-2. Phase 0 DoD is met — do not begin Phase 1+ until Phase 1 is explicitly approved.
-3. Do **not** copy or run `database/migrations_fresh` into `airconcierge13` until separately approved.
+1. Treat this document as the guide for all subsequent work. For Phase 0–1 how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
+2. Phase 0 DoD is met. Phase 1 is **greenfield** routing & auth (ADR-007) — not a legacy route/Entrust port.
+3. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
