@@ -4,7 +4,7 @@
 **Status:** Phase 0 (foundation) and Phase 1 (routing & auth scaffold) complete  
 **Last updated:** 2026-07-16
 
-This document describes the **implemented** technical surface through Phase 1. Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
+This document describes the **implemented** technical surface through Phase 1. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
 
 ---
 
@@ -15,7 +15,8 @@ This document describes the **implemented** technical surface through Phase 1. S
 | Phase | Delivered |
 |-------|-----------|
 | 0 | Sail runtime, MySQL + Redis, Pest/Pint/Larastan, CI, ADRs, inventory, project rules |
-| 1 | Greenfield routes, Spatie Permission, session login shell, owner middleware stubs, Schedule command stubs, Hostaway webhook stub |
+| 1 | Greenfield routes, Spatie Permission, session login shell, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (signature → Phase 1a) |
+| 1a | **Not started** — Hostaway signature validation + Spec package ownership audit |
 
 There is **no production cutover**. Until cutover is approved, the legacy app remains the system of record.
 
@@ -110,7 +111,7 @@ Request → Controller → Form Request → Policy/Gate → Service → Model �
 - Legacy app is a **business-behavior oracle only** — no Entrust classes, route dumps, or technical patterns ported forward ([ADR-007](adr/007-phase1-greenfield-routing-auth.md)).
 - No new global helpers; no `env()` outside config; no direct `DB::` in controllers.
 
-See also [`AGENTS.md`](../AGENTS.md) and [`.cursor/rules/migration.mdc`](../.cursor/rules/migration.mdc).
+See also [`docs/AGENTS.md`](AGENTS.md) and [`.cursor/rules/migration.mdc`](../.cursor/rules/migration.mdc).
 
 ---
 
@@ -166,10 +167,10 @@ Command bodies are stubs until the matching domain phase implements them.
 
 - Path preserved: `POST /wh/hostaway/booking/created`
 - Controller returns **200** quickly and dispatches `SyncHostawayReservationJob`
-- Job `handle()` is empty pending Phase 2
-- **TODO Phase 2:** validate Hostaway webhook signature before trusting the payload
+- Job `handle()` is empty pending Phase 2.1 / Phase 4
+- **TODO Phase 1a:** validate Hostaway webhook signature before trusting the payload
 
-Do not change Hostaway API contracts when Phase 2 lands.
+Do not change Hostaway API contracts when Phase 2.1 lands.
 
 ---
 
@@ -189,13 +190,13 @@ Pest Feature coverage for Phase 1 includes authentication, Spatie role middlewar
 
 | Document | Role |
 |----------|------|
-| [migration-plan.md](migration-plan.md) | Source of truth for phases, DoD, out-of-scope |
+| [Laravel_5.1_to_13_Modernization_Spec.md](Laravel_5.1_to_13_Modernization_Spec.md) | Requirements source of truth |
+| [migration-plan.md](migration-plan.md) | Execution roadmap (phases, DoD, out-of-scope) — must fully reflect the Spec |
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
 | [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–1) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [Laravel_5.1_to_13_Modernization_Spec.md](Laravel_5.1_to_13_Modernization_Spec.md) | Historical requirements; plan wins on conflict |
 | [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [007](adr/007-phase1-greenfield-routing-auth.md) | Architecture decisions |
-| [AGENTS.md](../AGENTS.md) | Agent/developer guidelines |
+| [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc` with `alwaysApply: true`) |
 
 ---
 
@@ -203,7 +204,7 @@ Pest Feature coverage for Phase 1 includes authentication, Spatie role middlewar
 
 - Full admin UI and Blade rewrite
 - Business schema (`migrations_fresh` live migrate)
-- Hostaway sync / signature verification
-- Bookings, payments, reports, chronology, email
+- Hostaway sync / signature verification (Phase 1a signatures; Phase 2.1 service; Phase 4 job hardening)
+- Bookings, payments, reports, chronology, email (Phase 2+)
 - Username login, password expiry, real owner terms/property data
 - Horizon, production cutover

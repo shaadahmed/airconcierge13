@@ -4,7 +4,7 @@
 **Source:** `/mnt/e/xampp/htdocs/airconcierge` (read-only)  
 **Generated:** 2026-07-12
 
-Use this as a tracking inventory for Phases 1–6. Do not treat checkboxes as permission to port; follow `migration-plan.md` phase order.
+Use this as a tracking inventory for Phases 1–6 (including Phase 1a). Do not treat checkboxes as permission to port; follow `migration-plan.md` phase order (requirements: `Laravel_5.1_to_13_Modernization_Spec.md`).
 
 ---
 
@@ -219,9 +219,10 @@ Also scheduled from former Artisan Kernel (not HTTP `/cron/*`): `emails:process-
 | Phase | Focus |
 |-------|--------|
 | 0 | Foundation (this inventory) |
-| 1 | Routing & auth |
-| 2 | Hostaway + webhooks |
-| 3 | Email / Chronology |
-| 4 | Bookings & Payments |
-| 5 | Reports & Dashboard |
-| 6 | Remaining admin, helpers, packages, deployment readiness |
+| 1 | Routing & Middleware / auth scaffold |
+| 1a | Early-stage gap closure (Hostaway signatures + package ownership audit) |
+| 2 | Extract Services (2.1 Hostaway → 2.2 Email/Chronology → 2.3 Bookings & Payments → 2.4 Reports & Dashboard → 2.5 Remaining admin) |
+| 3 | Helpers Decomposition |
+| 4 | Async Migration (jobs, workers, failed-job monitoring) |
+| 5 | Frontend / Views (incremental Blade + Yajra DataTables) |
+| 6 | Deployment Readiness |

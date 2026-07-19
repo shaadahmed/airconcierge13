@@ -1,7 +1,21 @@
+---
+description: Air Concierge + Laravel Boost agent guidelines (from docs/AGENTS.md)
+alwaysApply: true
+---
+
+<!-- Keep in sync with docs/AGENTS.md — this rule injects those guidelines into every Cursor agent session. -->
+
 # Air Concierge — Laravel 13 agent guidelines
 
+**Canonical path:** `docs/AGENTS.md`  
+**Always-on for Cursor:** mirrored in `.cursor/rules/agents.mdc` (`alwaysApply: true`). Keep both in sync when editing.
+
 This repository is a **fresh Laravel 13** port of the Laravel 5.1 Air Concierge app.
-The migration plan at `docs/migration-plan.md` is the source of truth for sequencing.
+
+**Requirements source of truth:** `docs/Laravel_5.1_to_13_Modernization_Spec.md`  
+**Execution roadmap:** `docs/migration-plan.md` (must fully reflect the Spec; use it for sequencing, tasks, deliverables, and exit criteria)
+
+If the plan would omit or weaken a Spec requirement, the Spec wins and the plan must be updated.
 
 ## Behavior preservation
 

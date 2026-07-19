@@ -15,4 +15,8 @@ Phase 1 builds routing and authorization as a **greenfield Laravel 13 scaffold**
 
 ## Rationale
 
-Senior direction: pure rewrite with no technical baggage. Full route dumps force stubs that rot and reintroduce legacy structure. Spatie Permission + Policies/Gates with stubbed owner/terms checks, Schedule-only cron commands, and a Hostaway webhook placeholder (signature TODO → Phase 2) meet Phase 1 DoD without copying legacy code or `migrations_fresh` tables.
+Senior direction: pure rewrite with no technical baggage. Full route dumps force stubs that rot and reintroduce legacy structure. Spatie Permission + Policies/Gates with stubbed owner/terms checks, Schedule-only cron commands, and a Hostaway webhook placeholder (signature deferred from Phase 1 scaffold) meet Phase 1 DoD without copying legacy code or `migrations_fresh` tables.
+
+## Follow-up (2026-07-19)
+
+The modernization Spec assigns Hostaway **signature validation** to Phase 1. Phase 1 left it deferred. Execution ownership is now **Phase 1a** in `docs/migration-plan.md` (not Phase 2 service extraction).

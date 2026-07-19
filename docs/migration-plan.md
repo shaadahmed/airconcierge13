@@ -1,15 +1,15 @@
 # Air Concierge — Laravel 5.1 → Laravel 13 Migration Plan
 
-**Status:** Project source of truth (all phases)  
-**Last updated:** 2026-07-11  
+**Status:** Implementation-ready execution roadmap (all phases)  
+**Last updated:** 2026-07-19  
 **New project root:** `/home/pc/projects/airconcierge13`  
 **Reference (old) app:** `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`)
 
-This document is the **single source of truth** for the entire Laravel 5.1 → Laravel 13 migration. Agents and humans follow it for sequencing, layering, DoD, and out-of-scope rules until it is deliberately revised.
+This document is the **execution plan** for the Laravel 5.1 → Laravel 13 migration. It must fully reflect `docs/Laravel_5.1_to_13_Modernization_Spec.md`, which is the **requirements source of truth**. Agents and humans follow this plan for sequencing, tasks, deliverables, dependencies, and exit criteria.
 
-The modernization spec (`docs/Laravel_5.1_to_13_Modernization_Spec.md`) is historical / requirements background. **Where this plan and the spec disagree, this plan wins** (e.g. PHP 8.3+, Spatie Permission, Laravel Sail, domain-ordered phases).
+Where this plan records **implementation choices** that satisfy the spec without contradicting it (e.g. PHP 8.3+ vs the spec’s 8.2+ floor, Spatie Permission as the Entrust replacement, Laravel Sail for local runtime, greenfield Phase 1 routing per ADR-007), those notes are preserved. If any plan detail would **omit or weaken** a spec requirement, the specification wins and this plan must be updated.
 
-Do **not** begin Phase 1+ until Phase 0 DoD is met and Phase 1 is explicitly approved to start.
+Do **not** begin Phase 2+ until Phase 0 DoD is met, Phase 1 is complete, and Phase 1a exit criteria are met (or Phase 1a items are explicitly waived with documented approval).
 
 ---
 
@@ -25,6 +25,8 @@ This is a **framework migration + structural refactor**, not a feature sprint an
 - Do **not** add new features or redesign the UI unless separately approved.
 - Optimize for long-term maintainability, not for minimizing the number of changed files.
 - Follow **DRY** and **SOLID** throughout.
+- Prefer Laravel Events, Listeners, Notifications, Jobs, Bus Batching, and Scheduling where they improve separation of concerns. Do not queue work simply for the sake of using queues.
+- Controllers should remain thin orchestration layers. If a controller action grows beyond simple request handling and service coordination, extract the logic into Services, Actions, Jobs, or Events as appropriate.
 
 ---
 
@@ -50,14 +52,14 @@ This is a **framework migration + structural refactor**, not a feature sprint an
 
 | Requirement | Target |
 |-------------|--------|
-| PHP | **8.3+** (Laravel 13 minimum; the modernization spec’s 8.2+ is superseded here) |
+| PHP | **8.3+** (Laravel 13 minimum; satisfies the modernization spec’s 8.2+ floor) |
 | Framework | Laravel 13 (latest stable) |
 | Database | MySQL 8, database name **`airconcierge`** (aligned with the old app) |
 | Schema source | Fresh baseline in the reference app: **`/mnt/e/xampp/htdocs/airconcierge/database/migrations_fresh/`** (~101 files, dated `2026_07_11_*`, ending with `add_foreign_keys_to_fresh_schema`). This replaces the historical ~51 incremental files under `database/migrations/` as the intended L13 schema source. |
 | Schema timing | Phase 0 creates the empty MySQL DB only. **Do not copy or run** `migrations_fresh` into `airconcierge13` until explicitly approved (later phase / separate go-ahead). |
 | Cache / queue / sessions | Redis |
 | Local runtime | **Laravel Sail** (`vendor/bin/sail`) — app + MySQL + Redis; queue worker and scheduler via Sail/Compose services as configured in Phase 0 |
-| Production queue/scheduler | Sail/Compose where used; otherwise **supervisor** or **systemd** (as appropriate for the host) |
+| Production queue/scheduler | Sail/Compose where used; otherwise **supervisor** or **systemd** (as appropriate for the host) — Spec Phase 4 / Phase 6 |
 | Host tooling | Docker Desktop must be available in WSL for Sail; if Docker is unavailable, fall back to local PHP 8.3 + Composer and still keep Sail Compose files for parity |
 
 Default new `.env.example` drivers (no real secrets):
@@ -75,9 +77,9 @@ Default new `.env.example` drivers (no real secrets):
 - Preserve all existing business behavior unless explicitly approved to change it.
 - If behavior looks broken, inconsistent, or wrong: **do not silently fix it.**
   1. Document the issue.
-  2. Explain impact.
+  2. Explain the impact.
   3. Propose an improved implementation.
-  4. Wait for approval before changing it.
+  4. Wait for approval before intentionally changing behavior.
 - Never change business logic quietly during a refactor.
 - Flag business logic found in Blade views as follow-up cards; do not “fix” inline while migrating another concern.
 
@@ -141,6 +143,20 @@ Gathered by inspecting `/mnt/e/xampp/htdocs/airconcierge` (composer.json, tree, 
 
 Hostaway, Zoho Sign / HelloSign, Dropbox, Google Drive, Slack, PDF generation (wkhtmltopdf).
 
+### Known fat controllers (priority refactor targets)
+
+| Controller | Approx. lines |
+|------------|---------------|
+| AjaxDashboardController | ~4,800 |
+| BookingController | ~2,100 |
+| ChronologycronController | ~1,350 |
+| PropertyController | ~1,580 |
+| PaymentController | ~1,450 |
+| CreateBookingController | ~1,450 |
+| CronJobsController | ~1,100 |
+| HostawayController | ~1,170 |
+| ReportController | ~1,050 |
+
 ---
 
 ## 6. Target folder / project layout
@@ -149,11 +165,11 @@ Hostaway, Zoho Sign / HelloSign, Dropbox, Google Drive, Slack, PDF generation (w
 /home/pc/projects/airconcierge13/          # NEW git root (Laravel 13 + Sail)
 ├── .gitignore                             # currently ignores docs/ (temporary — un-ignore in Phase 0)
 ├── docs/                                  # project docs (tracked in git)
-│   ├── migration-plan.md                  # this file — source of truth for all phases
+│   ├── migration-plan.md                  # this file — execution roadmap for all phases
 │   ├── migration-inventory.md             # legacy inventory / cron command map
 │   ├── technical-documentation.md         # developer reference (Phase 0–1+)
 │   ├── user-documentation.md              # end-user / QA guide for the current shell
-│   ├── Laravel_5.1_to_13_Modernization_Spec.md  # background requirements
+│   ├── Laravel_5.1_to_13_Modernization_Spec.md  # requirements source of truth
 │   └── adr/                               # architecture decision records
 ├── app/
 │   ├── Http/Controllers/                  # thin HTTP only
@@ -182,7 +198,7 @@ The old app is **not** nested inside `airconcierge13`.
 
 ## 7. Layering standard (every migrated module)
 
-Enforce this flow throughout:
+Enforce this flow throughout (spec Target Layering):
 
 ```
 Request
@@ -197,53 +213,85 @@ Request
 
 Repositories are optional — use them when query complexity warrants it; do not invent a repository for every model.
 
-### Mandatory guidelines
+### Mandatory guidelines (from spec)
 
-- Keep controllers thin.
-- Move business logic into domain-grouped Service classes.
-- Use Form Requests for all non-trivial validation.
-- Use Policies/Gates for authorization (replace Entrust over time).
-- Follow **DRY** and **SOLID**.
-- Prefer constructor DI over facades in services where practical.
-- Replace deprecated helpers/APIs (`Input::`, old route syntax, legacy middleware names).
-- Remove obsolete framework patterns from touched files (legacy controller routing strings, legacy auth flows where L13 equivalents exist).
-- No new global helpers; no new business logic in Blade.
-- Interfaces only when multiple implementations are genuinely expected.
+- Keep controllers thin — HTTP in/out only; no business logic.
+- Move business logic into dedicated Service classes (domain-grouped: Bookings, Payments, Chronology, Hostaway, Reports, etc.).
+- Keep models focused on relationships, scopes, casts, and entity behavior — not orchestration.
+- Use Form Request classes for all non-trivial validation (replace inline `Validator::` / `$this->validate()` in controllers).
+- Use Policies / Gates for authorization — replace Entrust middleware patterns over time.
+- Follow DRY and SOLID principles.
+- Prefer constructor dependency injection over facades where practical (especially in services).
+- Replace deprecated helpers and APIs (`Input::`, old route syntax, legacy middleware names, etc.).
+- Remove obsolete framework patterns (e.g. old controller routing strings, legacy auth flows where Laravel 13 equivalents exist).
+- Do not introduce new technical debt — no new global helpers; no new logic in Blade views.
+- Interfaces only when multiple implementations are genuinely expected (do not over-abstract).
 - Every refactored critical path gets at least one feature/integration test.
 
-### Code quality rules (PR review)
+### Code quality rules (enforce during PR review — from spec)
 
-- No new controller methods >50 lines without justification.
+- No new methods >50 lines in controllers without justification.
 - No direct `DB::` in controllers — use models or query objects in services.
 - No `Mail::send()` closures or raw PHPMailer in controllers.
 - No `env()` outside config files.
 - No new `0000-00-00` date handling — use nullable dates / Carbon.
+- Every new Service gets an interface only if multiple implementations are expected.
+- Every refactored critical path gets at least one feature/integration test.
 
-### Sync vs async
+### Sync vs async (from spec)
 
 - Queue if I/O-bound or expected runtime > ~2s.
-- Keep sync when the user needs immediate feedback, transactional integrity requires it, or the operation is trivial (<~100ms) — document the rationale briefly.
-- Do not queue for the sake of queuing.
+- Keep sync when the user needs immediate feedback, transactional integrity requires it, or the operation is trivial (<~100ms) — document the rationale in a brief code comment or ADR note.
+- Do not queue solely for the sake of using queues.
+
+### Job standards (from spec — apply to every job)
+
+Each job must be:
+
+- Small and single-purpose
+- Idempotent where possible (safe to retry)
+- Retry-safe with configured `$tries` / backoff
+- Properly logged (structured context: entity ID, user, correlation ID)
+- Fail gracefully — use `failed()` handler; surface to monitoring (Slack already in stack)
+- Batched or chained where appropriate (e.g. bulk email sends, metric recalculations)
 
 ---
 
 ## 8. Full phase breakdown
 
-Phases below follow the **recommended domain migration order**. Structural work from the modernization spec (service extraction, helpers decomposition, async jobs, Blade touch-ups, deployment readiness) is folded into these phases where it belongs.
+Phases follow the **Structural Refactor Checklist** order in the modernization specification. Within Phase 2 (Extract Services), domain extraction order follows the spec’s **Recommended Migration Order**.
 
 ```text
-Phase 0 Foundation
-    → Phase 1 Routing & Auth
-    → Phase 2 Hostaway + webhooks
-    → Phase 3 Email / Chronology
-    → Phase 4 Bookings & Payments
-    → Phase 5 Reports & Dashboard
-    → Phase 6 Remaining admin + helpers + deployment readiness
+Phase 0  Foundation                                          [IMPLEMENTED]
+    → Phase 1  Routing & Middleware                          [IMPLEMENTED]
+    → Phase 1a Early-stage gap closure (pre–Phase 2)       [NEXT]
+    → Phase 2  Extract Services (by domain)
+         2.1 Hostaway + webhooks
+         2.2 Email / Chronology
+         2.3 Bookings & Payments
+         2.4 Reports & Dashboard
+         2.5 Remaining admin modules
+    → Phase 3  Helpers Decomposition
+    → Phase 4  Async Migration
+    → Phase 5  Frontend / Views (as needed)
+    → Phase 6  Deployment Readiness
 ```
+
+Spec Recommended Migration Order (maps onto Phase 0 → 1 → 2.1 → 2.2 → 2.3 → 2.4 → 2.5):
+
+1. Infrastructure (L13, queue, tests, CI) — Phase 0  
+2. Auth & routing (Entrust → Policies, secure crons) — Phase 1 (+ Phase 1a gaps)  
+3. Hostaway + webhooks — Phase 2.1  
+4. Email/Chronology — Phase 2.2  
+5. Bookings & Payments — Phase 2.3  
+6. Reports & Dashboard — Phase 2.4  
+7. Remaining admin modules — Phase 2.5  
 
 ---
 
 ### Phase 0 — Foundation (no business port yet)
+
+**Status:** Implemented.
 
 **Goal:** Bootable Laravel 13 project with Sail, Redis queues, Pest, CI, and documented decisions. Old app untouched. Business schema not imported yet.
 
@@ -259,10 +307,19 @@ Phase 0 Foundation
 | Horizon | **Not** in Phase 0 — plain Redis `queue:work` only |
 | CI | Lint (`pint --test`), static analysis, tests |
 | Agent tooling | Laravel Boost (`composer require laravel/boost --dev`) |
-| Project rules | Encode behavior-preservation + layering in `.cursor/rules` or `AGENTS.md` |
+| Project rules | Encode behavior-preservation + layering in `.cursor/rules` and `docs/AGENTS.md` |
 | Docs in git | Un-ignore `docs/` so this plan, ADRs, and inventory are tracked |
 | ADRs | See list below |
 | Inventory | `docs/migration-inventory.md` — controllers, cron HTTP routes, packages, helpers — checklist only, no ports |
+
+**Spec Phase 0 checklist (mapped):**
+
+- [x] Set up Laravel 13 skeleton (or incremental upgrade branch strategy — document chosen approach) → fresh skeleton, ADR-001
+- [x] PHP 8.2+ runtime requirement → satisfied by PHP 8.3+ / Sail 8.4
+- [x] Configure `.env` / config for queue driver (Redis recommended), cache, sessions
+- [x] Set up PHPUnit/Pest test harness (currently zero tests)
+- [x] Add CI pipeline: lint, test, static analysis (PHPStan/Psalm at sensible level) → Pint + Larastan level 5 + Pest in CI
+- [x] Document rollback plan → ADR-006
 
 **Rollback (Phase 0 / pre-cutover):**
 
@@ -285,6 +342,8 @@ Phase 0 Foundation
 
 ### Phase 1 — Routing & authorization (greenfield)
 
+**Status:** Implemented (scaffold). See ADR-007.
+
 Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy app is a **business-behavior oracle only** — no Entrust classes, helpers, or technical patterns are ported.
 
 - Scaffold `routes/web.php`, `routes/api.php`, `routes/console.php` with class-based routes; add domain routes as modules land in later phases.
@@ -294,92 +353,496 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 - Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **signature verification deferred to Phase 2** (explicit TODO).
 - Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
 
+**Spec Phase 1 checklist (mapped):**
+
+- [x] Split `routes.php` into `routes/web.php`, `routes/api.php`, `routes/console.php` (greenfield split files; domain routes added as modules land)
+- [x] Convert string controller references (`"Admin\BookingController@index"`) to class-based routes (for all routes registered in the scaffold; remaining domain routes remain class-based as they land)
+- [x] Migrate Entrust middleware to Policies/Gates (role: Property Owner, Regional Manager, etc.) → Spatie Permission + seeded roles + middleware/Gate stubs; domain Policies land with Phase 2 modules
+- [x] Secure or remove public HTTP cron routes (`/cron/*`) — replace with Schedule + authenticated commands only
+- [ ] Review webhook routes (Hostaway) — **validate signatures**, return 200 fast, queue processing → return 200 + queue done; **signature validation incomplete** → Phase 1a
+
 ---
 
-### Phase 2 — Hostaway + webhooks
+### Phase 1a — Early-stage gap closure (pre–Phase 2)
+
+**Status:** Not started.  
+**Purpose:** Capture every specification requirement that belongs **before Phase 2 (Extract Services)** but was not completed in Phase 0 or Phase 1. Do not duplicate completed Phase 0/1 work.
+
+#### Objectives
+
+- Close the Spec Phase 1 Hostaway webhook gap: **validate signatures** (Phase 1 already returns 200 fast and dispatches a queue job stub).
+- Complete a formal Package & Integration Migration audit status for every Spec-listed Composer dependency so Phase 2+ replacements have an approved home phase.
+- Confirm Spec Phase 1 “Policies/Gates” scaffold is sufficient to start domain extraction (no new Entrust port; domain Policies created when modules land in Phase 2).
+
+#### Tasks
+
+1. **Hostaway webhook signature validation (Spec Phase 1 remainder)**
+   - Implement signature validation on `POST /wh/hostaway/booking/created` before trusting the payload.
+   - Keep webhook response fast (return 200); continue queue dispatch for valid requests via `SyncHostawayReservationJob` (stub may remain until Phase 2.1 / Phase 4 completes business processing).
+   - Reject or safely ignore invalid signatures without running business processing; preserve existing business behavior for valid traffic.
+   - Remove the controller TODO that deferred signature verification to Phase 2; update ADR-007 / technical docs accordingly.
+   - Add/extend Pest feature tests for valid signature, invalid signature, and dispatch behavior.
+
+2. **Package & Integration Migration audit (Spec package table — audit only)**
+   - For each Spec-listed package, record status: replaced / deferred to named later phase / verify-then-remove / not needed on L13.
+   - Do **not** perform bulk package replacements in Phase 1a except where required to finish signature validation or unblock documentation.
+   - Spec packages to track:
+     - `zizaco/entrust` → Spatie Permission + Policies/Gates (**done in Phase 1**)
+     - `yajra/laravel-datatables-oracle` ~5 → upgrade to current Yajra for L13 (**Phase 5** — verify DataTables JS after upgrade)
+     - `sammyk/laravel-facebook-sdk` → verify still needed; remove or replace (**Phase 2.5** or when Facebook-touching module lands)
+     - `phpmailer/phpmailer` → Laravel Mail + Mailables/Notifications (**Phase 2.2**)
+     - `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries → evaluate Browsershot, DomPDF, or maintained PDF package (**ADR-005**; implement with Phase 2.3/2.4 PDF paths and Phase 4 `GeneratePdfJob`)
+     - `hellosign/hellosign-php-sdk` → wrap in HelloSignService; verify Zoho migration status (**Phase 2.2**)
+     - `nao-pon/flysystem-google-drive` → Flysystem v3 + Laravel filesystem config (**Phase 2.5** / cloud backup path)
+     - `jeremykenedy/slack-laravel` → Laravel Slack notification channel (**Phase 4** failed-job monitoring; earlier if a Phase 2 module needs Slack)
+     - `vinkla/hashids` → verify L13 compatibility or replace (**Phase 2.5** or first consumer module)
+     - `doctrine/dbal` → keep if needed for schema introspection; pin compatible version (**as needed when schema work lands**)
+     - `guzzlehttp/guzzle` → Guzzle 7+ (**Phase 2.1 Hostaway** or earlier if required)
+
+3. **Architecture Decisions (ADR) gap check**
+   - Confirm ADRs exist for major decisions called out by the Spec: authentication, package replacements, queues, PDFs, etc. (Decision / Alternatives considered / Rationale).
+   - Write any missing brief ADR before Phase 2 starts if a decision is already made; otherwise open ADR stubs with “decision pending” only where Phase 2+ work requires a locked choice (e.g. PDF final pick after spike).
+
+#### Deliverables
+
+- Hostaway webhook signature validation implemented and tested.
+- Package audit matrix updated in this plan (§10) and/or `docs/migration-inventory.md` with phase ownership for every Spec package.
+- Docs/ADRs updated so Phase 1’s “signature TODO → Phase 2” language no longer applies.
+
+#### Dependencies
+
+- Phase 0 DoD met; Phase 1 scaffold complete.
+- Hostaway webhook signing secret available via config (not `env()` outside config files).
+
+#### Exit criteria
+
+- [ ] Spec Phase 1 Hostaway item fully satisfied: validate signatures **and** return 200 fast **and** queue processing for accepted webhooks
+- [ ] Pest coverage for signature success/failure paths
+- [ ] Spec package table has an explicit ownership phase for every listed dependency
+- [ ] No Spec Phase 0 or Phase 1 checklist item remains open except intentionally deferred items that now have an explicit later-phase owner
+
+---
+
+### Phase 2 — Extract Services (by domain)
+
+**Status:** Not started.  
+**Spec alignment:** Structural Refactor Checklist — Phase 2.
+
+Extract business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies/Gates. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
+
+**Domain extraction order** follows the Spec Recommended Migration Order (subsections below). Spec Phase 2 checklist items appear in the subsection where they are implemented.
+
+#### Objectives
+
+- Move business logic into dedicated Services (Bookings, Payments, Chronology, Hostaway, Reports, Email, Documents, Import, Zoho/HelloSign, and remaining admin as touched).
+- Keep models focused on relationships, scopes, casts, and entity behavior — not orchestration.
+- Apply Target Layering and per-module Definition of Done for every extracted domain.
+- Prefer Events, Listeners, Notifications, Jobs, Bus Batching, and Scheduling where they improve separation of concerns (full job infrastructure and job catalog completion is Phase 4).
+
+#### Dependencies
+
+- Phase 1a exit criteria met.
+- Relevant `migrations_fresh` tables copied into live `database/migrations/` only when a domain needs them (explicit approval per domain).
+- Behavior preservation rules in force; suspected bugs documented and held for approval.
+
+#### Exit criteria (phase-level)
+
+- [ ] Every Spec Phase 2 service checklist item below is implemented or explicitly deferred with approval
+- [ ] Touched controllers reduced per Definition of Done (§11)
+- [ ] Critical paths for each extracted domain have at least one feature/integration test
+- [ ] No new global helpers; no new business logic in Blade introduced by this phase
+
+---
+
+#### Phase 2.1 — Hostaway + webhooks
+
+**Why first:** High integration risk; already has a service stub; Spec Recommended Migration Order.
+
+##### Objectives
 
 - Extend/port `HostawayService`; move logic out of `HostawayController`.
-- Implement `SyncHostawayReservationJob` (webhook returns fast).
-- High integration risk — prioritize tests around webhook ingest and sync idempotency.
-- Do not change Hostaway API contracts.
+- Keep webhook path and contracts stable; processing remains fast at the HTTP boundary (signature validation already in Phase 1a).
+- Prepare Hostaway sync for full async completion in Phase 4 (`SyncHostawayReservationJob`).
+
+##### Tasks
+
+- [ ] `HostawayService` — extend existing service; move logic out of `HostawayController`
+- [ ] Thin `HostawayController` / webhook controller to HTTP + service/job delegation only
+- [ ] Form Requests + Policies/Gates for non-trivial Hostaway admin endpoints as they are ported
+- [ ] Wire accepted webhooks to `SyncHostawayReservationJob` calling `HostawayService` (job hardening / retries / monitoring completed in Phase 4)
+- [ ] Prioritize tests around webhook ingest and sync idempotency
+- [ ] Upgrade `guzzlehttp/guzzle` to Guzzle 7+ if required for Hostaway HTTP client work
+- [ ] Do not change Hostaway API contracts
+
+##### Deliverables
+
+- `HostawayService` owning Hostaway business logic
+- Thin Hostaway HTTP layer; webhook remains fast
+- Feature/integration tests for webhook ingest / sync idempotency
+
+##### Dependencies
+
+- Phase 1a Hostaway signature validation complete
+- Schema tables for Hostaway/reservation domain available when needed
+
+##### Known fat controller
+
+- `HostawayController` (~1,170 lines)
 
 ---
 
-### Phase 3 — Email / Chronology (largest async win)
+#### Phase 2.2 — Email / Chronology
 
-- `ChronologyService` from Chronology / Chronologycron controllers.
-- `EmailService` — centralize outbound mail; migrate PHPMailer → Mailables / Notifications.
-- Jobs: `SendOutboundEmailJob`, `SendNotificationJob`, signature-related jobs (`ProcessSignatureRequestJob`) as applicable.
-- `ZohoSignService` / `HelloSignService` — wrap SDKs; verify Zoho vs HelloSign migration status before deep investment.
-- Replace `jeremykenedy/slack-laravel` with Laravel’s Slack notification channel for failure/monitoring signals.
+**Why next:** Largest async win per Spec Recommended Migration Order; feeds Phase 4 email jobs.
+
+##### Objectives
+
+- Extract chronology and email domain logic into services.
+- Centralize PHPMailer usage and migrate to Laravel Mail / Mailables / Notifications.
+- Wrap signature SDKs; verify Zoho vs HelloSign migration status before deep investment.
+
+##### Tasks
+
+- [ ] `ChronologyService` — from `ChronologyController`, `ChronologycronController`
+- [ ] `EmailService` — centralize PHPMailer usage; migrate to Mailables / Notifications
+- [ ] `ZohoSignService` / `HelloSignService` — from chronology controllers; wrap `hellosign/hellosign-php-sdk`; verify Zoho migration status
+- [ ] Form Requests + Policies/Gates for non-trivial endpoints as ported
+- [ ] Thin chronology/email/sign controllers to HTTP + service delegation
+- [ ] Replace `phpmailer/phpmailer` usage on touched paths with Laravel Mail
+- [ ] Feature/integration tests on critical chronology/email/sign paths
+- [ ] Flag any Blade-embedded chronology/email business logic as follow-up cards
+
+##### Deliverables
+
+- `ChronologyService`, `EmailService`, `ZohoSignService` / `HelloSignService`
+- Outbound mail on migrated paths using Laravel Mail / Mailables / Notifications
+- Controllers thin; critical-path tests present
+
+##### Dependencies
+
+- ADR-004 (Laravel Mailables) followed
+- HelloSign/Zoho status verified before large HelloSign investment
+- Jobs `SendOutboundEmailJob`, `SendNotificationJob`, `ProcessSignatureRequestJob` may be stubbed here; full job standards + monitoring in Phase 4
+
+##### Known fat controllers
+
+- `ChronologycronController` (~1,350 lines)
 
 ---
 
-### Phase 4 — Bookings & Payments (core business)
+#### Phase 2.3 — Bookings & Payments
 
-- `BookingService` from `BookingController`, `CreateBookingController`.
-- `PaymentService` from `PaymentController`, `PropertyPaymentsController`.
-- Form Requests + Policies for all non-trivial endpoints.
-- Thin controllers; feature tests on critical booking/payment paths.
-- Queue PDF-related payment/booking artifacts where appropriate (`GeneratePdfJob`).
+**Why next:** Core business; fattest controllers per Spec Recommended Migration Order.
 
-**Known fat controllers to prioritize in this phase:** BookingController, CreateBookingController, PaymentController.
+##### Objectives
+
+- Extract booking and payment domain logic into services.
+- Thin Booking/Payment controllers; Form Requests + Policies for all non-trivial endpoints.
+
+##### Tasks
+
+- [ ] `BookingService` — from `BookingController`, `CreateBookingController`
+- [ ] `PaymentService` — from `PaymentController`, `PropertyPaymentsController`
+- [ ] Form Requests + Policies for all non-trivial booking/payment endpoints
+- [ ] Thin controllers; feature tests on critical booking/payment paths
+- [ ] Identify PDF-related payment/booking artifacts for `GeneratePdfJob` (Phase 4)
+- [ ] Apply PDF package decision (ADR-005) on touched PDF paths
+- [ ] No regression in existing booking/payment behavior
+
+##### Deliverables
+
+- `BookingService`, `PaymentService`
+- Thin booking/payment controllers; Form Requests; Policies
+- Critical-path feature tests
+
+##### Dependencies
+
+- Schema tables for bookings/payments available when needed
+- PDF approach from ADR-005 when generating payment/booking PDFs
+
+##### Known fat controllers
+
+- `BookingController` (~2,100 lines)
+- `CreateBookingController` (~1,450 lines)
+- `PaymentController` (~1,450 lines)
 
 ---
 
-### Phase 5 — Reports & Dashboard
+#### Phase 2.4 — Reports & Dashboard
 
-- `ReportService` from `ReportController`, `TotReportController`.
-- `DashboardService` from `AjaxDashboardController` / Dashboard.
-- `GenerateReportJob` / `GeneratePdfJob` for heavy report/PDF work.
-- Read-heavy; can follow core booking/payment stability.
-- Verify DataTables JS compatibility when Yajra is upgraded (may overlap Phase 6 if reports depend on it earlier).
+**Why next:** Read-heavy; follows core booking/payment stability per Spec Recommended Migration Order.
 
-**Known fat controllers:** AjaxDashboardController (~4,800 lines), ReportController.
+##### Objectives
+
+- Extract report and dashboard domain logic into services.
+- Thin Report/Dashboard controllers; prepare heavy report/PDF work for Phase 4 jobs.
+
+##### Tasks
+
+- [ ] `ReportService` — from `ReportController`, `TotReportController`
+- [ ] `DashboardService` — from `AjaxDashboardController`, Dashboard
+- [ ] Form Requests + Policies/Gates as endpoints are ported
+- [ ] Thin controllers; feature/integration tests on critical report/dashboard paths
+- [ ] Identify work for `GenerateReportJob` / `GeneratePdfJob` (Phase 4)
+- [ ] Note Yajra DataTables dependency for Phase 5 verification (upgrade may begin here if reports require it earlier — prefer Phase 5 unless blocked)
+
+##### Deliverables
+
+- `ReportService`, `DashboardService`
+- Thin report/dashboard controllers; critical-path tests
+
+##### Dependencies
+
+- Stable booking/payment data paths where reports depend on them
+- PDF approach from ADR-005 for report PDFs
+
+##### Known fat controllers
+
+- `AjaxDashboardController` (~4,800 lines)
+- `ReportController` (~1,050 lines)
 
 ---
 
-### Phase 6 — Remaining admin, helpers, async leftovers, deployment readiness
+#### Phase 2.5 — Remaining admin modules
 
-**Remaining domain services (as touched):**
+**Why last:** Spec Recommended Migration Order — remaining admin modules after core domains.
 
-- **`PropertyController` (~1,580 lines)** — extract property domain service(s) as this module is touched; known fat-controller target
-- `DocumentService` — UploadDocument / Documentlist
-- `ImportService` — ImportData / ImportedEmails; jobs like `ProcessImportedEmailJob`, Dropbox CSV job
-- Property metrics: `RecalculatePropertyMetricsJob` (batched)
-- Cloud backup: `UploadBackupToCloudJob`
-- Image compression: keep command; dispatch per-batch jobs
-- Alert cron checks: migrate fully to scheduled commands dispatching jobs (`CronJobsController` HTTP routes)
+##### Objectives
 
-**Helpers decomposition:**
+- Extract remaining Spec Phase 2 services and other admin domains as touched.
+- Address remaining known fat controllers not covered above (e.g. `PropertyController`, `CronJobsController` HTTP surface already removed in Phase 1 — logic lands in services/commands).
 
-- Audit all ~100 functions in `app/helpers.php`.
-- Move to appropriate homes: date/formatting → Value Objects or `Support\DateFormatter`; business rules → Services; view-only formatting → View Composers / Blade components.
-- Goal: eliminate the `helpers.php` Composer autoload entry.
+##### Tasks
 
-**Frontend / views (incremental only):**
+- [ ] `DocumentService` — from `UploadDocumentController`, `DocumentlistController`
+- [ ] `ImportService` — from `ImportDataController`, `ImportedEmailsController`
+- [ ] Property domain service(s) as `PropertyController` (~1,580 lines) is touched (priority fat-controller target; extract when module is migrated)
+- [ ] Image compression: keep `CompressUploadedImages` (or L13 equivalent) as command; prepare per-batch job dispatch for Phase 4
+- [ ] Cloud backup / Dropbox CSV / property metrics paths prepared for Phase 4 jobs (`UploadBackupToCloudJob`, `ProcessDropboxCsvJob`, `RecalculatePropertyMetricsJob`)
+- [ ] Alert cron check logic owned by scheduled Artisan commands / services (no public HTTP cron endpoints)
+- [ ] Package work as consumers land:
+  - [ ] `nao-pon/flysystem-google-drive` → Flysystem v3 + Laravel filesystem config
+  - [ ] `vinkla/hashids` → verify L13 compatibility or replace
+  - [ ] `sammyk/laravel-facebook-sdk` → verify still needed; remove or replace
+  - [ ] `doctrine/dbal` → keep/pin if still needed for schema introspection
+  - [ ] Revisit `flynsarmy/csv-seeder` — likely replace with modern seeders or one-off import commands
+  - [ ] `filp/whoops` — not needed on L13 (framework error handling)
+- [ ] Form Requests + Policies/Gates + thin controllers + critical-path tests per module
+- [ ] Flag Blade-embedded business logic as follow-up cards
 
-- Touch ~198 Blade templates only as needed for migrated modules.
-- Replace inline PHP/logic in views with View Models or components **where touched**.
-- No full Blade rewrite in one pass.
+##### Deliverables
 
-**Package finish-line:**
+- `DocumentService`, `ImportService`, and other admin services as modules land
+- Property domain extraction when Property module is migrated
+- Package decisions recorded for remaining Spec packages owned by this subsection
 
-- Yajra DataTables → current L13-compatible release.
-- Facebook SDK — verify still needed; remove or replace.
-- Hashids — verify L13 compatibility or replace.
-- Guzzle 7+, Flysystem v3 Google Drive adapter, doctrine/dbal pin if still needed.
+##### Dependencies
 
-**Deployment readiness:**
+- Prior Phase 2 subsections as needed by shared entities
+- Schema tables copied only when the domain needs them
 
-- Pint passes; Larastan passes; automated tests pass.
-- Queue workers + scheduler configured (Sail/Compose locally; supervisor/systemd in production as appropriate).
-- Staging deploy + manual QA before production.
-- Failed-job monitoring (e.g. Slack on `failed()`).
+##### Known fat controllers
+
+- `PropertyController` (~1,580 lines)
+- `CronJobsController` (~1,100 lines) — HTTP cron surface already removed; remaining business logic → commands/services/jobs
+
+---
+
+### Phase 3 — Helpers Decomposition
+
+**Status:** Not started.  
+**Spec alignment:** Structural Refactor Checklist — Phase 3.
+
+#### Objectives
+
+- Audit all ~100 functions in legacy `app/helpers.php`.
+- Move each function to an appropriate home; eliminate the `helpers.php` Composer autoload entry.
+- Do not introduce new global helpers.
+
+#### Tasks
+
+- [ ] Audit all ~100 functions in `app/helpers.php`
+- [ ] Move to appropriate homes:
+  - Date/formatting → Value Objects or `Support\DateFormatter`
+  - Business rules → Services
+  - View-only formatting → View Composers or Blade components
+- [ ] Goal: eliminate `helpers.php` autoload entry
+- [ ] Ensure no new global helpers are added during or after this work
+- [ ] Add/adjust tests where helper logic moves into Services or Support classes that implement critical behavior
+
+#### Deliverables
+
+- Helpers inventory (can extend `docs/migration-inventory.md`) with destination for each function
+- Migrated Support/Service/View Composer/Blade component homes
+- Composer `files` autoload entry for `helpers.php` removed when empty/unused
+- No regression on paths that previously depended on helpers
+
+#### Dependencies
+
+- Phase 2 domains that still call helper functions should prefer calling Services/Support during extraction; Phase 3 finishes remaining helpers and removes the autoload entry
+- Behavior preservation: do not silently change helper business rules
+
+#### Exit criteria
+
+- [ ] All ~100 helper functions audited and relocated or explicitly deleted with approval
+- [ ] `helpers.php` Composer autoload entry eliminated
+- [ ] No new global helpers remain in the migration path
+
+---
+
+### Phase 4 — Async Migration
+
+**Status:** Not started.  
+**Spec alignment:** Structural Refactor Checklist — Phase 4; Queues & Jobs section.
+
+#### Objectives
+
+- Stand up production-grade queue worker infrastructure.
+- Implement all high-priority jobs from the Spec Queues section (prioritize email + Hostaway webhook + PDF).
+- Finish migration of HTTP cron responsibility to schedule-driven commands that dispatch jobs.
+- Add failed-job monitoring and a retry dashboard.
+- Enforce Job Standards and “When NOT to Queue” rules on every job.
+
+#### Tasks
+
+- [ ] Stand up queue worker infrastructure (supervisor/systemd in production; Sail `queue:work` already for local/dev from Phase 0)
+- [ ] Implement jobs listed in the Queues section (prioritize email + Hostaway webhook + PDF):
+
+  | Operation | Current location (old app) | Recommended approach / target job |
+  |-----------|----------------------------|-------------------------------------|
+  | Outbound emails / chronology mail | ChronologycronController, SendemailsController, helpers.php | `SendOutboundEmailJob` |
+  | Owner/regional notifications | OwnerEmailNotificationController, cron controllers | `SendNotificationJob` |
+  | PDF generation | ReportController, PaymentController, BookingCancellationController, OwnersMonthlyPayout | `GeneratePdfJob` |
+  | Image compression | CompressUploadedImages command | Keep as command; dispatch per-batch jobs |
+  | Email imports (Airbnb/VRBO) | ProcessAirbnbEmails, ProcessVrboEmails, ImportEmails | `ProcessImportedEmailJob` |
+  | Google Drive backup | CloudBackupCronController | `UploadBackupToCloudJob` |
+  | Dropbox CSV processing | DropboxFormCSVController | `ProcessDropboxCsvJob` |
+  | Hostaway sync / webhooks | HostawayController | `SyncHostawayReservationJob` (webhook returns fast) |
+  | Zoho Sign / HelloSign flows | ChronologycronController, ZohoSignController | `ProcessSignatureRequestJob` |
+  | Property monthly metrics | PropertyMonthlyMatricsCalculation | `RecalculatePropertyMetricsJob` (batched) |
+  | Alert cron checks | CronJobsController HTTP routes | Migrate to scheduled Artisan commands dispatching jobs — remove public HTTP cron endpoints |
+  | Report generation | ReportController, TotReportController | `GenerateReportJob` |
+
+- [ ] Migrate HTTP crons to Laravel Schedule dispatching jobs (L13: `routes/console.php` schedule definitions; Spec references `app/Console/Kernel.php` — use the L13 equivalent)
+- [ ] Preserve all existing cron schedules and webhook URL paths unless DevOps coordinates cutover
+- [ ] Add failed-job monitoring and retry dashboard
+- [ ] Replace `jeremykenedy/slack-laravel` with Laravel’s Slack notification channel for failure/monitoring signals (if not done earlier)
+- [ ] Apply Job Standards to every job: small & single-purpose; idempotent where possible; `$tries`/backoff; structured logging (entity ID, user, correlation ID); `failed()` → monitoring; batch/chain where appropriate
+- [ ] Document sync exceptions briefly when work is intentionally not queued (user waiting, transactional integrity, or <~100ms)
+
+#### Deliverables
+
+- All Spec-listed high-priority jobs implemented (or documented sync-with-rationale where not queued)
+- Production queue workers via supervisor/systemd (or equivalent host standard)
+- Schedule-driven cron replacement fully eliminating public HTTP cron endpoints
+- Failed-job monitoring + retry dashboard
+- Slack (or equivalent) failure surfacing wired
+
+#### Dependencies
+
+- Phase 2 services that jobs call should exist for prioritized domains (email, Hostaway, PDF consumers)
+- Redis queue connection from Phase 0
+- Package: Slack notification channel; PDF package decision for `GeneratePdfJob`
+
+#### Exit criteria
+
+- [ ] Queue worker infrastructure stood up for the target deploy environment
+- [ ] Spec job catalog implemented with standards applied (email + Hostaway + PDF prioritized first)
+- [ ] HTTP crons fully migrated to Schedule → commands/jobs
+- [ ] Failed-job monitoring and retry dashboard in place
+- [ ] No queuing solely for the sake of queues; sync exceptions documented
+
+---
+
+### Phase 5 — Frontend / Views (as needed)
+
+**Status:** Not started.  
+**Spec alignment:** Structural Refactor Checklist — Phase 5.
+
+#### Objectives
+
+- Refactor Blade templates incrementally as modules are touched — not all ~198 at once.
+- Replace inline PHP/logic in views with View Models or components where touched.
+- Verify DataTables JS integration after Yajra upgrade.
+
+#### Tasks
+
+- [ ] ~198 Blade templates — refactor incrementally, not all at once
+- [ ] Replace inline PHP/logic in views with View Models or components where touched
+- [ ] DataTables JS integration — verify compatibility after Yajra upgrade
+- [ ] Upgrade `yajra/laravel-datatables-oracle` ~5 to current Yajra DataTables for L13 (if not already completed when reports required it)
+- [ ] Flag any business logic discovered in Blade during migration — log as follow-up card; do not silently “fix” while migrating another concern
+- [ ] No full rewrite of all 198 Blade templates in one pass (out of scope unless separately approved)
+
+#### Deliverables
+
+- Touched Blade views free of newly introduced business logic; extracted View Models/components where logic was moved
+- Yajra DataTables on L13 with verified JS integration
+- Follow-up cards for Blade business logic found during migration
+
+#### Dependencies
+
+- Domain modules from Phase 2 that own the views being touched
+- Yajra upgrade completed before final DataTables verification
+
+#### Exit criteria
+
+- [ ] Incremental Blade refactor approach followed (no big-bang rewrite)
+- [ ] Inline logic replaced with View Models/components on touched templates
+- [ ] DataTables JS verified after Yajra L13 upgrade
+- [ ] Blade business-logic findings tracked as follow-up cards
+
+---
+
+### Phase 6 — Deployment Readiness
+
+**Status:** Not started.  
+**Spec alignment:** Structural Refactor Checklist — Phase 6.
+
+#### Objectives
+
+- Satisfy Spec Phase 6 deployment readiness checklist.
+- Confirm quality gates, workers, scheduler, staging deploy, and manual QA before production.
+
+#### Tasks
+
+- [ ] Pint passes
+- [ ] Larastan passes
+- [ ] All automated tests pass
+- [ ] Queue workers configured
+- [ ] Scheduler configured
+- [ ] Staging deployment completed
+- [ ] Manual QA completed before production deployment
+- [ ] Confirm remaining Spec package actions are closed or explicitly accepted as deferred with approval
+- [ ] Confirm no Spec Definition of Done item is open for modules claimed “migrated”
+- [ ] Prefer long-term maintainability over minimizing the number of changed files in final hardening PRs
+
+#### Deliverables
+
+- Green Pint, Larastan, and full automated test suite
+- Configured queue workers and scheduler in target environments
+- Staging deployment + completed manual QA sign-off before production
+
+#### Dependencies
+
+- Phases 2–5 complete for modules intended for the first production cutover (or an explicitly approved partial cutover scope)
+- Phase 4 queue/scheduler infrastructure available for production-like staging
+
+#### Exit criteria
+
+- [ ] Pint passes
+- [ ] Larastan passes
+- [ ] All automated tests pass
+- [ ] Queue workers configured
+- [ ] Scheduler configured
+- [ ] Staging deployment completed
+- [ ] Manual QA completed before production deployment
 
 ---
 
 ## 9. Job candidates (cross-phase reference)
+
+Canonical Spec catalog. Implementation ownership: **Phase 4** (services that jobs call: **Phase 2**).
 
 | Operation | Current location (old app) | Target job |
 |-----------|----------------------------|------------|
@@ -398,25 +861,29 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 **Job standards:** small & single-purpose; idempotent where possible; `$tries`/backoff; logged with entity ID / user / correlation ID; `failed()` surfaces to Slack (or equivalent); batch/chain where appropriate.
 
+**When NOT to queue:** Do not queue solely for the sake of using queues. If synchronous execution is better (user needs immediate feedback, transactional integrity, or operation is <100ms), keep it sync and document the rationale in a brief code comment or ADR note.
+
 ---
 
 ## 10. Package replacement table
 
-| Current package | Action for L13 |
-|-----------------|----------------|
-| `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates |
-| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 |
-| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace |
-| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications |
-| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR) |
-| `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status |
-| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config |
-| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** |
-| `vinkla/hashids` | Verify L13 compatibility or replace |
-| `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version |
-| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** |
-| `flynsarmy/csv-seeder` | Revisit — likely replace with modern seeders or one-off import commands |
-| `filp/whoops` | Not needed on L13 (framework error handling) |
+Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibility (Spec Package & Integration Migration). Ownership phases from Phase 1a audit; adjust only with approval.
+
+| Current package | Action for L13 | Ownership |
+|-----------------|----------------|-----------|
+| `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | Phase 1 (done) |
+| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | Phase 5 (may start earlier if blocked) |
+| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | Phase 2.5 |
+| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | Phase 2.2 |
+| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
+| `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status | Phase 2.2 |
+| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | Phase 2.5 |
+| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | Phase 4 (earlier if needed) |
+| `vinkla/hashids` | Verify L13 compatibility or replace | Phase 2.5 |
+| `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version | As needed with schema work |
+| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** | Phase 2.1 |
+| `flynsarmy/csv-seeder` | Revisit — likely replace with modern seeders or one-off import commands | Phase 2.5 |
+| `filp/whoops` | Not needed on L13 (framework error handling) | N/A on L13 |
 
 ---
 
@@ -440,49 +907,54 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 - [x] Old app at `/mnt/e/xampp/htdocs/airconcierge` remains untouched
 - [x] No production secrets copied into the new repo
 
-### Per-module DoD (Phases 1–6)
+### Per-module DoD (Spec Definition of Done — apply to every migrated module)
 
-- [ ] Controllers reduced to HTTP routing + service delegation
+- [ ] Controller reduced to CRUD routing + service delegation
 - [ ] Validation in Form Request(s)
 - [ ] Authorization in Policy/Gate
 - [ ] Business logic in Service(s)
-- [ ] Async work in Job(s) where applicable (with rationale if kept sync)
-- [ ] No regression in existing behavior (automated test and/or manual QA checklist)
+- [ ] Async work in Job(s) where applicable
+- [ ] No regression in existing behavior (manual QA checklist or automated test)
 - [ ] Deprecated patterns removed from touched files
-- [ ] Brief migration note if behavior or routing changed
+- [ ] Brief migration note added if behavior/routing changed
 - [ ] Suspected bugs documented and held for approval — not silently “fixed”
 
 ### Final (end of Phase 6) deployment readiness
 
 - [ ] Pint passes
 - [ ] Larastan passes
-- [ ] Automated tests pass
+- [ ] All automated tests pass
 - [ ] Queue workers configured
 - [ ] Scheduler configured
 - [ ] Staging deployment completed
-- [ ] Manual QA completed before production
+- [ ] Manual QA completed before production deployment
 
 ---
 
-## 12. Working style rules
+## 12. Working style rules (Spec Notes for Developer + Additional Guidance)
 
 1. **Incremental PRs by domain** (e.g. “Bookings module L13 migration”), not one monolithic PR.
 2. **Preserve cron schedules and webhook URL paths** unless DevOps coordinates a cutover.
 3. **Flag Blade-embedded business logic** as follow-up cards; don’t fix inline while migrating something else.
-4. When asked to work on a specific controller/module, always:
+4. When in doubt between sync and async: queue if I/O-bound or >2s, sync if the user is waiting on the result.
+5. When asked to work on a specific controller/module, always:
    1. Confirm which controller(s)/files are in scope.
    2. Identify what belongs in Form Request / Policy / Service / Job.
    3. Flag anything that looks like a behavior bug **before** touching it — wait for go-ahead.
    4. Propose the refactored file structure before writing full implementations, unless told to just go ahead.
-5. For major architectural decisions, write a brief ADR: Decision / Alternatives considered / Rationale.
-6. Prefer long-term maintainability over minimizing file churn.
+6. For major architectural decisions, write a brief ADR: Decision / Alternatives considered / Rationale.
+7. Prefer Laravel Events, Listeners, Notifications, Jobs, Bus Batching, and Scheduling where they improve separation of concerns. Do not queue work simply for the sake of using queues.
+8. Controllers should remain thin orchestration layers. If a controller action grows beyond simple request handling and service coordination, extract the logic into Services, Actions, Jobs, or Events as appropriate.
+9. Prefer long-term maintainability over minimizing the number of changed files.
 
 ---
 
 ## 13. Out of scope (unless separately approved)
 
+From Spec Out of Scope, plus project-specific schema constraints:
+
 - New features or UI redesign
-- Database schema changes beyond what Laravel 13 / PHP 8.3 require
+- Database schema changes beyond what Laravel 13 / PHP 8 require (this project uses PHP 8.3+)
 - Full rewrite of all ~198 Blade templates in one pass
 - Changing third-party API contracts (Hostaway, Zoho, etc.)
 - Silently “fixing” questionable business logic during refactors
@@ -491,23 +963,59 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 ---
 
-## 14. Current on-disk status (as of this document)
+## 14. Specification coverage map
+
+Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_Spec.md` maps as follows:
+
+| Spec section | Plan location |
+|--------------|---------------|
+| Objective | §1 Overall approach |
+| Behavior Preservation | §4 Hard rule: behavior preservation |
+| Current State (Baseline) | §5 Confirmed baseline |
+| Known fat controllers | §5 Known fat controllers; Phase 2 subsections |
+| Architecture Requirements / Mandatory Guidelines | §7 Layering standard |
+| Target Layering | §7 |
+| Queues & Jobs / High-Priority Candidates | §9; Phase 4 tasks |
+| Job Standards | §7 Job standards; §9 |
+| When NOT to Queue | §7 Sync vs async; §9 |
+| Package & Integration Migration | §10; Phase 1a audit; Phase 2–5 ownership |
+| Phase 0 — Foundation | §8 Phase 0 |
+| Phase 1 — Routing & Middleware | §8 Phase 1; gaps → Phase 1a |
+| Phase 2 — Extract Services | §8 Phase 2 (+ 2.1–2.5 ordered by Recommended Migration Order) |
+| Phase 3 — Helpers Decomposition | §8 Phase 3 |
+| Phase 4 — Async Migration | §8 Phase 4 |
+| Phase 5 — Frontend / Views | §8 Phase 5 |
+| Code Quality Rules | §7 Code quality rules |
+| Definition of Done | §11 Per-module DoD |
+| Out of Scope | §13 |
+| Recommended Migration Order | §8 phase diagram + Phase 2.1–2.5 |
+| Notes for Developer | §12 |
+| Phase 6 — Deployment Readiness | §8 Phase 6; §11 Final DoD |
+| Architecture Decisions (ADR) | §8 Phase 0 ADRs; Phase 1a ADR gap check; §12 item 6 |
+| Additional Guidance | §1; §7; §12 items 7–9 |
+
+---
+
+## 15. Current on-disk status (as of this document)
 
 | Path | Status |
 |------|--------|
 | `/home/pc/projects/airconcierge13/` | Laravel 13.19 app root (Sail PHP 8.4 slim runtime under `docker/8.4/`) |
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
-| `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — project source of truth |
+| `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — execution roadmap aligned to Spec |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (signature TODO → Phase 2). See ADR-007 |
+| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (**signature validation → Phase 1a**). See ADR-007 |
+| Phase 1a | **Not started** — Hostaway signature validation + package audit ownership matrix |
 | Quality | Pest (incl. Phase 1 auth/role/webhook tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |
 | Legacy `database/migrations/` | ~51 historical files — not the L13 baseline |
 
 ---
 
-## 15. Next step
+## 16. Next step
 
-1. Treat this document as the guide for all subsequent work. For Phase 0–1 how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-2. Phase 0 DoD is met. Phase 1 is **greenfield** routing & auth (ADR-007) — not a legacy route/Entrust port.
-3. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
+1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
+2. For Phase 0–1 how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
+3. Phase 0 DoD is met. Phase 1 greenfield routing & auth is scaffolded (ADR-007).
+4. **Execute Phase 1a next** (Hostaway webhook signature validation + Spec package ownership audit) before Phase 2 Extract Services.
+5. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.

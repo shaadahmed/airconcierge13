@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-16  
 **Project:** `/home/pc/projects/airconcierge13`  
-**Sources of truth:** `docs/migration-plan.md` (wins on conflicts), `docs/Laravel_5.1_to_13_Modernization_Spec.md` (background)  
+**Sources of truth:** `docs/Laravel_5.1_to_13_Modernization_Spec.md` (requirements), `docs/migration-plan.md` (execution roadmap; must reflect the Spec)  
 **Verdict:** **Phase 0 and Phase 1 application DoD are met** for code, tests, and quality gates. **Live Sail stack (MySQL/Redis/queue/scheduler) could not be re-verified in this session** because Docker Desktop’s engine would not start containers.
 
 ---
@@ -66,7 +66,7 @@ Criteria from `docs/migration-plan.md` §11 (Phase 0 DoD) and spec Phase 0.
 | 12 | ADRs under `docs/adr/` | ADR-001 … ADR-006 tracked; ADR-007 present on disk (see §6 findings) | **PASS** (with note) |
 | 13 | `docs/migration-inventory.md` | Present and tracked | **PASS** |
 | 14 | `docs/` tracked in git | `docs/` not gitignored; plan/ADRs/inventory tracked. Some newer docs untracked (see §6) | **PASS** (with note) |
-| 15 | Cursor/project rules | `AGENTS.md` + `.cursor/rules/migration.mdc` encode behavior preservation + layering | **PASS** |
+| 15 | Cursor/project rules | `docs/AGENTS.md` + `.cursor/rules/migration.mdc` (+ `agents.mdc`) encode behavior preservation + layering | **PASS** |
 | 16 | Old app untouched | `/mnt/e/xampp/htdocs/airconcierge` present; not edited as part of this verification | **PASS** |
 | 17 | No production secrets in repo | `.env` gitignored; `.env.example` uses Sail placeholders only (`password`, empty AWS keys) | **PASS** |
 | 18 | Laravel Boost | `laravel/boost` in `require-dev` (^2.4) | **PASS** |
@@ -76,7 +76,7 @@ Criteria from `docs/migration-plan.md` §11 (Phase 0 DoD) and spec Phase 0.
 | Spec item | Plan alignment | Status |
 |-----------|----------------|--------|
 | L13 skeleton / chosen approach | ADR-001 fresh skeleton | **PASS** |
-| PHP 8.2+ (spec) / 8.3+ (plan) | Plan wins → 8.3+ / 8.4 | **PASS** |
+| PHP 8.2+ (spec) / 8.3+ (plan) | Plan satisfies Spec floor with 8.3+ / 8.4 | **PASS** |
 | Queue/cache/session Redis | Configured | **PASS** (config) |
 | Pest harness | Installed + tests | **PASS** |
 | CI lint/test/static analysis | GitHub Actions | **PASS** |
@@ -276,4 +276,4 @@ Phase 0 DoD asks for ADRs under `docs/adr/` — content exists; commit ADR-007 a
 
 **Phase 0 and Phase 1 are complete against the migration plan and the modernization spec’s Phase 0–1 intent**, with one operational caveat: this verification session could not bring Sail containers back up due to Docker Desktop failure. Code quality (Pest, Pint, Larastan), routing/auth scaffold, schedule/webhook stubs, and schema boundaries all pass.
 
-**Next recommended step:** restore Docker Desktop, `sail up -d`, confirm Redis/MySQL/queue/scheduler are healthy, then proceed to **Phase 2 (Hostaway + webhooks)** per `docs/migration-plan.md` — including webhook signature verification and real sync job logic. Do not import `migrations_fresh` until a later domain phase explicitly requires those tables.
+**Next recommended step:** restore Docker Desktop, `sail up -d`, confirm Redis/MySQL/queue/scheduler are healthy, then execute **Phase 1a** per `docs/migration-plan.md` (Hostaway webhook signature validation + Spec package ownership audit) before Phase 2 Extract Services. Do not import `migrations_fresh` until a later domain phase explicitly requires those tables.
