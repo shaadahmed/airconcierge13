@@ -1,10 +1,10 @@
-# Air Concierge — Technical Documentation (Phase 0–1)
+# Air Concierge — Technical Documentation (Phase 0–1a)
 
 **Audience:** Developers, ops, and agents working on `airconcierge13`  
-**Status:** Phase 0 (foundation) and Phase 1 (routing & auth scaffold) complete  
-**Last updated:** 2026-07-16
+**Status:** Phase 0 (foundation), Phase 1 (routing & auth scaffold), and Phase 1a (webhook auth + package audit) complete  
+**Last updated:** 2026-07-19
 
-This document describes the **implemented** technical surface through Phase 1. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
+This document describes the **implemented** technical surface through Phase 1a. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
 
 ---
 
@@ -15,8 +15,8 @@ This document describes the **implemented** technical surface through Phase 1. R
 | Phase | Delivered |
 |-------|-----------|
 | 0 | Sail runtime, MySQL + Redis, Pest/Pint/Larastan, CI, ADRs, inventory, project rules |
-| 1 | Greenfield routes, Spatie Permission, session login shell, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (signature → Phase 1a) |
-| 1a | **Not started** — Hostaway signature validation + Spec package ownership audit |
+| 1 | Greenfield routes, Spatie Permission, session login shell, owner middleware stubs, Schedule command stubs, Hostaway webhook path |
+| 1a | Hostaway webhook Basic Auth (ADR-008), Spec package ownership audit (§10 / inventory), ADR gap check |
 
 There is **no production cutover**. Until cutover is approved, the legacy app remains the system of record.
 
@@ -38,7 +38,7 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Horizon | Not installed — plain `queue:work` |
 | Agent tooling | Laravel Boost (dev) |
 
-Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`.
+Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway webhook Basic Auth: `HOSTAWAY_WEBHOOK_USERNAME`, `HOSTAWAY_WEBHOOK_PASSWORD` (required for accepted webhook traffic; fail closed when empty).
 
 ---
 
@@ -163,12 +163,15 @@ Command bodies are stubs until the matching domain phase implements them.
 
 ---
 
-## 9. Hostaway webhook (Phase 1 stub)
+## 9. Hostaway webhook (Phase 1a)
 
 - Path preserved: `POST /wh/hostaway/booking/created`
-- Controller returns **200** quickly and dispatches `SyncHostawayReservationJob`
+- Authenticated via Hostaway-native **HTTP Basic Auth** (`HostawayWebhookAuthenticator`; ADR-008)
+- Valid credentials: controller returns **200** quickly and dispatches `SyncHostawayReservationJob`
+- Invalid / missing credentials or empty config: **401**, no job dispatch
 - Job `handle()` is empty pending Phase 2.1 / Phase 4
-- **TODO Phase 1a:** validate Hostaway webhook signature before trusting the payload
+
+Configure matching username/password in Hostaway’s webhook integration settings and in `.env` (`HOSTAWAY_WEBHOOK_USERNAME` / `HOSTAWAY_WEBHOOK_PASSWORD`).
 
 Do not change Hostaway API contracts when Phase 2.1 lands.
 
@@ -182,7 +185,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs:
 2. `vendor/bin/phpstan analyse --memory-limit=1G`
 3. `vendor/bin/pest`
 
-Pest Feature coverage for Phase 1 includes authentication, Spatie role middleware, owner middleware wiring (via fakes), Hostaway webhook dispatch, and stub command registration.
+Pest Feature coverage for Phase 1–1a includes authentication, Spatie role middleware, owner middleware wiring (via fakes), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
 
 ---
 
@@ -195,16 +198,16 @@ Pest Feature coverage for Phase 1 includes authentication, Spatie role middlewar
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
 | [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–1) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [007](adr/007-phase1-greenfield-routing-auth.md) | Architecture decisions |
+| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [008](adr/008-hostaway-webhook-basic-auth.md) | Architecture decisions |
 | [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc` with `alwaysApply: true`) |
 
 ---
 
-## 12. Out of scope for Phase 0–1
+## 12. Out of scope for Phase 0–1a
 
 - Full admin UI and Blade rewrite
 - Business schema (`migrations_fresh` live migrate)
-- Hostaway sync / signature verification (Phase 1a signatures; Phase 2.1 service; Phase 4 job hardening)
+- Hostaway sync business logic (Phase 2.1 service; Phase 4 job hardening) — webhook auth is done in Phase 1a
 - Bookings, payments, reports, chronology, email (Phase 2+)
 - Username login, password expiry, real owner terms/property data
 - Horizon, production cutover

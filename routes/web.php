@@ -22,7 +22,7 @@ Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
 
 /*
 | Hostaway webhook — path preserved for cutover.
-| TODO Phase 2 — validate Hostaway webhook signature before trusting the payload.
+| Authenticated via Hostaway-native Basic Auth (ADR-008).
 */
 Route::post('wh/hostaway/booking/created', HostawayWebhookController::class)
     ->name('webhooks.hostaway.booking.created');

@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'hostaway' => [
+        'webhook' => [
+            'username' => env('HOSTAWAY_WEBHOOK_USERNAME'),
+            'password' => env('HOSTAWAY_WEBHOOK_PASSWORD'),
+        ],
+    ],
+
 ];

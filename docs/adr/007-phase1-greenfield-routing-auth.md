@@ -19,4 +19,4 @@ Senior direction: pure rewrite with no technical baggage. Full route dumps force
 
 ## Follow-up (2026-07-19)
 
-The modernization Spec assigns Hostaway **signature validation** to Phase 1. Phase 1 left it deferred. Execution ownership is now **Phase 1a** in `docs/migration-plan.md` (not Phase 2 service extraction).
+The modernization Spec assigns Hostaway **signature validation** to Phase 1. Phase 1 left it deferred. Execution ownership moved to **Phase 1a**. Phase 1a implemented Hostaway-native **Basic Auth** verification (see [ADR-008](008-hostaway-webhook-basic-auth.md)); the Phase 1 signature TODO no longer applies.

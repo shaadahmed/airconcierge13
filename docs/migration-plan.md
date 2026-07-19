@@ -264,8 +264,8 @@ Phases follow the **Structural Refactor Checklist** order in the modernization s
 ```text
 Phase 0  Foundation                                          [IMPLEMENTED]
     → Phase 1  Routing & Middleware                          [IMPLEMENTED]
-    → Phase 1a Early-stage gap closure (pre–Phase 2)       [NEXT]
-    → Phase 2  Extract Services (by domain)
+    → Phase 1a Early-stage gap closure (pre–Phase 2)       [IMPLEMENTED]
+    → Phase 2  Extract Services (by domain)                  [NEXT]
          2.1 Hostaway + webhooks
          2.2 Email / Chronology
          2.3 Bookings & Payments
@@ -350,7 +350,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 - Install **Spatie Permission** + Policies/Gates; seed business role names (superadmin, admin, Regional Manager, Property Owner, cleaner, maintenance).
 - Session auth shell (login/logout). Owner terms / active-property access as **new** middleware/Gates with stubbed domain checks until those modules exist — do **not** port `OwnerAccessVerifier`.
 - **No public `/cron/*` HTTP routes.** Artisan command stubs + Laravel Schedule only (frequencies aligned to known business schedules).
-- Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **signature verification deferred to Phase 2** (explicit TODO).
+- Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **webhook Basic Auth verification completed in Phase 1a** (ADR-008).
 - Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
 
 **Spec Phase 1 checklist (mapped):**
@@ -359,13 +359,13 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 - [x] Convert string controller references (`"Admin\BookingController@index"`) to class-based routes (for all routes registered in the scaffold; remaining domain routes remain class-based as they land)
 - [x] Migrate Entrust middleware to Policies/Gates (role: Property Owner, Regional Manager, etc.) → Spatie Permission + seeded roles + middleware/Gate stubs; domain Policies land with Phase 2 modules
 - [x] Secure or remove public HTTP cron routes (`/cron/*`) — replace with Schedule + authenticated commands only
-- [ ] Review webhook routes (Hostaway) — **validate signatures**, return 200 fast, queue processing → return 200 + queue done; **signature validation incomplete** → Phase 1a
+- [x] Review webhook routes (Hostaway) — **validate signatures** (Hostaway Basic Auth per ADR-008), return 200 fast, queue processing → **completed in Phase 1a**
 
 ---
 
 ### Phase 1a — Early-stage gap closure (pre–Phase 2)
 
-**Status:** Not started.  
+**Status:** Implemented (2026-07-19).  
 **Purpose:** Capture every specification requirement that belongs **before Phase 2 (Extract Services)** but was not completed in Phase 0 or Phase 1. Do not duplicate completed Phase 0/1 work.
 
 #### Objectives
@@ -376,50 +376,42 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 #### Tasks
 
-1. **Hostaway webhook signature validation (Spec Phase 1 remainder)**
-   - Implement signature validation on `POST /wh/hostaway/booking/created` before trusting the payload.
-   - Keep webhook response fast (return 200); continue queue dispatch for valid requests via `SyncHostawayReservationJob` (stub may remain until Phase 2.1 / Phase 4 completes business processing).
-   - Reject or safely ignore invalid signatures without running business processing; preserve existing business behavior for valid traffic.
-   - Remove the controller TODO that deferred signature verification to Phase 2; update ADR-007 / technical docs accordingly.
-   - Add/extend Pest feature tests for valid signature, invalid signature, and dispatch behavior.
+1. **Hostaway webhook signature validation (Spec Phase 1 remainder)** — **done**
+   - Implemented as Hostaway-native **Basic Auth** verification on `POST /wh/hostaway/booking/created` via `HostawayWebhookAuthenticator` (ADR-008).
+   - Valid requests return **200** and dispatch `SyncHostawayReservationJob` (stub until Phase 2.1 / Phase 4).
+   - Invalid/missing credentials (or empty config) return **401** with no job dispatch.
+   - Removed Phase 2 signature TODO from controller/routes; docs/ADRs updated.
+   - Pest feature tests cover valid auth, invalid auth, missing auth, and empty config.
 
-2. **Package & Integration Migration audit (Spec package table — audit only)**
-   - For each Spec-listed package, record status: replaced / deferred to named later phase / verify-then-remove / not needed on L13.
-   - Do **not** perform bulk package replacements in Phase 1a except where required to finish signature validation or unblock documentation.
-   - Spec packages to track:
-     - `zizaco/entrust` → Spatie Permission + Policies/Gates (**done in Phase 1**)
-     - `yajra/laravel-datatables-oracle` ~5 → upgrade to current Yajra for L13 (**Phase 5** — verify DataTables JS after upgrade)
-     - `sammyk/laravel-facebook-sdk` → verify still needed; remove or replace (**Phase 2.5** or when Facebook-touching module lands)
-     - `phpmailer/phpmailer` → Laravel Mail + Mailables/Notifications (**Phase 2.2**)
-     - `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries → evaluate Browsershot, DomPDF, or maintained PDF package (**ADR-005**; implement with Phase 2.3/2.4 PDF paths and Phase 4 `GeneratePdfJob`)
-     - `hellosign/hellosign-php-sdk` → wrap in HelloSignService; verify Zoho migration status (**Phase 2.2**)
-     - `nao-pon/flysystem-google-drive` → Flysystem v3 + Laravel filesystem config (**Phase 2.5** / cloud backup path)
-     - `jeremykenedy/slack-laravel` → Laravel Slack notification channel (**Phase 4** failed-job monitoring; earlier if a Phase 2 module needs Slack)
-     - `vinkla/hashids` → verify L13 compatibility or replace (**Phase 2.5** or first consumer module)
-     - `doctrine/dbal` → keep if needed for schema introspection; pin compatible version (**as needed when schema work lands**)
-     - `guzzlehttp/guzzle` → Guzzle 7+ (**Phase 2.1 Hostaway** or earlier if required)
+2. **Package & Integration Migration audit (Spec package table — audit only)** — **done**
+   - Status + ownership recorded in §10 and `docs/migration-inventory.md`.
+   - No bulk package replacements performed in Phase 1a.
 
-3. **Architecture Decisions (ADR) gap check**
-   - Confirm ADRs exist for major decisions called out by the Spec: authentication, package replacements, queues, PDFs, etc. (Decision / Alternatives considered / Rationale).
-   - Write any missing brief ADR before Phase 2 starts if a decision is already made; otherwise open ADR stubs with “decision pending” only where Phase 2+ work requires a locked choice (e.g. PDF final pick after spike).
+3. **Architecture Decisions (ADR) gap check** — **done**
+   - ADR-001–007 reviewed; ADR-004 phase wording aligned to Phase 2.2; ADR-008 added for Hostaway Basic Auth.
+   - Policies/Gates + Spatie scaffold confirmed sufficient to start Phase 2 domain extraction (domain Policies land with modules).
 
 #### Deliverables
 
-- Hostaway webhook signature validation implemented and tested.
-- Package audit matrix updated in this plan (§10) and/or `docs/migration-inventory.md` with phase ownership for every Spec package.
+- Hostaway webhook Basic Auth validation implemented and tested.
+- Package audit matrix updated in this plan (§10) and `docs/migration-inventory.md` with phase ownership for every Spec package.
 - Docs/ADRs updated so Phase 1’s “signature TODO → Phase 2” language no longer applies.
 
 #### Dependencies
 
 - Phase 0 DoD met; Phase 1 scaffold complete.
-- Hostaway webhook signing secret available via config (not `env()` outside config files).
+- Hostaway webhook credentials available via config (not `env()` outside config files).
 
 #### Exit criteria
 
-- [ ] Spec Phase 1 Hostaway item fully satisfied: validate signatures **and** return 200 fast **and** queue processing for accepted webhooks
-- [ ] Pest coverage for signature success/failure paths
-- [ ] Spec package table has an explicit ownership phase for every listed dependency
-- [ ] No Spec Phase 0 or Phase 1 checklist item remains open except intentionally deferred items that now have an explicit later-phase owner
+- [x] Spec Phase 1 Hostaway item fully satisfied: authenticate webhook **and** return 200 fast **and** queue processing for accepted webhooks
+- [x] Pest coverage for auth success/failure paths
+- [x] Spec package table has an explicit ownership phase for every listed dependency
+- [x] No Spec Phase 0 or Phase 1 checklist item remains open except intentionally deferred items that now have an explicit later-phase owner
+
+#### Deviations from original Phase 1a wording
+
+- Spec/plan said “signature” / “signing secret”; Hostaway provides Basic Auth only. Implemented Basic Auth per ADR-008 with stakeholder approval during planning (not a custom HMAC).
 
 ---
 
@@ -482,7 +474,7 @@ Extract business logic from fat controllers into domain-grouped Service classes.
 
 ##### Dependencies
 
-- Phase 1a Hostaway signature validation complete
+- Phase 1a Hostaway webhook Basic Auth complete (ADR-008)
 - Schema tables for Hostaway/reservation domain available when needed
 
 ##### Known fat controller
@@ -867,23 +859,23 @@ Canonical Spec catalog. Implementation ownership: **Phase 4** (services that job
 
 ## 10. Package replacement table
 
-Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibility (Spec Package & Integration Migration). Ownership phases from Phase 1a audit; adjust only with approval.
+Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibility (Spec Package & Integration Migration). **Phase 1a audit (2026-07-19):** every Spec-listed package has an explicit status and ownership phase. Adjust ownership only with approval. No bulk Composer replacements in Phase 1a.
 
-| Current package | Action for L13 | Ownership |
-|-----------------|----------------|-----------|
-| `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | Phase 1 (done) |
-| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | Phase 5 (may start earlier if blocked) |
-| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | Phase 2.5 |
-| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | Phase 2.2 |
-| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
-| `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status | Phase 2.2 |
-| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | Phase 2.5 |
-| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | Phase 4 (earlier if needed) |
-| `vinkla/hashids` | Verify L13 compatibility or replace | Phase 2.5 |
-| `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version | As needed with schema work |
-| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** | Phase 2.1 |
-| `flynsarmy/csv-seeder` | Revisit — likely replace with modern seeders or one-off import commands | Phase 2.5 |
-| `filp/whoops` | Not needed on L13 (framework error handling) | N/A on L13 |
+| Current package | Action for L13 | Status | Ownership |
+|-----------------|----------------|--------|-----------|
+| `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | **replaced** | Phase 1 (done) |
+| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | deferred | Phase 5 (may start earlier if blocked) |
+| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | verify-then-remove/replace | Phase 2.5 |
+| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | deferred | Phase 2.2 |
+| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
+| `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status | deferred | Phase 2.2 |
+| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | deferred | Phase 2.5 |
+| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | deferred | Phase 4 (earlier if needed) |
+| `vinkla/hashids` | Verify L13 compatibility or replace | verify-then-replace | Phase 2.5 |
+| `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version | as-needed | Schema work (when required) |
+| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** (L13 already pulls Guzzle 7 via framework; confirm consumer usage at Hostaway port) | deferred | Phase 2.1 |
+| `flynsarmy/csv-seeder` | Revisit — likely replace with modern seeders or one-off import commands | deferred | Phase 2.5 |
+| `filp/whoops` | Not needed on L13 (framework error handling) | not needed | N/A on L13 |
 
 ---
 
@@ -1004,9 +996,9 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
 | `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — execution roadmap aligned to Spec |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook stub (**signature validation → Phase 1a**). See ADR-007 |
-| Phase 1a | **Not started** — Hostaway signature validation + package audit ownership matrix |
-| Quality | Pest (incl. Phase 1 auth/role/webhook tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
+| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook path. See ADR-007 |
+| Phase 1a | **Complete** — Hostaway webhook Basic Auth (ADR-008) + Spec package ownership status matrix (§10) |
+| Quality | Pest (incl. Phase 1a webhook auth tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |
 | Legacy `database/migrations/` | ~51 historical files — not the L13 baseline |
 
@@ -1015,7 +1007,7 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 ## 16. Next step
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
-2. For Phase 0–1 how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0 DoD is met. Phase 1 greenfield routing & auth is scaffolded (ADR-007).
-4. **Execute Phase 1a next** (Hostaway webhook signature validation + Spec package ownership audit) before Phase 2 Extract Services.
+2. For Phase 0–1a how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
+3. Phase 0 DoD is met. Phase 1 greenfield routing & auth is scaffolded (ADR-007). Phase 1a exit criteria are met (ADR-008).
+4. **Execute Phase 2 next**, starting with **Phase 2.1 Hostaway + webhooks** (service extraction). Do not begin Phase 2 until Phase 1a remains complete.
 5. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.

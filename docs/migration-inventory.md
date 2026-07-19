@@ -157,22 +157,24 @@ Also scheduled from former Artisan Kernel (not HTTP `/cron/*`): `emails:process-
 
 ## Composer packages → L13 intent
 
-| Current package | Action |
-|-----------------|--------|
-| `laravel/framework` 5.1.* | Fresh L13 (`^13`) |
-| `zizaco/entrust` | Spatie Permission + Policies/Gates |
-| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra for L13 |
-| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace |
-| `guzzlehttp/guzzle` ~6 | Guzzle 7+ (via framework) |
-| `flynsarmy/csv-seeder` | Revisit — modern seeders / import commands |
-| `vinkla/hashids` | Verify L13 compatibility or replace |
-| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Spike DomPDF / Browsershot / maintained wrapper (ADR-005) |
-| `phpmailer/phpmailer` | Laravel Mail / Mailables |
-| `nao-pon/flysystem-google-drive` | Flysystem v3 + Laravel filesystem |
-| `hellosign/hellosign-php-sdk` | Wrap in service; verify Zoho vs HelloSign status |
-| `jeremykenedy/slack-laravel` | Laravel Slack notification channel |
-| `doctrine/dbal` | Keep if needed; pin compatible version |
-| `filp/whoops` | Not needed on L13 |
+Phase 1a audit (2026-07-19). Canonical ownership matrix: [`migration-plan.md`](migration-plan.md) §10.
+
+| Current package | Action | Status | Ownership |
+|-----------------|--------|--------|-----------|
+| `laravel/framework` 5.1.* | Fresh L13 (`^13`) | **replaced** | Phase 0 (done) |
+| `zizaco/entrust` | Spatie Permission + Policies/Gates | **replaced** | Phase 1 (done) |
+| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra for L13 | deferred | Phase 5 |
+| `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | verify-then-remove/replace | Phase 2.5 |
+| `guzzlehttp/guzzle` ~6 | Guzzle 7+ (via framework; confirm at Hostaway port) | deferred | Phase 2.1 |
+| `flynsarmy/csv-seeder` | Revisit — modern seeders / import commands | deferred | Phase 2.5 |
+| `vinkla/hashids` | Verify L13 compatibility or replace | verify-then-replace | Phase 2.5 |
+| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Spike DomPDF / Browsershot / maintained wrapper (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + 4 |
+| `phpmailer/phpmailer` | Laravel Mail / Mailables | deferred | Phase 2.2 |
+| `nao-pon/flysystem-google-drive` | Flysystem v3 + Laravel filesystem | deferred | Phase 2.5 |
+| `hellosign/hellosign-php-sdk` | Wrap in service; verify Zoho vs HelloSign status | deferred | Phase 2.2 |
+| `jeremykenedy/slack-laravel` | Laravel Slack notification channel | deferred | Phase 4 |
+| `doctrine/dbal` | Keep if needed; pin compatible version | as-needed | Schema work |
+| `filp/whoops` | Not needed on L13 | not needed | N/A on L13 |
 
 ---
 

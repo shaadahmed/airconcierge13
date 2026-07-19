@@ -1,6 +1,6 @@
 # ADR-004: Mail — Laravel Mail / Mailables (retire PHPMailer)
 
-**Status:** Accepted (implementation in Phase 3)  
+**Status:** Accepted (implementation in Phase 2.2 Email / Chronology)  
 **Date:** 2026-07-12
 
 ## Decision
@@ -15,4 +15,4 @@ Replace direct **PHPMailer** usage with **Laravel Mail**, Mailables, and Notific
 
 ## Rationale
 
-The old app sends mail via PHPMailer outside Laravel’s mail stack, which fights queues, testing, and configuration. Laravel Mail integrates with Redis queues, notifications (including Slack later), and Mailpit for local verification. Deep migration lives in Phase 3 (Email / Chronology).
+The old app sends mail via PHPMailer outside Laravel’s mail stack, which fights queues, testing, and configuration. Laravel Mail integrates with Redis queues, notifications (including Slack later), and Mailpit for local verification. Deep migration lives in **Phase 2.2 (Email / Chronology)** per `docs/migration-plan.md` (helpers decomposition remains Phase 3).

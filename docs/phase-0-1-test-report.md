@@ -207,8 +207,8 @@ Phase 0 DoD asks for ADRs under `docs/adr/` — content exists; commit ADR-007 a
 
 ### 6.3 Intentional Phase 1 deferrals (not failures)
 
-- Hostaway **signature verification** → Phase 2 (explicit TODO in controller).
-- `SyncHostawayReservationJob::handle()` empty stub → Phase 2.
+- Hostaway **signature / webhook auth** → completed in **Phase 1a** (Basic Auth; ADR-008). Historical Phase 1 TODO closed.
+- `SyncHostawayReservationJob::handle()` empty stub → Phase 2.1 / Phase 4.
 - Schedule command bodies are stubs (`StubDomainCommand`) → later domain phases.
 - No domain `app/Policies/*` yet → grow with modules.
 - Business schema (`migrations_fresh`) not imported → correct per plan.
@@ -276,4 +276,6 @@ Phase 0 DoD asks for ADRs under `docs/adr/` — content exists; commit ADR-007 a
 
 **Phase 0 and Phase 1 are complete against the migration plan and the modernization spec’s Phase 0–1 intent**, with one operational caveat: this verification session could not bring Sail containers back up due to Docker Desktop failure. Code quality (Pest, Pint, Larastan), routing/auth scaffold, schedule/webhook stubs, and schema boundaries all pass.
 
-**Next recommended step:** restore Docker Desktop, `sail up -d`, confirm Redis/MySQL/queue/scheduler are healthy, then execute **Phase 1a** per `docs/migration-plan.md` (Hostaway webhook signature validation + Spec package ownership audit) before Phase 2 Extract Services. Do not import `migrations_fresh` until a later domain phase explicitly requires those tables.
+**Phase 1a status (2026-07-19):** Implemented — Hostaway webhook Basic Auth (ADR-008), package ownership audit, ADR gap check. Webhook Pest tests (4) pass via local PHP when Sail is unavailable.
+
+**Next recommended step:** execute **Phase 2.1 Hostaway + webhooks** per `docs/migration-plan.md`. Do not import `migrations_fresh` until a later domain phase explicitly requires those tables.

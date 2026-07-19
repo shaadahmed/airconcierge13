@@ -71,7 +71,7 @@ Do not expect these in the Phase 0–1 preview:
 
 - Creating or managing bookings and payments  
 - Reports and the full dashboard  
-- Hostaway admin tools (a technical webhook endpoint exists for developers only)  
+- Hostaway admin tools (webhook endpoint requires configured Basic Auth credentials; sync processing still pending)  
 - Cron jobs via public web URLs  
 - Full role-based menus and admin modules from the old app  
 
