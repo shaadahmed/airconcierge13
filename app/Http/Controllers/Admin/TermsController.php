@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\View\View;
 
 /**
@@ -12,6 +13,8 @@ class TermsController extends Controller
 {
     public function show(): View
     {
+        $this->authorize('viewOwnerTerms', User::class);
+
         return view('admin.terms');
     }
 }

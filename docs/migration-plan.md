@@ -232,7 +232,7 @@ A Service participates only when the operation is a substantive workflow. See [A
 - **Do not** create services that only wrap Eloquent queries or model predicates. Prefer extending the model first.
 - **Do not** add contracts/interfaces solely to abstract model access — only when multiple substantive implementations or external boundaries justify them.
 - Use Form Request classes for all non-trivial validation (replace inline `Validator::` / `$this->validate()` in controllers).
-- Use Policies / Gates for authorization — replace Entrust middleware patterns over time. Attach role-specific enforcement to the **smallest** route/authorization boundary (e.g. owner middleware on owner routes only — not the entire admin shell).
+- Use Policies / Gates for authorization — replace Entrust middleware patterns over time. Attach role-specific enforcement to the **smallest** route/authorization boundary (e.g. owner middleware on owner routes only — not the entire admin shell). **Role identity** is `UserRole` + `users.role`; **role authorization** is Policies with `match` on the enum (ADR-010). Do not use Spatie or `Gate::define` for roles.
 - Follow DRY and SOLID principles; **avoid duplicate sources of truth** (especially enable/active flags — ADR-009).
 - Prefer constructor dependency injection over facades where practical (especially in services).
 - Replace deprecated helpers and APIs (`Input::`, old route syntax, legacy middleware names, etc.).
@@ -363,8 +363,8 @@ Spec Recommended Migration Order (maps onto Phase 0 → 1 → 2.1 → 2.2 → 2.
 Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy app is a **business-behavior oracle only** — no Entrust classes, helpers, or technical patterns are ported.
 
 - Scaffold `routes/web.php`, `routes/api.php`, `routes/console.php` with class-based routes; add domain routes as modules land in later phases.
-- Install **Spatie Permission** + Policies/Gates; seed business role names (superadmin, admin, Regional Manager, Property Owner, cleaner, maintenance).
-- Session auth shell (login/logout). Owner terms / active-property access as **owner-scoped** middleware on Property Owner–relevant routes only, calling `User` model predicates (Phase 1 always-allow stubs until terms/properties domains land; ADR-009) — do **not** port `OwnerAccessVerifier`, checker-service wrappers, or dual `users.active` / `owners.status` enable flags.
+- Install **UserRole** enum + `users.role` + Policies (ADR-010; Spatie removed). Role values: superadmin, admin, manager, owner, cleaner, maintenance.
+- Session auth shell (login/logout). Owner terms / active-property access as **owner-scoped** middleware on Owner–relevant routes only, calling `User` model predicates (Phase 1 always-allow stubs until terms/properties domains land; ADR-009) — do **not** port `OwnerAccessVerifier`, checker-service wrappers, or dual `users.active` / `owners.status` enable flags.
 - **No public `/cron/*` HTTP routes.** Artisan command stubs + Laravel Schedule only (frequencies aligned to known business schedules).
 - Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **webhook Basic Auth verification completed in Phase 1a** (ADR-008).
 - Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
@@ -373,7 +373,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 - [x] Split `routes.php` into `routes/web.php`, `routes/api.php`, `routes/console.php` (greenfield split files; domain routes added as modules land)
 - [x] Convert string controller references (`"Admin\BookingController@index"`) to class-based routes (for all routes registered in the scaffold; remaining domain routes remain class-based as they land)
-- [x] Migrate Entrust middleware to Policies/Gates (role: Property Owner, Regional Manager, etc.) → Spatie Permission + seeded roles + middleware/Gate stubs; domain Policies land with Phase 2 modules
+- [x] Migrate Entrust middleware to Policies (UserRole enum + UserPolicy; Spatie removed per ADR-010)
 - [x] Secure or remove public HTTP cron routes (`/cron/*`) — replace with Schedule + authenticated commands only
 - [x] Review webhook routes (Hostaway) — **validate signatures** (Hostaway Basic Auth per ADR-008), return 200 fast, queue processing → **completed in Phase 1a**
 
@@ -1021,7 +1021,7 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
 | `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — execution roadmap aligned to Spec |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner-scoped middleware + `User` predicates (ADR-009; checker stubs removed), Schedule command stubs, Hostaway webhook path. See ADR-007 |
+| Phase 1 routing & auth | **Scaffolded** — `UserRole` + Policies (ADR-010), session login, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path. See ADR-007 |
 | Phase 1a | **Complete** — Hostaway webhook Basic Auth (ADR-008) + Spec package ownership status matrix (§10) |
 | Quality | Pest (incl. Phase 1a webhook auth tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |

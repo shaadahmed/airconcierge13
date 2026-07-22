@@ -91,7 +91,7 @@ Criteria from `docs/migration-plan.md` § Phase 1 and ADR-007 (greenfield, not l
 | # | Criterion | Evidence | Status |
 |---|-----------|----------|--------|
 | 1 | `routes/web.php`, `api.php`, `console.php` class-based | 9 app routes; class controllers for auth, admin, webhook | **PASS** |
-| 2 | Spatie Permission + role seed | `spatie/laravel-permission` **8.3.0**; `RoleSeeder` roles: `superadmin`, `admin`, `Regional Manager`, `Property Owner`, `cleaner`, `maintenance` | **PASS** |
+| 2 | UserRole enum + role on users | `App\Enums\UserRole`; `users.role`; Policies (ADR-010); Spatie removed | **PASS** |
 | 3 | Session auth shell (login/logout) | Routes + `AuthenticatedSessionController` + `LoginRequest`; Pest auth tests | **PASS** |
 | 4 | Owner terms / active-property middleware stubs | `owner.terms`, `owner.active` on owner route group; `User` predicates; Pest coverage (see ADR-009) | **PASS** |
 | 5 | No public `/cron/*` HTTP | `route:list --path=cron` → no matches; comment in `routes/console.php` | **PASS** |

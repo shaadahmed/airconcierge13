@@ -34,7 +34,7 @@ Route::middleware(['auth'])
         // Shared authenticated admin shell — no owner-specific middleware.
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        // Owner boundary — Property Owner flows only (ADR-009).
+        // Owner boundary — Owner role flows only (ADR-009 / ADR-010).
         Route::middleware(['owner.terms', 'owner.active'])->group(function (): void {
             Route::get('owner-statements', [OwnerStatementController::class, 'index'])
                 ->name('owner-statements.index');

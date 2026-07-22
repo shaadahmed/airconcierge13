@@ -26,7 +26,8 @@ Canonical detail: `docs/adr/009-owner-access-predicates-and-active-flags.md` and
 
 - Attach `owner.terms` / `owner.active` (or owner Policies) only to **owner route groups** or equivalent boundaries.
 - Do **not** hang owner middleware on the entire shared `admin` group.
-- Defensive `hasRole('Property Owner')` guards are fine; route/group scoping is primary.
+- Defensive `$user->role === UserRole::Owner` identity filters are fine; route/group scoping is primary.
+- Role authZ: **Policies + `UserRole` enum only** (ADR-010). Do not reintroduce Spatie or `Gate::define` for roles.
 
 ## Active-state (no dual flags)
 

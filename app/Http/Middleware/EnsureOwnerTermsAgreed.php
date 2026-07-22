@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,7 +16,7 @@ class EnsureOwnerTermsAgreed
     {
         $user = $request->user();
 
-        if ($user === null || ! $user->hasRole('Property Owner')) {
+        if ($user === null || $user->role !== UserRole::Owner) {
             return $next($request);
         }
 

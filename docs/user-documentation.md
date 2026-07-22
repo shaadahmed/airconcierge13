@@ -45,7 +45,7 @@ After a fresh migrate + seed on a **local** environment, a sample account may ex
 |-------|--------|
 | Email | `test@example.com` |
 | Password | `password` (User factory default) |
-| Role | `superadmin` |
+| Role | `superadmin` (`UserRole::SuperAdmin`) |
 
 Use this **only** on local/dev. Never treat it as a production credential.
 

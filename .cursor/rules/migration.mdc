@@ -9,8 +9,9 @@ alwaysApply: true
 - Requirements SoT: `docs/Laravel_5.1_to_13_Modernization_Spec.md`. Execution roadmap: `docs/migration-plan.md` (must fully reflect the Spec).
 - If the plan would omit or weaken a Spec requirement, the Spec wins — update the plan.
 - Preserve business behavior; never silently fix suspected bugs — document, propose, wait.
-- Layering: Controller (HTTP only) → Form Request → Policy/Gate → Service (workflows) → Model (state + predicates) → Job. See ADR-009 and `.cursor/rules/architecture.mdc`.
+- Layering: Controller (HTTP only) → Form Request → Policy (`UserRole` match) → Service (workflows) → Model (state + predicates) → Job. See ADR-009, ADR-010, and `.cursor/rules/architecture.mdc`.
 - Models own simple domain predicates; services must not wrap Eloquent/query booleans. Prefer extending the model before adding a service.
+- Roles: `App\Enums\UserRole` + `users.role` string column. No Spatie. Policies only for role authorization (no Gates).
 - Owner terms/active middleware and policies: owner route groups only — not the shared admin shell.
 - Canonical enable flag: `users.active` only. Do not reintroduce `owners.status` as a duplicate. Active access is computed from properties.
 - Reference app at `/mnt/e/xampp/htdocs/airconcierge` is read-only; never copy secrets or the old tree here.

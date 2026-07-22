@@ -32,7 +32,7 @@ Request → Controller → Form Request → Policy/Gate → Service → Model �
 
 - Controllers: HTTP in/out only — no business logic.
 - Form Requests: all non-trivial validation.
-- Policies/Gates: authorization (Spatie Permission in Phase 1+).
+- Policies/Gates: authorization via **Policies** matching on `UserRole` (ADR-010). No Spatie; no `Gate::define` for role checks.
 - **Models:** domain state, relationships, scopes, casts, and **simple domain predicates** (e.g. `hasAgreedToTerms()`, `hasActiveAccess()`). Prefer extending the model before adding a service abstraction.
 - **Services:** orchestrate domain/business **workflows** (multiple models, transactions, side effects, events, notifications, external integrations). Domain-grouped (Bookings, Payments, Hostaway, …).
 - **Services must not** wrap Eloquent lookups or simple model predicates. If the method only answers a question about one entity’s state, it belongs on the model.
@@ -46,8 +46,9 @@ Before introducing a service, ask: *Is this actually a domain predicate that bel
 ## Owner access boundaries (ADR-009)
 
 - Apply owner-specific middleware/policies only to **owner route groups** (or equivalent authorization boundaries) — not across the shared admin shell.
-- Middleware may keep a defensive Property Owner role check; that is **not** the primary scoping mechanism.
+- Middleware may keep a defensive `$user->role === UserRole::Owner` identity check; that is **not** the primary scoping mechanism.
 - Flow: **owner boundary → middleware/policy → model predicate → database**. A service participates only for a substantive workflow (e.g. agree + audit + notify).
+- Role identity: `App\Enums\UserRole` + `users.role` cast (ADR-010). Authorization decisions belong in Policy classes.
 
 ## Canonical active-state design (ADR-009)
 

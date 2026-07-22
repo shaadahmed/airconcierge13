@@ -15,7 +15,7 @@ This document describes the **implemented** technical surface through Phase 1a (
 | Phase | Delivered |
 |-------|-----------|
 | 0 | Sail runtime, MySQL + Redis, Pest/Pint/Larastan, CI, ADRs, inventory, project rules |
-| 1 | Greenfield routes, Spatie Permission, session login shell, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path |
+| 1 | Greenfield routes, `UserRole` + Policies (ADR-010), session login shell, owner-scoped middleware + `User` predicates, Schedule command stubs, Hostaway webhook path |
 | 1a | Hostaway webhook Basic Auth (ADR-008), Spec package ownership audit (§10 / inventory), ADR gap check |
 
 There is **no production cutover**. Until cutover is approved, the legacy app remains the system of record.
@@ -31,7 +31,7 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Local runtime | Laravel Sail (`./vendor/bin/sail`) |
 | Database | MySQL 8, database name `airconcierge` |
 | Cache / queue / session | Redis |
-| AuthZ | Spatie Laravel Permission + Policies/Gates |
+| AuthZ | `UserRole` enum + Laravel Policies (ADR-010) |
 | Tests | Pest |
 | Style | Laravel Pint (`pint.json` excludes `database/migrations_fresh`) |
 | Static analysis | Larastan level 5 |
@@ -77,10 +77,12 @@ airconcierge13/
 │   ├── Http/Controllers/     # thin HTTP (Auth, Admin shell, Webhooks)
 │   ├── Http/Middleware/      # owner.terms, owner.active (owner route group only)
 │   ├── Http/Requests/        # Form Requests
+│   ├── Policies/             # UserPolicy (UserRole match)
+│   ├── Enums/                # UserRole
 │   ├── Services/             # domain workflow services (e.g. Hostaway auth)
 │   ├── Jobs/                 # e.g. SyncHostawayReservationJob stub
 │   ├── Console/Commands/     # Schedule stubs (no public /cron HTTP)
-│   └── Models/User.php       # HasRoles (Spatie); owner access predicates
+│   └── Models/User.php       # users.role → UserRole; owner access predicates
 ├── bootstrap/app.php         # routing + middleware aliases + CSRF except
 ├── routes/
 │   ├── web.php
@@ -118,8 +120,9 @@ Service only for substantive workflows (e.g. agree + audit + notify)
 
 - Controllers: HTTP in/out only.
 - **Models** own state, relationships, scopes, and simple domain predicates. **Services** orchestrate workflows — they must not wrap Eloquent lookups or predicate booleans ([ADR-009](adr/009-owner-access-predicates-and-active-flags.md)).
+- Roles: `App\Enums\UserRole` on `users.role`; authorization via **Policies** only ([ADR-010](adr/010-user-role-enum-policies.md)). No Spatie; no `Gate::define` for roles.
 - Contracts/interfaces only for meaningful boundaries (multiple implementations, external systems) — not to abstract model access.
-- Owner middleware/policies attach to **owner route groups** only — not the shared admin shell. Defensive role guards are secondary.
+- Owner middleware/policies attach to **owner route groups** only — not the shared admin shell. Defensive `$user->role === UserRole::Owner` filters are secondary.
 - Account eligibility (`users.active`) ≠ active property access (`hasActiveAccess()` from properties). Do not reintroduce `owners.status` as a duplicate enable flag.
 - Preserve business behavior unless change is explicitly approved; document suspicious legacy behavior and wait.
 - Legacy app is a **business-behavior oracle only** — no Entrust classes, route dumps, or technical patterns ported forward ([ADR-007](adr/007-phase1-greenfield-routing-auth.md)).
@@ -136,15 +139,16 @@ See also [`docs/AGENTS.md`](AGENTS.md), [`.cursor/rules/architecture.mdc`](../.c
 | Login | Session (`email` + `password`, optional remember) |
 | Controllers | `App\Http\Controllers\Auth\AuthenticatedSessionController` |
 | Validation | `App\Http\Requests\Auth\LoginRequest` (rate-limited) |
-| Roles | Spatie; seeded by `Database\Seeders\RoleSeeder` |
-| Business role names | `superadmin`, `admin`, `Regional Manager`, `Property Owner`, `cleaner`, `maintenance` |
-| Middleware aliases | `role`, `permission`, `role_or_permission`, `owner.terms`, `owner.active` |
+| Roles | `users.role` cast to `App\Enums\UserRole` |
+| Business role values | `superadmin`, `admin`, `manager`, `owner`, `cleaner`, `maintenance` |
+| Middleware aliases | `owner.terms`, `owner.active` |
+| Policies | `UserPolicy` (`accessSuperAdminArea`, `viewOwnerStatements`, `viewOwnerTerms`) |
 
-Owner terms and active-property access are **owner-scoped** middleware (`owner.terms`, `owner.active`) applied only to Property Owner–relevant routes, not the shared admin shell. Predicates live on `User` (`hasAgreedToTerms()`, `hasActiveAccess()`) and currently always allow until terms/property domains land. Account enablement will use canonical `users.active` only — do not reintroduce `owners.status` as a second enable flag ([ADR-009](adr/009-owner-access-predicates-and-active-flags.md)).
+Owner terms and active-property access are **owner-scoped** middleware (`owner.terms`, `owner.active`) applied only to Owner–relevant routes, not the shared admin shell. Audience filter: `$user->role === UserRole::Owner`. Predicates live on `User` (`hasAgreedToTerms()`, `hasActiveAccess()`) and currently always allow until terms/property domains land. Account enablement will use canonical `users.active` only — do not reintroduce `owners.status` as a second enable flag ([ADR-009](adr/009-owner-access-predicates-and-active-flags.md)).
 
-**Not in Phase 1:** username-or-email login, password-expiry flow, Entrust/`resources` ACL, real terms/property queries.
+**Not in Phase 1:** username-or-email login, password-expiry flow, real terms/property queries.
 
-Decisions: [ADR-002](adr/002-auth-spatie-permission.md), [ADR-007](adr/007-phase1-greenfield-routing-auth.md), [ADR-009](adr/009-owner-access-predicates-and-active-flags.md).
+Decisions: [ADR-007](adr/007-phase1-greenfield-routing-auth.md), [ADR-009](adr/009-owner-access-predicates-and-active-flags.md), [ADR-010](adr/010-user-role-enum-policies.md) (supersedes [ADR-002](adr/002-auth-spatie-permission.md)).
 
 ---
 
@@ -199,7 +203,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs:
 2. `vendor/bin/phpstan analyse --memory-limit=1G`
 3. `vendor/bin/pest`
 
-Pest Feature coverage for Phase 1–1a includes authentication, Spatie role middleware, owner-scoped middleware (model predicates; staff vs owner boundaries), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
+Pest Feature coverage for Phase 1–1a includes authentication, Policy/`can:` role checks, owner-scoped middleware (model predicates; staff vs owner boundaries), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
 
 ---
 
@@ -212,7 +216,7 @@ Pest Feature coverage for Phase 1–1a includes authentication, Spatie role midd
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
 | [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–1) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [009](adr/009-owner-access-predicates-and-active-flags.md) | Architecture decisions |
+| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [010](adr/010-user-role-enum-policies.md) | Architecture decisions |
 | [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc`; architecture heuristics in `architecture.mdc`) |
 
 ---

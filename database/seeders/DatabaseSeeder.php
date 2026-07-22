@@ -12,13 +12,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $this->call(RoleSeeder::class);
-
-        $user = User::factory()->create([
+        User::factory()->superAdmin()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
-
-        $user->assignRole('superadmin');
     }
 }

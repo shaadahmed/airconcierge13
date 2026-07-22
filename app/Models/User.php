@@ -2,23 +2,23 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, Notifiable;
 
     /**
-     * Whether this Property Owner has agreed to terms.
+     * Whether this owner has agreed to terms.
      *
      * Phase 1 scaffold: always true until owner_terms_agreements (or equivalent) lands.
      */
@@ -28,7 +28,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Whether this Property Owner has at least one active property.
+     * Whether this owner has at least one active property.
      *
      * Phase 1 scaffold: always true until the properties domain can supply the real check.
      * Business meaning (later): derived from property status — not users.active / owners.status.
@@ -46,6 +46,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
         ];
     }
 }

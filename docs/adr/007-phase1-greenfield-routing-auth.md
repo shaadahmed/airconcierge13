@@ -23,4 +23,4 @@ The modernization Spec assigns Hostaway **signature validation** to Phase 1. Pha
 
 ## Follow-up (2026-07-22)
 
-Owner terms / active-property middleware are scoped to Property Owner–relevant routes only (not the shared `admin` shell). Domain predicates live on `User`; checker contracts/stubs were removed. See [ADR-009](009-owner-access-predicates-and-active-flags.md).
+Owner terms / active-property middleware are scoped to Owner–relevant routes only (not the shared `admin` shell). Domain predicates live on `User`; roles use `UserRole` + Policies (ADR-010). See [ADR-009](009-owner-access-predicates-and-active-flags.md).

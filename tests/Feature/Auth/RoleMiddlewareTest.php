@@ -1,23 +1,19 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    $this->seed(RoleSeeder::class);
-
-    Route::middleware(['web', 'auth', 'role:superadmin'])
+    Route::middleware(['web', 'auth', 'can:accessSuperAdminArea,'.User::class])
         ->get('/__test/superadmin-only', fn () => response('ok'))
         ->name('test.superadmin-only');
 });
 
 it('allows a user with the required role', function (): void {
-    $user = User::factory()->create();
-    $user->assignRole('superadmin');
+    $user = User::factory()->superAdmin()->create();
 
     $this->actingAs($user)
         ->get('/__test/superadmin-only')
@@ -26,8 +22,7 @@ it('allows a user with the required role', function (): void {
 });
 
 it('forbids a user without the required role', function (): void {
-    $user = User::factory()->create();
-    $user->assignRole('Property Owner');
+    $user = User::factory()->owner()->create();
 
     $this->actingAs($user)
         ->get('/__test/superadmin-only')
