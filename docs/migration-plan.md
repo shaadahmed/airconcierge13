@@ -204,23 +204,36 @@ Enforce this flow throughout (spec Target Layering):
 Request
   → Controller          (HTTP in/out only — no business logic)
   → Form Request        (validation)
-  → Policy / Gate       (authorization)
-  → Service             (business logic, domain-grouped)
-  → Model / Repository  (data access; models stay focused on relations, scopes, casts)
+  → Policy / Gate       (authorization; scope to the smallest appropriate boundary)
+  → Service             (business workflows — multi-step orchestration)
+  → Model               (data access; relations, scopes, casts, simple domain predicates)
   → Job                 (async work where appropriate)
   → Event / Listener    (side effects where appropriate)
 ```
 
 Repositories are optional — use them when query complexity warrants it; do not invent a repository for every model.
 
-### Mandatory guidelines (from spec)
+Owner-specific auth/onboarding (terms, active property access) follows:
+
+```
+Owner boundary (owner route group or equivalent Policy)
+  → Middleware / Policy
+  → Model predicate
+  → Database
+```
+
+A Service participates only when the operation is a substantive workflow. See [ADR-009](adr/009-owner-access-predicates-and-active-flags.md).
+
+### Mandatory guidelines (from spec + ADR-009)
 
 - Keep controllers thin — HTTP in/out only; no business logic.
-- Move business logic into dedicated Service classes (domain-grouped: Bookings, Payments, Chronology, Hostaway, Reports, etc.).
-- Keep models focused on relationships, scopes, casts, and entity behavior — not orchestration.
+- Move **workflow** business logic into dedicated Service classes (domain-grouped: Bookings, Payments, Chronology, Hostaway, Reports, etc.).
+- Keep models focused on relationships, scopes, casts, entity behavior, and **simple domain predicates** (`hasX()` / `isY()`) — not multi-step orchestration.
+- **Do not** create services that only wrap Eloquent queries or model predicates. Prefer extending the model first.
+- **Do not** add contracts/interfaces solely to abstract model access — only when multiple substantive implementations or external boundaries justify them.
 - Use Form Request classes for all non-trivial validation (replace inline `Validator::` / `$this->validate()` in controllers).
-- Use Policies / Gates for authorization — replace Entrust middleware patterns over time.
-- Follow DRY and SOLID principles.
+- Use Policies / Gates for authorization — replace Entrust middleware patterns over time. Attach role-specific enforcement to the **smallest** route/authorization boundary (e.g. owner middleware on owner routes only — not the entire admin shell).
+- Follow DRY and SOLID principles; **avoid duplicate sources of truth** (especially enable/active flags — ADR-009).
 - Prefer constructor dependency injection over facades where practical (especially in services).
 - Replace deprecated helpers and APIs (`Input::`, old route syntax, legacy middleware names, etc.).
 - Remove obsolete framework patterns (e.g. old controller routing strings, legacy auth flows where Laravel 13 equivalents exist).
@@ -228,7 +241,7 @@ Repositories are optional — use them when query complexity warrants it; do not
 - Interfaces only when multiple implementations are genuinely expected (do not over-abstract).
 - Every refactored critical path gets at least one feature/integration test.
 
-### Code quality rules (enforce during PR review — from spec)
+### Code quality rules (enforce during PR review — from spec + ADR-009)
 
 - No new methods >50 lines in controllers without justification.
 - No direct `DB::` in controllers — use models or query objects in services.
@@ -237,6 +250,9 @@ Repositories are optional — use them when query complexity warrants it; do not
 - No new `0000-00-00` date handling — use nullable dates / Carbon.
 - Every new Service gets an interface only if multiple implementations are expected.
 - Every refactored critical path gets at least one feature/integration test.
+- Before adding a service: *Could this method belong on the model? Is this orchestrating a workflow or only wrapping a query?*
+- Before attaching middleware: *Is this applied more broadly than necessary?*
+- Schema: **`users.active` is the sole account enable flag**; do **not** reintroduce `owners.status` as a duplicate enable toggle; **active access** is computed from properties (never a stored owner-level active flag).
 
 ### Sync vs async (from spec)
 
@@ -348,7 +364,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 - Scaffold `routes/web.php`, `routes/api.php`, `routes/console.php` with class-based routes; add domain routes as modules land in later phases.
 - Install **Spatie Permission** + Policies/Gates; seed business role names (superadmin, admin, Regional Manager, Property Owner, cleaner, maintenance).
-- Session auth shell (login/logout). Owner terms / active-property access as **owner-scoped** middleware calling `User` model predicates (stubbed until those modules exist; ADR-009) — do **not** port `OwnerAccessVerifier`.
+- Session auth shell (login/logout). Owner terms / active-property access as **owner-scoped** middleware on Property Owner–relevant routes only, calling `User` model predicates (Phase 1 always-allow stubs until terms/properties domains land; ADR-009) — do **not** port `OwnerAccessVerifier`, checker-service wrappers, or dual `users.active` / `owners.status` enable flags.
 - **No public `/cron/*` HTTP routes.** Artisan command stubs + Laravel Schedule only (frequencies aligned to known business schedules).
 - Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **webhook Basic Auth verification completed in Phase 1a** (ADR-008).
 - Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
@@ -420,7 +436,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 **Status:** Not started.  
 **Spec alignment:** Structural Refactor Checklist — Phase 2.
 
-Extract business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies/Gates. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
+Extract **workflow** business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies/Gates. Simple domain predicates stay on models (ADR-009) — do **not** invent checker/query-wrapper services. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
 
 **Domain extraction order** follows the Spec Recommended Migration Order (subsections below). Spec Phase 2 checklist items appear in the subsection where they are implemented.
 
@@ -609,6 +625,11 @@ Extract business logic from fat controllers into domain-grouped Service classes.
 - [ ] `DocumentService` — from `UploadDocumentController`, `DocumentlistController`
 - [ ] `ImportService` — from `ImportDataController`, `ImportedEmailsController`
 - [ ] Property domain service(s) as `PropertyController` (~1,580 lines) is touched (priority fat-controller target; extract when module is migrated)
+- [ ] When importing `owners` / properties / terms schema:
+  - [ ] Implement real `User::hasAgreedToTerms()` / `User::hasActiveAccess()` against domain tables — **no** checker-service or contract wrappers for those predicates (ADR-009)
+  - [ ] Canonical account enable: **`users.active` only** — do **not** port `owners.status` as a second enable flag (verify reference app; flag if a distinct lifecycle meaning exists)
+  - [ ] Keep owner terms / active middleware on **owner route groups** only; extend tests for staff vs owner boundaries
+  - [ ] Update AGENTS / technical docs if behavior or routes change
 - [ ] Image compression: keep `CompressUploadedImages` (or L13 equivalent) as command; prepare per-batch job dispatch for Phase 4
 - [ ] Cloud backup / Dropbox CSV / property metrics paths prepared for Phase 4 jobs (`UploadBackupToCloudJob`, `ProcessDropboxCsvJob`, `RecalculatePropertyMetricsJob`)
 - [ ] Alert cron check logic owned by scheduled Artisan commands / services (no public HTTP cron endpoints)
@@ -656,8 +677,10 @@ Extract business logic from fat controllers into domain-grouped Service classes.
 - [ ] Audit all ~100 functions in `app/helpers.php`
 - [ ] Move to appropriate homes:
   - Date/formatting → Value Objects or `Support\DateFormatter`
-  - Business rules → Services
+  - Simple entity questions / predicates → Models
+  - Multi-step business workflows → Services (not query wrappers)
   - View-only formatting → View Composers or Blade components
+- [ ] In particular, do **not** recreate legacy `hasActiveProperty`-style helpers as global functions or thin services — implement as model predicates (ADR-009)
 - [ ] Goal: eliminate `helpers.php` autoload entry
 - [ ] Ensure no new global helpers are added during or after this work
 - [ ] Add/adjust tests where helper logic moves into Services or Support classes that implement critical behavior
@@ -903,11 +926,12 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 
 - [ ] Controller reduced to CRUD routing + service delegation
 - [ ] Validation in Form Request(s)
-- [ ] Authorization in Policy/Gate
-- [ ] Business logic in Service(s)
+- [ ] Authorization in Policy/Gate (scoped to the smallest appropriate boundary)
+- [ ] Workflow business logic in Service(s); simple domain predicates on Model(s) — no query-wrapper services
 - [ ] Async work in Job(s) where applicable
 - [ ] No regression in existing behavior (manual QA checklist or automated test)
 - [ ] Deprecated patterns removed from touched files
+- [ ] No duplicate sources of truth for enable/active (ADR-009)
 - [ ] Brief migration note added if behavior/routing changed
 - [ ] Suspected bugs documented and held for approval — not silently “fixed”
 
@@ -931,13 +955,14 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 4. When in doubt between sync and async: queue if I/O-bound or >2s, sync if the user is waiting on the result.
 5. When asked to work on a specific controller/module, always:
    1. Confirm which controller(s)/files are in scope.
-   2. Identify what belongs in Form Request / Policy / Service / Job.
+   2. Identify what belongs in Form Request / Policy / Service / Model predicate / Job.
    3. Flag anything that looks like a behavior bug **before** touching it — wait for go-ahead.
    4. Propose the refactored file structure before writing full implementations, unless told to just go ahead.
 6. For major architectural decisions, write a brief ADR: Decision / Alternatives considered / Rationale.
 7. Prefer Laravel Events, Listeners, Notifications, Jobs, Bus Batching, and Scheduling where they improve separation of concerns. Do not queue work simply for the sake of using queues.
-8. Controllers should remain thin orchestration layers. If a controller action grows beyond simple request handling and service coordination, extract the logic into Services, Actions, Jobs, or Events as appropriate.
+8. Controllers should remain thin orchestration layers. If a controller action grows beyond simple request handling and service coordination, extract the logic into Services, Actions, Jobs, or Events as appropriate. Do not extract a service solely to wrap a model lookup.
 9. Prefer long-term maintainability over minimizing the number of changed files.
+10. Follow ADR-009 review heuristics: model vs service, no dual active flags, middleware scoped to the smallest owner/staff boundary.
 
 ---
 
@@ -996,7 +1021,7 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
 | `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — execution roadmap aligned to Spec |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path. See ADR-007 |
+| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner-scoped middleware + `User` predicates (ADR-009; checker stubs removed), Schedule command stubs, Hostaway webhook path. See ADR-007 |
 | Phase 1a | **Complete** — Hostaway webhook Basic Auth (ADR-008) + Spec package ownership status matrix (§10) |
 | Quality | Pest (incl. Phase 1a webhook auth tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |

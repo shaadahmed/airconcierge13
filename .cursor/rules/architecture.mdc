@@ -1,0 +1,35 @@
+---
+description: Architecture standards — models vs services, owner boundaries, single active flag
+alwaysApply: true
+---
+
+# Architecture standards (ADR-009)
+
+Canonical detail: `docs/adr/009-owner-access-predicates-and-active-flags.md` and `docs/AGENTS.md`.
+
+## Models vs services
+
+- **Models** own state, relationships, scopes, casts, and simple domain predicates (`hasX()`, `isY()`).
+- **Services** orchestrate workflows (multi-model, transactions, events, notifications, external I/O).
+- Do **not** create a service whose only job is to run an Eloquent query or return a model boolean.
+- Contracts/interfaces only for real boundaries (multiple implementations, external systems) — not to hide model access.
+
+### Review heuristics (ask before shipping)
+
+- Could this method belong on the model?
+- Is this service orchestrating a workflow or only wrapping a query?
+- Would a model predicate produce a simpler design?
+- Am I introducing another source of truth?
+- Is this middleware/policy applied more broadly than necessary?
+
+## Owner-scoped enforcement
+
+- Attach `owner.terms` / `owner.active` (or owner Policies) only to **owner route groups** or equivalent boundaries.
+- Do **not** hang owner middleware on the entire shared `admin` group.
+- Defensive `hasRole('Property Owner')` guards are fine; route/group scoping is primary.
+
+## Active-state (no dual flags)
+
+- **`users.active`** = sole account enable/disable flag (login eligibility).
+- **Do not** port or recreate `owners.status` as a second enable flag.
+- **`hasActiveAccess()`** = computed from active properties — never a stored owner-level “active” duplicate.

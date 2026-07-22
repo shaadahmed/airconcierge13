@@ -2,9 +2,9 @@
 
 **Audience:** Developers, ops, and agents working on `airconcierge13`  
 **Status:** Phase 0 (foundation), Phase 1 (routing & auth scaffold), and Phase 1a (webhook auth + package audit) complete  
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-22
 
-This document describes the **implemented** technical surface through Phase 1a. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
+This document describes the **implemented** technical surface through Phase 1a (including the ADR-009 owner-access reshape). Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
 
 ---
 
@@ -15,7 +15,7 @@ This document describes the **implemented** technical surface through Phase 1a. 
 | Phase | Delivered |
 |-------|-----------|
 | 0 | Sail runtime, MySQL + Redis, Pest/Pint/Larastan, CI, ADRs, inventory, project rules |
-| 1 | Greenfield routes, Spatie Permission, session login shell, owner middleware stubs, Schedule command stubs, Hostaway webhook path |
+| 1 | Greenfield routes, Spatie Permission, session login shell, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path |
 | 1a | Hostaway webhook Basic Auth (ADR-008), Spec package ownership audit (§10 / inventory), ADR gap check |
 
 There is **no production cutover**. Until cutover is approved, the legacy app remains the system of record.
@@ -105,12 +105,27 @@ Layering for all application code:
 Request → Controller → Form Request → Policy/Gate → Service → Model → Job / Event
 ```
 
+Owner-specific terms / active-property access:
+
+```
+Owner boundary (owner route group)
+  → Middleware / Policy
+  → Model predicate (User::hasAgreedToTerms / hasActiveAccess)
+  → Database
+
+Service only for substantive workflows (e.g. agree + audit + notify)
+```
+
 - Controllers: HTTP in/out only.
+- **Models** own state, relationships, scopes, and simple domain predicates. **Services** orchestrate workflows — they must not wrap Eloquent lookups or predicate booleans ([ADR-009](adr/009-owner-access-predicates-and-active-flags.md)).
+- Contracts/interfaces only for meaningful boundaries (multiple implementations, external systems) — not to abstract model access.
+- Owner middleware/policies attach to **owner route groups** only — not the shared admin shell. Defensive role guards are secondary.
+- Account eligibility (`users.active`) ≠ active property access (`hasActiveAccess()` from properties). Do not reintroduce `owners.status` as a duplicate enable flag.
 - Preserve business behavior unless change is explicitly approved; document suspicious legacy behavior and wait.
 - Legacy app is a **business-behavior oracle only** — no Entrust classes, route dumps, or technical patterns ported forward ([ADR-007](adr/007-phase1-greenfield-routing-auth.md)).
 - No new global helpers; no `env()` outside config; no direct `DB::` in controllers.
 
-See also [`docs/AGENTS.md`](AGENTS.md) and [`.cursor/rules/migration.mdc`](../.cursor/rules/migration.mdc).
+See also [`docs/AGENTS.md`](AGENTS.md), [`.cursor/rules/architecture.mdc`](../.cursor/rules/architecture.mdc), and [`.cursor/rules/migration.mdc`](../.cursor/rules/migration.mdc).
 
 ---
 
@@ -184,7 +199,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs:
 2. `vendor/bin/phpstan analyse --memory-limit=1G`
 3. `vendor/bin/pest`
 
-Pest Feature coverage for Phase 1–1a includes authentication, Spatie role middleware, owner middleware wiring (via fakes), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
+Pest Feature coverage for Phase 1–1a includes authentication, Spatie role middleware, owner-scoped middleware (model predicates; staff vs owner boundaries), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
 
 ---
 
@@ -197,8 +212,8 @@ Pest Feature coverage for Phase 1–1a includes authentication, Spatie role midd
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
 | [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–1) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [008](adr/008-hostaway-webhook-basic-auth.md) | Architecture decisions |
-| [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc` with `alwaysApply: true`) |
+| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [009](adr/009-owner-access-predicates-and-active-flags.md) | Architecture decisions |
+| [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc`; architecture heuristics in `architecture.mdc`) |
 
 ---
 

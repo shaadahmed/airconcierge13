@@ -2,7 +2,7 @@
 
 **Audience:** QA, stakeholders, and anyone trying the **new** application shell  
 **Status:** Early preview only — not production  
-**Last updated:** 2026-07-16
+**Last updated:** 2026-07-22
 
 ---
 
