@@ -61,7 +61,7 @@ Placeholder pages that may appear in the URL structure (content is not finished)
 - **Owner statements** (`/admin/owner-statements`)
 - **Terms** (`/admin/terms`)
 
-These pages are stubs for future owner workflows. In a later release, owners without required terms or active property access may be redirected here; with the current stubs, that enforcement is not active for real business data.
+These pages are stubs for future owner workflows. Owner terms and active-property checks apply on those owner routes (not the shared dashboard); with current model stubs, enforcement is not active for real business data yet.
 
 ---
 

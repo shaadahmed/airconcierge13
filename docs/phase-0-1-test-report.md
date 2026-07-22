@@ -93,13 +93,13 @@ Criteria from `docs/migration-plan.md` § Phase 1 and ADR-007 (greenfield, not l
 | 1 | `routes/web.php`, `api.php`, `console.php` class-based | 9 app routes; class controllers for auth, admin, webhook | **PASS** |
 | 2 | Spatie Permission + role seed | `spatie/laravel-permission` **8.3.0**; `RoleSeeder` roles: `superadmin`, `admin`, `Regional Manager`, `Property Owner`, `cleaner`, `maintenance` | **PASS** |
 | 3 | Session auth shell (login/logout) | Routes + `AuthenticatedSessionController` + `LoginRequest`; Pest auth tests | **PASS** |
-| 4 | Owner terms / active-property middleware stubs | `owner.terms`, `owner.active` aliases; stub checkers; Pest coverage | **PASS** |
+| 4 | Owner terms / active-property middleware stubs | `owner.terms`, `owner.active` on owner route group; `User` predicates; Pest coverage (see ADR-009) | **PASS** |
 | 5 | No public `/cron/*` HTTP | `route:list --path=cron` → no matches; comment in `routes/console.php` | **PASS** |
 | 6 | Artisan stubs + Schedule | **27** command classes under `app/Console/Commands/`; schedules in `routes/console.php`; Pest asserts key commands | **PASS** |
 | 7 | Hostaway webhook path preserved | `POST wh/hostaway/booking/created` → 200, dispatches `SyncHostawayReservationJob`; CSRF excepted; signature **TODO Phase 2** | **PASS** |
 | 8 | Schema: Spatie + default `users` only | Live migrations: 4 files; sqlite migrate created framework + permission tables only; **no** business tables from `migrations_fresh` | **PASS** |
-| 9 | Do not port Entrust / OwnerAccessVerifier | New Spatie middleware + contracts; ADR-007 | **PASS** |
-| 10 | Policies/Gates direction | Spatie `role` / `permission` middleware registered; owner Gates via middleware contracts. **No `app/Policies/` classes yet** (acceptable for shell; domain policies land with modules) | **PASS** (scaffold) |
+| 9 | Do not port Entrust / OwnerAccessVerifier | New Spatie middleware + model predicates; ADR-007, ADR-009 | **PASS** |
+| 10 | Policies/Gates direction | Spatie `role` / `permission` middleware registered; owner checks via owner-scoped middleware → `User` predicates. **No `app/Policies/` classes yet** (acceptable for shell; domain policies land with modules) | **PASS** (scaffold) |
 
 ### Spec Phase 1 mapping
 

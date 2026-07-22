@@ -16,3 +16,7 @@ Replace `zizaco/entrust` and the custom `OwnerAccessVerifier` with **Spatie Lara
 ## Rationale
 
 Entrust is obsolete for modern Laravel. Spatie Permission is the community standard for roles/permissions on Laravel 13, pairs cleanly with Policies/Gates, and covers Property Owner / Regional Manager style roles used today. Implementation is deferred to Phase 1 (routing & authorization); Phase 0 only locks the direction.
+
+## Follow-up (2026-07-22)
+
+Owner terms / active-property access use owner-scoped middleware calling `User` model predicates (not injectable query-wrapper services). Canonical account enablement is `users.active` only; do not port `owners.status` as a duplicate enable flag. See [ADR-009](009-owner-access-predicates-and-active-flags.md).

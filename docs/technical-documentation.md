@@ -75,13 +75,12 @@ Do not copy production secrets or the legacy `.env` into this repo.
 airconcierge13/
 ├── app/
 │   ├── Http/Controllers/     # thin HTTP (Auth, Admin shell, Webhooks)
-│   ├── Http/Middleware/      # owner.terms, owner.active
+│   ├── Http/Middleware/      # owner.terms, owner.active (owner route group only)
 │   ├── Http/Requests/        # Form Requests
-│   ├── Contracts/            # owner terms / active-access interfaces
-│   ├── Services/             # stub checkers (Phase 1); domain services later
+│   ├── Services/             # domain workflow services (e.g. Hostaway auth)
 │   ├── Jobs/                 # e.g. SyncHostawayReservationJob stub
 │   ├── Console/Commands/     # Schedule stubs (no public /cron HTTP)
-│   └── Models/User.php       # HasRoles (Spatie)
+│   └── Models/User.php       # HasRoles (Spatie); owner access predicates
 ├── bootstrap/app.php         # routing + middleware aliases + CSRF except
 ├── routes/
 │   ├── web.php
@@ -126,11 +125,11 @@ See also [`docs/AGENTS.md`](AGENTS.md) and [`.cursor/rules/migration.mdc`](../.c
 | Business role names | `superadmin`, `admin`, `Regional Manager`, `Property Owner`, `cleaner`, `maintenance` |
 | Middleware aliases | `role`, `permission`, `role_or_permission`, `owner.terms`, `owner.active` |
 
-Owner terms and active-property access are **new** middleware wired on the `admin` group. Domain checks use injectable contracts with **stub implementations** that currently always allow; replace when owner/property models exist. Tests bind fakes to assert redirect wiring.
+Owner terms and active-property access are **owner-scoped** middleware (`owner.terms`, `owner.active`) applied only to Property Owner–relevant routes, not the shared admin shell. Predicates live on `User` (`hasAgreedToTerms()`, `hasActiveAccess()`) and currently always allow until terms/property domains land. Account enablement will use canonical `users.active` only — do not reintroduce `owners.status` as a second enable flag ([ADR-009](adr/009-owner-access-predicates-and-active-flags.md)).
 
 **Not in Phase 1:** username-or-email login, password-expiry flow, Entrust/`resources` ACL, real terms/property queries.
 
-Decisions: [ADR-002](adr/002-auth-spatie-permission.md), [ADR-007](adr/007-phase1-greenfield-routing-auth.md).
+Decisions: [ADR-002](adr/002-auth-spatie-permission.md), [ADR-007](adr/007-phase1-greenfield-routing-auth.md), [ADR-009](adr/009-owner-access-predicates-and-active-flags.md).
 
 ---
 
@@ -141,9 +140,9 @@ Decisions: [ADR-002](adr/002-auth-spatie-permission.md), [ADR-007](adr/007-phase
 | `GET /` | `home` | Welcome |
 | `GET/POST /login` | `login` | Guest |
 | `POST /logout` | `logout` | Auth |
-| `GET /admin/dashboard` | `admin.dashboard` | Auth + owner middleware |
-| `GET /admin/owner-statements` | `admin.owner-statements.index` | Placeholder |
-| `GET /admin/terms` | `admin.terms.show` | Placeholder |
+| `GET /admin/dashboard` | `admin.dashboard` | Auth only (shared admin shell) |
+| `GET /admin/owner-statements` | `admin.owner-statements.index` | Auth + owner middleware |
+| `GET /admin/terms` | `admin.terms.show` | Auth + owner middleware |
 | `POST /wh/hostaway/booking/created` | `webhooks.hostaway.booking.created` | CSRF-exempt |
 | `GET /api/health` | `api.health` | JSON health |
 

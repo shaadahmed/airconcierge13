@@ -348,7 +348,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 - Scaffold `routes/web.php`, `routes/api.php`, `routes/console.php` with class-based routes; add domain routes as modules land in later phases.
 - Install **Spatie Permission** + Policies/Gates; seed business role names (superadmin, admin, Regional Manager, Property Owner, cleaner, maintenance).
-- Session auth shell (login/logout). Owner terms / active-property access as **new** middleware/Gates with stubbed domain checks until those modules exist — do **not** port `OwnerAccessVerifier`.
+- Session auth shell (login/logout). Owner terms / active-property access as **owner-scoped** middleware calling `User` model predicates (stubbed until those modules exist; ADR-009) — do **not** port `OwnerAccessVerifier`.
 - **No public `/cron/*` HTTP routes.** Artisan command stubs + Laravel Schedule only (frequencies aligned to known business schedules).
 - Hostaway webhook path preserved (`POST /wh/hostaway/booking/created`): return 200 fast, dispatch job stub; **webhook Basic Auth verification completed in Phase 1a** (ADR-008).
 - Schema: Spatie + default Laravel `users` only — do **not** copy `migrations_fresh` into live migrations in this phase.
@@ -996,7 +996,7 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 | `/home/pc/projects/airconcierge13/docs/` | Tracked in git (ADRs, inventory, this plan) |
 | `/home/pc/projects/airconcierge13/docs/migration-plan.md` | This file — execution roadmap aligned to Spec |
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
-| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner middleware stubs, Schedule command stubs, Hostaway webhook path. See ADR-007 |
+| Phase 1 routing & auth | **Scaffolded** — Spatie Permission, session login, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path. See ADR-007 |
 | Phase 1a | **Complete** — Hostaway webhook Basic Auth (ADR-008) + Spec package ownership status matrix (§10) |
 | Quality | Pest (incl. Phase 1a webhook auth tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |

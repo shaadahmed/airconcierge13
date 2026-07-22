@@ -2,17 +2,12 @@
 
 namespace App\Http\Middleware;
 
-use App\Contracts\OwnerTermsChecker;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureOwnerTermsAgreed
 {
-    public function __construct(
-        private readonly OwnerTermsChecker $termsChecker,
-    ) {}
-
     /**
      * @param  Closure(Request): Response  $next
      */
@@ -24,7 +19,7 @@ class EnsureOwnerTermsAgreed
             return $next($request);
         }
 
-        if ($this->termsChecker->hasAgreed($user)) {
+        if ($user->hasAgreedToTerms()) {
             return $next($request);
         }
 

@@ -27,17 +27,19 @@ Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::post('wh/hostaway/booking/created', HostawayWebhookController::class)
     ->name('webhooks.hostaway.booking.created');
 
-Route::middleware(['auth', 'owner.terms', 'owner.active'])
+Route::middleware(['auth'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        // Shared authenticated admin shell — no owner-specific middleware.
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        Route::get('owner-statements', [OwnerStatementController::class, 'index'])
-            ->name('owner-statements.index');
+        // Owner boundary — Property Owner flows only (ADR-009).
+        Route::middleware(['owner.terms', 'owner.active'])->group(function (): void {
+            Route::get('owner-statements', [OwnerStatementController::class, 'index'])
+                ->name('owner-statements.index');
 
-        Route::get('terms', [TermsController::class, 'show'])
-            ->name('terms.show');
-
-        // Domain routes (bookings, properties, reports, …) are added in later phases.
+            Route::get('terms', [TermsController::class, 'show'])
+                ->name('terms.show');
+        });
     });

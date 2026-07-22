@@ -2,17 +2,12 @@
 
 namespace App\Http\Middleware;
 
-use App\Contracts\OwnerActiveAccessChecker;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureOwnerHasActiveAccess
 {
-    public function __construct(
-        private readonly OwnerActiveAccessChecker $activeAccessChecker,
-    ) {}
-
     /**
      * @param  Closure(Request): Response  $next
      */
@@ -24,7 +19,7 @@ class EnsureOwnerHasActiveAccess
             return $next($request);
         }
 
-        if ($this->activeAccessChecker->hasActiveAccess($user)) {
+        if ($user->hasActiveAccess()) {
             return $next($request);
         }
 
