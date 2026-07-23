@@ -32,6 +32,7 @@ Request → Controller → Form Request → Policy/Gate → Service → Model �
 - **Contracts/interfaces:** only when they provide meaningful value (multiple substantive implementations, external boundaries, or testing seams with real benefit) — not merely to abstract model access.
 - Jobs: async I/O-bound / >~2s work; document if kept sync.
 - No new global helpers; no new business logic in Blade.
+- Pure shared utilities belong in `App\Support\*` (final classes, no Eloquent) — see ADR-015. Do not add Composer `files` autoload for helpers.
 - No `env()` outside config; no direct `DB::` in controllers.
 
 Before introducing a service, ask: *Is this actually a domain predicate that belongs on the model?* Prefer the model when a predicate would produce a simpler design.

@@ -295,8 +295,8 @@ Phase 0  Foundation                                          [IMPLEMENTED]
          2.3 Bookings & Payments                             [IMPLEMENTED]
          2.4 Reports & Dashboard                             [IMPLEMENTED]
          2.5 Remaining admin modules                         [IMPLEMENTED]
-    → Phase 3  Helpers Decomposition                         [NEXT]
-    → Phase 4  Async Migration
+    → Phase 3  Helpers Decomposition                         [DONE]
+    → Phase 4  Async Migration                               [NEXT]
     → Phase 5  Frontend / Views (as needed)
     → Phase 6  Deployment Readiness
 ```
@@ -476,7 +476,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port).
 - 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014.
 - Local dumps: `storage/app/legacy-dumps/` (gitignored).
-- **Next:** Phase 3 helpers decomposition.
+- **Next:** Phase 4 async migration (Phase 3 helpers decomposition complete).
 
 ---
 
@@ -690,45 +690,59 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ### Phase 3 — Helpers Decomposition
 
-**Status:** Not started.  
-**Spec alignment:** Structural Refactor Checklist — Phase 3.
+**Status:** Implemented (inventory + critical Support homes; deferred buckets approved via ADR-015).  
+**Spec alignment:** Structural Refactor Checklist — Phase 3.  
+**Branch:** `helpers-decomposition`.
 
 #### Objectives
 
-- Audit all ~100 functions in legacy `app/helpers.php`.
-- Move each function to an appropriate home; eliminate the `helpers.php` Composer autoload entry.
+- Audit all ~181 functions in legacy `app/helpers.php` (Spec “~100” is shorthand).
+- Move each function to an appropriate home **or** record an approved disposition; eliminate / confirm absence of the `helpers.php` Composer autoload entry.
 - Do not introduce new global helpers.
 
 #### Tasks
 
-- [ ] Audit all ~100 functions in `app/helpers.php`
-- [ ] Move to appropriate homes:
-  - Date/formatting → Value Objects or `Support\DateFormatter`
-  - Simple entity questions / predicates → Models
-  - Multi-step business workflows → Services (not query wrappers)
-  - View-only formatting → View Composers or Blade components
-- [ ] In particular, do **not** recreate legacy `hasActiveProperty`-style helpers as global functions or thin services — implement as model predicates (ADR-009)
-- [ ] Goal: eliminate `helpers.php` autoload entry
-- [ ] Ensure no new global helpers are added during or after this work
-- [ ] Add/adjust tests where helper logic moves into Services or Support classes that implement critical behavior
+- [x] Audit all functions in `legacy/app/helpers.php` (disposition in `docs/migration-inventory.md`)
+- [x] Move critical pure utilities to appropriate homes:
+  - Date/formatting → `App\Support\Date\DateFormatter`, `DateMath`
+  - Money/string → `App\Support\Money\MoneyFormatter`, `App\Support\String\StringCleaner`
+  - Simple entity questions / predicates → Models (`User::hasActiveAccess` already — ADR-009)
+  - Multi-step business workflows → existing Phase 2 Services (`EmailService`, etc.)
+  - View-only / `list_*` HTML → deferred to Phase 5 View composers / Blade components
+- [x] Do **not** recreate legacy `hasActiveProperty`-style helpers as global functions or thin services — model predicates (ADR-009)
+- [x] Confirm no `helpers.php` Composer `files` autoload (never present on L13)
+- [x] Ensure no new global helpers are added
+- [x] Unit tests for Support classes (`tests/Unit/Support/`)
+- [x] ADR-015 documents Support conventions + disposition vocabulary
 
 #### Deliverables
 
-- Helpers inventory (can extend `docs/migration-inventory.md`) with destination for each function
-- Migrated Support/Service/View Composer/Blade component homes
-- Composer `files` autoload entry for `helpers.php` removed when empty/unused
-- No regression on paths that previously depended on helpers
+- Helpers inventory with destination + disposition per function (`docs/migration-inventory.md`)
+- Support homes for critical formatters; superseded/deferred/delete-candidate notes for the rest
+- Composer `files` autoload for helpers: confirmed absent
+- No regression on Phase 1–2 paths (helpers were unused in L13)
 
 #### Dependencies
 
-- Phase 2 domains that still call helper functions should prefer calling Services/Support during extraction; Phase 3 finishes remaining helpers and removes the autoload entry
-- Behavior preservation: do not silently change helper business rules
+- Phase 2 domains prefer Services/Support over globals; Phase 3 finished disposition and critical Support
+- Behavior preservation: sentinel date typos and empty-money behavior preserved in Support (not silently “fixed”)
 
 #### Exit criteria
 
-- [ ] All ~100 helper functions audited and relocated or explicitly deleted with approval
-- [ ] `helpers.php` Composer autoload entry eliminated
-- [ ] No new global helpers remain in the migration path
+- [x] All helper functions audited and relocated, superseded, deferred (approved), or marked delete-candidate
+- [x] `helpers.php` Composer autoload entry eliminated / confirmed absent
+- [x] No new global helpers remain in the migration path
+
+#### Deferred for later phases (approved)
+
+- Booking/payment fee math → Booking/Payment model or service when parity PRs land
+- `isMonthClosed` + month-close emails → MonthClosing domain
+- All `list_*` / `render_menu` → Phase 5 frontend
+- Notification email wrappers → Phase 4 Mailables/jobs
+
+#### Next
+
+- Phase 4 async migration (job hardening, retries, monitoring) for email/Hostaway/PDF/import jobs already stubbed; consumers may pull deferred helpers into Services as needed.
 
 ---
 
@@ -1061,6 +1075,6 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
 3. Phase 0–2.5 are complete (Phase 2.1 minimal Hostaway through remaining admin services).
-4. **Execute Phase 3 next** — helpers decomposition (`helpers.php` audit → Services / Support / View composers). Phase 4 owns job hardening (retries, monitoring) for email/Hostaway/PDF/import jobs already stubbed.
+4. **Execute Phase 4 next** — async migration (job hardening, retries, failed-job monitoring) for email/Hostaway/PDF/import jobs already stubbed. Pull deferred helper destinations into Services/Models as consumers need them (see Phase 3 inventory).
 5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
-5. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
+6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.

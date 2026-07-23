@@ -178,41 +178,123 @@ Phase 1a audit (2026-07-19). Canonical ownership matrix: [`migration-plan.md`](m
 
 ---
 
-## Helpers (`app/helpers.php`)
+## Helpers (`legacy/app/helpers.php`) — Phase 3 disposition
 
-~182 top-level functions. Goal (Phase 6): eliminate Composer `files` autoload; move to services / support / view layer.
+**Count:** 181 top-level functions in `legacy/app/helpers.php` (Spec/plan “~100” is shorthand).  
+**L13 status:** No `app/helpers.php`; Composer has **no** `files` autoload for helpers (already clean).  
+**Policy:** [ADR-015](adr/015-helpers-support-disposition.md). Disposition values: `implemented` | `superseded` | `deferred` | `delete-candidate`.
+
+Inventory drift (listed historically, **not** top-level in current `helpers.php`): `getAccommodationPerChannel`, `markBookingsAsPaymentDisbursedForProperty`.
 
 ### Date / formatting
 
-`convert_mysql_format`, `convert_mysql_datetime_format`, `convert_mysql_time_format`, `us_date_format`, `us_datetime_format`, `us_time_format`, `cms_date_format`, `cms_datetime_format`, `user_date_format`, `user_datetime_format`, `addMonths`, `years_list`, `years_list_options`, `Prev_years_list`, `months_list`, `months_list_options`, `months_shortnames_list`, `get_month_name`, `last_twelve_months`, `next_twelve_months`, `get_month_last_date`, `get_last_twelve_months_array`, `get_array_btw_two_dates`, `calculate_average_date`, `calculate_no_of_nights_between_dates`, `getLastDayOfMonth`, `BookingYearsOptions`, `isMonthClosed`
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `convert_mysql_format` | `App\Support\Date\DateFormatter::toMysqlDate` | implemented |
+| `convert_mysql_datetime_format` | `DateFormatter::toMysqlDateTime` | implemented |
+| `convert_mysql_time_format` | `DateFormatter::toMysqlTime` | implemented |
+| `us_date_format` | `DateFormatter::usDate` | implemented |
+| `us_datetime_format` | `DateFormatter::usDateTime` | implemented |
+| `us_time_format` | `DateFormatter::usTime` | implemented |
+| `cms_date_format` | `DateFormatter::cmsDate` | implemented |
+| `cms_datetime_format` | `DateFormatter::cmsDateTime` | implemented |
+| `user_date_format` | `DateFormatter::userDate` | implemented |
+| `user_datetime_format` | `DateFormatter::userDateTime` | implemented |
+| `calculate_no_of_nights_between_dates` | `App\Support\Date\DateMath::nightsBetween` | implemented |
+| `get_month_last_date` | `DateMath::monthDateRange` | implemented |
+| `getLastDayOfMonth` | `DateMath::lastDayOfMonth` | implemented |
+| `addMonths` | `DateMath` (extend when needed) | deferred |
+| `years_list`, `years_list_options`, `Prev_years_list` | Phase 5 select builders / Support | deferred |
+| `months_list`, `months_list_options`, `months_shortnames_list`, `get_month_name` | Phase 5 / Support | deferred |
+| `last_twelve_months`, `next_twelve_months`, `get_last_twelve_months_array` | Reports/Dashboard or Support | deferred |
+| `get_array_btw_two_dates`, `calculate_average_date` | `DateMath` when report consumers land | deferred |
+| `BookingYearsOptions` | Phase 5 Blade / booking forms | deferred |
+| `isMonthClosed` | MonthClosing domain model/query (**not** DateFormatter) | deferred |
 
-### JSON / HTTP / response helpers
+### Money / string cleaning
 
-`bind_json_array`, `bind_json_error`, `bind_json_response`, `generateJsonResponse`, `encodeURIComponent`, `getClientIpAddress`, `getLastUriSegement`, `base_url`, `viewfailUploads`
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `formatDollar` | `App\Support\Money\MoneyFormatter::dollar` | implemented |
+| `nice_number` | `MoneyFormatter::abbreviated` | implemented |
+| `nice_number_million` | `MoneyFormatter::asMillions` | implemented |
+| `nice_number_thousand` | `MoneyFormatter::asThousands` | implemented |
+| `cleanStringForStoring` | `App\Support\String\StringCleaner::forStoring` | implemented |
+| `cleanStringForReading` | `StringCleaner::forReading` | implemented |
+| `clean_decimal_value` | `StringCleaner::decimal` | implemented |
+| `fetchBefore`, `fetchAfter`, `fetchBetween`, `fetchAllBetween` | `App\Support\String\TextExtract` when needed | deferred |
+| `removeNewlines`, `removeTags` | `StringCleaner` extend when needed | deferred |
 
-### Lists / selects (UI)
+### JSON / HTTP / response
+
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `bind_json_array`, `bind_json_error`, `bind_json_response`, `generateJsonResponse` | Laravel JSON responses / API Resources | deferred / delete-candidate |
+| `encodeURIComponent` | JS/`rawurlencode` at call site | delete-candidate |
+| `getClientIpAddress` | `$request->ip()` | superseded |
+| `getLastUriSegement` | route / request path helpers | deferred |
+| `base_url` | `url()` / `config('app.url')` | superseded |
+| `viewfailUploads` | Phase 5 upload UI | deferred |
+
+### Lists / selects (UI) — all deferred to Phase 5
 
 `list_regions`, `list_subregions`, `all_subregions`, `list_all_subregions`, `list_region_properties`, `ajax_list_region_properties`, `list_all_region_properties`, `list_all_region_selected_properties`, `list_region_properties_json`, `list_all_properties`, `list_all_properties_json`, `list_bookings_properties`, `list_owner_role_properties`, `list_manager_properties`, `list_manager_regions`, `list_property_bookings`, `list_regional_managers`, `list_all_regional_managers`, `list_selected_region_id_properties`, `list_platforms`, `list_payment_types`, `list_payment_type_categories`, `list_incoming_payment_types`, `list_guests`, `list_us_states`, `list_contract_end_reasons`, `list_cleaners`, `listAllVendors`, `ManagementTypeOptions`, `render_menu`
 
-### Property / owner / manager domain
+**Destination:** Blade components / View composers / Livewire — **not** `App\Support`. Use Eloquent scopes (e.g. `Region::notDeleted()`).
 
-`getPropertyOwners`, `getOwnersEmails`, `getPropertyManagers`, `getManagerProperties`, `getManagerRegions`, `getManagersEmail`, `getOwnerProperties`, `hasActiveProperty`, `getPropertyStatusString`, `getPropertyAuditStatusString`, `getPropertyLimit`, `getPropertyOnlineListings`, `getPropertyOccupancy`, `getChildBookingsOccupancy`, `propertiesWtihExpiringPermits`, `removeCommonPropertyTitlesPart`
+### Property / owner / manager
 
-### Booking / payment / fee calculations
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `hasActiveProperty` | `User::hasActiveAccess()` (ADR-009/012) | superseded |
+| `getPropertyOwners`, `getOwnersEmails`, `getOwnerProperties` | Owner/Property relationships / services | deferred |
+| `getPropertyManagers`, `getManagerProperties`, `getManagerRegions`, `getManagersEmail` | Manager domain when ported | deferred |
+| `getPropertyStatusString`, `getPropertyAuditStatusString` | Property model / enums | deferred |
+| `getPropertyLimit`, `getPropertyOnlineListings`, `getPropertyOccupancy`, `getChildBookingsOccupancy` | PropertyService / ReportService | deferred |
+| `propertiesWtihExpiringPermits` | PropertyService / scheduled alert | deferred |
+| `removeCommonPropertyTitlesPart` | Property model or Support string util | deferred |
 
-`calculateBookingIncome`, `calculateBookingExpense`, `calculateNegativeOwnerPayout`, `calculateGrossOwnerPayoutAmount`, `calculateNetOwnerPayoutAmount`, `calculateSiteListingFee`, `calculateOffsitePropertyManagementFee`, `calculateTotalPropertyPayments`, `getBookingManagementFeePercentage`, `getManagementFeeAsAccomodations`, `getStaffCommissionAsManagementFee`, `getMaxPropertyMgmtFeeRules`, `getPropertyMgmtFeeRules`, `getMgmtFeeRuleValue`, `formatMgmtFeeRuleForExport`, `getSafelyInsuranceFee`, `getAccommodationPerChannel`, `getPossibleBookingSplits`, `getOriginalBookingDates`, `getBookingGuests`, `getBookingEditUrl`, `filter_specific_platform_bookings`, `isTotCalculationRequired`, `translate_tot_mode`, `translate_vrbo_tot_mode`, `getCancelledBookingText`, `getPaymentClearText`, `getPaymentReceipts`, `getPropertiesWithPayout`, `markBookingsAsPaymentDisbursed`, `markBookingsAsPaymentDisbursedForProperty`, `getPaymentClearBookingsQuery`, `getLastRecurringBookingPayment`, `isLastRecurringBookingPayment`, `getLastRecurringPropertyPayment`, `isLastRecurringPropertyPayment`, `isRecurringPropertyPayment`, `isRecurringBookingPayment`, `isRecurringPayment`, `isOwnerBlockModificationSafe`, `ownerBlockRestrictedModification`, `getBookingFeeBoolean`, `getBookingFeePercentage`
+### Booking / payment / fee calculations — deferred
+
+Destination: `Booking`/`Payment` model methods or `BookingService`/`PaymentService` when payout/report parity PRs land (not Phase 3 Support).
+
+`calculateBookingIncome`, `calculateBookingExpense`, `calculateNegativeOwnerPayout`, `calculateGrossOwnerPayoutAmount`, `calculateNetOwnerPayoutAmount`, `calculateSiteListingFee`, `calculateOffsitePropertyManagementFee`, `calculateTotalPropertyPayments`, `getBookingManagementFeePercentage`, `getManagementFeeAsAccomodations`, `getStaffCommissionAsManagementFee`, `getMaxPropertyMgmtFeeRules`, `getPropertyMgmtFeeRules`, `getMgmtFeeRuleValue`, `formatMgmtFeeRuleForExport`, `getSafelyInsuranceFee`, `getPossibleBookingSplits`, `getOriginalBookingDates`, `getBookingGuests`, `getBookingEditUrl`, `filter_specific_platform_bookings`, `isTotCalculationRequired`, `translate_tot_mode`, `translate_vrbo_tot_mode`, `getCancelledBookingText`, `getPaymentClearText`, `getPaymentReceipts`, `getPropertiesWithPayout`, `markBookingsAsPaymentDisbursed`, `getPaymentClearBookingsQuery`, `getLastRecurringBookingPayment`, `isLastRecurringBookingPayment`, `getLastRecurringPropertyPayment`, `isLastRecurringPropertyPayment`, `isRecurringPropertyPayment`, `isRecurringBookingPayment`, `isRecurringPayment`, `isOwnerBlockModificationSafe`, `ownerBlockRestrictedModification`, `getBookingFeeBoolean`, `getBookingFeePercentage`
 
 ### Email / SMTP / notifications
 
-`sendSmtpEmail`, `processEmailById`, `count_pending_processed_emails`, `sendPasswordExpiryEmail`, `sendPropertyLimitEmailNotification`, `sendEditSummaryEmail`, `sendCreateOnMonthClosedEmail`, `sendDeleteEmail`, `notifyDeveloper`
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `sendSmtpEmail` | `EmailService` + `SendOutboundEmailJob` (ADR-004) | superseded |
+| `processEmailById` | Import redesign — legacy curl-to-cron is dead | delete-candidate |
+| `count_pending_processed_emails` | Chronology/Import query | deferred |
+| `sendPasswordExpiryEmail`, `sendPropertyLimitEmailNotification`, `sendEditSummaryEmail`, `sendCreateOnMonthClosedEmail`, `sendDeleteEmail` | Phase 4 Mailables / notification jobs | deferred |
+| `notifyDeveloper` | Laravel notification / log channel | deferred |
 
 ### Auth / password / roles
 
-`get_role_base_resources`, `isOldPassword`, `generateRandomString`, `generate_random_token`, `randomString`
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `get_role_base_resources` | `UserRole` + Policies (ADR-010) — no Entrust | delete-candidate |
+| `isOldPassword` | Password history when ported | deferred |
+| `generateRandomString`, `generate_random_token`, `randomString` | `Str::random` / framework | superseded |
 
-### String / array / misc utilities
+### String / array / misc
 
-`fetchBefore`, `fetchAfter`, `fetchBetween`, `fetchAllBetween`, `removeNewlines`, `removeTags`, `cleanStringForStoring`, `cleanStringForReading`, `clean_decimal_value`, `formatDollar`, `nice_number`, `nice_number_million`, `nice_number_thousand`, `sortAssociativeArrayByKey`, `arrayExists`, `getRegionArrayIndex`, `getArrayDifferences`, `calculatePercentageChange`, `redactName`, `userFriendlyFieldName`, `export_array_to_csv`, `cms_delete_record`, `getColumnValue`, `get_validation_group_rule`, `getUserTableCurrentState`, `getUserSavedFilters`, `make_chart_json`, `get_filetype_icons`, `total_users`, `zipLookup`, `zipLookupGoogleMap`, `get_aplicable_platforms`, `get_not_aplicable_platforms`, `translate_properties_additional_fee_type`, `translate_properties_additional_fee_application`, `getAdditionalInsuranceName`, `getSalaryType`, `getEmploymentStatus`, `getHiredBy`, `getCleanerPosition`, `getStatus`, `getLatestActionColumn`, `checkZohoSignTokenExpireStatus`
+| Function | Destination | Disposition |
+|----------|-------------|-------------|
+| `sortAssociativeArrayByKey`, `arrayExists`, `getRegionArrayIndex`, `getArrayDifferences`, `calculatePercentageChange` | Support collections util or inline | deferred |
+| `redactName`, `userFriendlyFieldName` | Support / presentation | deferred |
+| `export_array_to_csv` | `ImportService` / report export | deferred |
+| `cms_delete_record`, `getColumnValue` | Eloquent — do not re-port raw DB helpers | delete-candidate |
+| `get_validation_group_rule` | Form Requests | deferred |
+| `getUserTableCurrentState`, `getUserSavedFilters` | Phase 5 DataTables prefs | deferred |
+| `make_chart_json` | DashboardService / Phase 5 | deferred |
+| `get_filetype_icons` | Blade / assets | deferred |
+| `total_users` | User query — not a helper | delete-candidate |
+| `zipLookup`, `zipLookupGoogleMap` | Geocoding service when needed | deferred |
+| `get_aplicable_platforms`, `get_not_aplicable_platforms` | Platform model / config | deferred |
+| `translate_properties_additional_fee_*`, `getAdditionalInsuranceName`, `getSalaryType`, `getEmploymentStatus`, `getHiredBy`, `getCleanerPosition`, `getStatus`, `getLatestActionColumn` | Enums / model labels | deferred |
+| `checkZohoSignTokenExpireStatus` | `ZohoSignService` | superseded / deferred thin method |
 
 ---
 

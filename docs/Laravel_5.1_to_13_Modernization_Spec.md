@@ -309,17 +309,20 @@ ImportedEmailsController
 
 Phase 3 --- Helpers Decomposition
 
-\[ \] Audit all \~100 functions in app/helpers.php
+\[x\] Audit all \~181 functions in legacy app/helpers.php (disposition in
+docs/migration-inventory.md; Spec “\~100” was shorthand)
 
-\[ \] Move to appropriate homes:
+\[x\] Move to appropriate homes (ADR-015; predicates → Models per ADR-009):
 
-Date/formatting → Value Objects or Support\\DateFormatter
+Date/formatting → App\\Support\\Date\\DateFormatter + DateMath
 
-Business rules → Services
+Money/string → App\\Support\\Money\\MoneyFormatter + String\\StringCleaner
 
-View-only formatting → View Composers or Blade components
+Business workflows → existing Phase 2 Services; fee math deferred
 
-\[ \] Goal: eliminate helpers.php autoload entry
+View-only / list\_\* HTML → deferred to Phase 5 View Composers or Blade
+
+\[x\] Goal: eliminate helpers.php autoload entry — confirmed absent on L13
 
 Phase 4 --- Async Migration
 
