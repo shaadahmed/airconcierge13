@@ -1,10 +1,10 @@
 # Air Concierge — Migration inventory (Phase 0)
 
 **Status:** Checklist only — no ports  
-**Source:** `/mnt/e/xampp/htdocs/airconcierge` (read-only)  
-**Generated:** 2026-07-12
+**Source:** `legacy/` (gitignored in-repo snapshot; business-behavior reference only). Original tree: `/mnt/e/xampp/htdocs/airconcierge` (read-only).  
+**Generated:** 2026-07-12  
 
-Use this as a tracking inventory for Phases 1–6 (including Phase 1a). Do not treat checkboxes as permission to port; follow `migration-plan.md` phase order (requirements: `Laravel_5.1_to_13_Modernization_Spec.md`).
+Use this as a tracking inventory for Phases 1–6 (including Phase 1a). Do not treat checkboxes as permission to port; follow `migration-plan.md` phase order (requirements: `Laravel_5.1_to_13_Modernization_Spec.md`). Implementation follows Spec / plan / ADRs — not legacy technical patterns.
 
 ---
 
@@ -12,7 +12,7 @@ Use this as a tracking inventory for Phases 1–6 (including Phase 1a). Do not t
 
 | Item | Location / note | L13 status |
 |------|-----------------|------------|
-| Fresh baseline (`migrations_fresh`) | Documented in migration plan as ~101 files under reference `database/migrations_fresh/` | **Not present** on disk at inventory time — re-verify before schema port; **do not copy/run** until approved |
+| Fresh baseline (`migrations_fresh`) | `legacy/database/migrations_fresh/` (~101 files); also mirrored at `database/migrations_fresh/` | **Reference only** — **do not copy/run** into live migrations until approved |
 | Legacy incremental migrations | `database/migrations/` (~51 historical) | Not the L13 baseline |
 | L13 framework defaults | `airconcierge13/database/migrations/` (users/cache/jobs) | Boot only |
 

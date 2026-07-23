@@ -14,7 +14,9 @@ alwaysApply: true
 - Roles: `App\Enums\UserRole` + `users.role` string column. No Spatie. Policies only for role authorization (no Gates).
 - Owner terms/active middleware and policies: owner route groups only — not the shared admin shell.
 - Canonical enable flag: `users.active` only. Do not reintroduce `owners.status` as a duplicate. Active access is computed from properties.
-- Reference app at `/mnt/e/xampp/htdocs/airconcierge` is read-only; never copy secrets or the old tree here.
+- `legacy/` (gitignored) is a **business-behavior reference only** — use it to understand current logic, not to copy L5.1 patterns. Prefer `legacy/` over the XAMPP tree when consulting behavior.
+- Original app at `/mnt/e/xampp/htdocs/airconcierge` remains read-only / production SoR until cutover; never edit it as part of this migration; never commit secrets.
+- Implement only per Spec, `migration-plan.md`, accepted ADRs, and `docs/AGENTS.md` — those win over anything in `legacy/`.
 - Do not port modules or import `migrations_fresh` until that phase/step is approved.
-- Phase 0–1a implemented (owner access reshape per ADR-009); next is Phase 2+ per the migration plan.
+- Phase 0–2.1 implemented (minimal Hostaway per ADR-011); next is Phase 2.2+ per the migration plan.
 - No new global helpers; no business logic in Blade; no `env()` outside config.

@@ -1,4 +1,4 @@
-# Phase 0 & Phase 1 — Verification Report
+# Verification / Test Report
 
 **Date:** 2026-07-16  
 **Project:** `/home/pc/projects/airconcierge13`  
@@ -278,4 +278,6 @@ Phase 0 DoD asks for ADRs under `docs/adr/` — content exists; commit ADR-007 a
 
 **Phase 1a status (2026-07-19):** Implemented — Hostaway webhook Basic Auth (ADR-008), package ownership audit, ADR gap check. Webhook Pest tests (4) pass via local PHP when Sail is unavailable.
 
-**Next recommended step:** execute **Phase 2.1 Hostaway + webhooks** per `docs/migration-plan.md`. Do not import `migrations_fresh` until a later domain phase explicitly requires those tables.
+**Phase 2.1 status (2026-07-23):** Implemented (minimal — ADR-011) — Hostaway API client, token + reservation log tables, job→sync service with deferred booking stubs, idempotency tests.
+
+**Next recommended step:** execute **Phase 2.2 Email / Chronology** per `docs/migration-plan.md`. Do not import remaining `migrations_fresh` tables until a domain phase explicitly requires them.

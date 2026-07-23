@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Services\Hostaway\HostawayReservationSyncService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -16,8 +17,8 @@ class SyncHostawayReservationJob implements ShouldQueue
         public array $payload,
     ) {}
 
-    public function handle(): void
+    public function handle(HostawayReservationSyncService $sync): void
     {
-        // TODO Phase 2 — implement Hostaway reservation sync (idempotent).
+        $sync->handle($this->payload);
     }
 }

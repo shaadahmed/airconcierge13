@@ -1,13 +1,16 @@
 # Air Concierge — Laravel 5.1 → Laravel 13 Migration Plan
 
 **Status:** Implementation-ready execution roadmap (all phases)  
-**Last updated:** 2026-07-19  
+**Last updated:** 2026-07-23  
 **New project root:** `/home/pc/projects/airconcierge13`  
-**Reference (old) app:** `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`)
+**Legacy reference (in-repo, gitignored):** `legacy/` — business-behavior oracle only  
+**Original / production app:** `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`)
 
 This document is the **execution plan** for the Laravel 5.1 → Laravel 13 migration. It must fully reflect `docs/Laravel_5.1_to_13_Modernization_Spec.md`, which is the **requirements source of truth**. Agents and humans follow this plan for sequencing, tasks, deliverables, dependencies, and exit criteria.
 
 Where this plan records **implementation choices** that satisfy the spec without contradicting it (e.g. PHP 8.3+ vs the spec’s 8.2+ floor, Spatie Permission as the Entrust replacement, Laravel Sail for local runtime, greenfield Phase 1 routing per ADR-007), those notes are preserved. If any plan detail would **omit or weaken** a spec requirement, the specification wins and this plan must be updated.
+
+**Implementation authority:** Spec, this plan, accepted ADRs, and `docs/AGENTS.md`. The `legacy/` snapshot (and the original XAMPP tree) exist only to explain **current business behavior** — never as a template for L13 code shape.
 
 Do **not** begin Phase 2+ until Phase 0 DoD is met, Phase 1 is complete, and Phase 1a exit criteria are met (or Phase 1a items are explicitly waived with documented approval).
 
@@ -30,21 +33,22 @@ This is a **framework migration + structural refactor**, not a feature sprint an
 
 ---
 
-## 2. Reference codebase — location and rules
+## 2. Legacy reference — location and rules
 
 | Item | Value |
 |------|--------|
-| Windows path | `E:\xampp\htdocs\airconcierge` |
-| WSL path | `/mnt/e/xampp/htdocs/airconcierge` |
+| In-repo snapshot (preferred for agents) | `airconcierge13/legacy/` (gitignored; curated source for planning) |
+| Original Windows path | `E:\xampp\htdocs\airconcierge` |
+| Original WSL path | `/mnt/e/xampp/htdocs/airconcierge` |
 | GitHub (private / not readable from this environment) | `https://github.com/ryandanz76/airconcierge` |
 
 ### Rules
 
-1. **Read-only.** Never edit files in the reference app as part of this migration.
-2. **Do not copy** the old tree into `airconcierge13` (no `airconcierge/` reference folder inside the new project). The local path above is already readable from WSL.
-3. **Do not commit** the old app, its `vendor/`, or its `.env` into the new repo. Old `.env` contains secrets (DB, Mailgun, etc.) — never copy those credentials into git.
-4. Use the reference **only** to look up how something currently behaves before deciding how to implement it in L13.
-5. Never wholesale copy-paste fat controllers or `helpers.php` into the new app — re-implement through the target layering below.
+1. **Reference only.** Use `legacy/` (or the original tree) solely to understand **business logic and current behavior**.
+2. **Never edit** the original XAMPP app as part of this migration. Do not treat `legacy/` as application code to modify or ship.
+3. **Do not commit** `legacy/`, the old `vendor/`, or any `.env` / secrets. Old `.env` contains credentials — never copy those into git.
+4. **Do not port wholesale** fat controllers, `helpers.php`, Entrust, or L5.1 structure — re-implement through the target layering and ADRs below.
+5. **Implementation follows** Spec → this plan → accepted ADRs → `docs/AGENTS.md`. When those conflict with anything in `legacy/`, the docs and ADRs win.
 
 ---
 
@@ -55,8 +59,8 @@ This is a **framework migration + structural refactor**, not a feature sprint an
 | PHP | **8.3+** (Laravel 13 minimum; satisfies the modernization spec’s 8.2+ floor) |
 | Framework | Laravel 13 (latest stable) |
 | Database | MySQL 8, database name **`airconcierge`** (aligned with the old app) |
-| Schema source | Fresh baseline in the reference app: **`/mnt/e/xampp/htdocs/airconcierge/database/migrations_fresh/`** (~101 files, dated `2026_07_11_*`, ending with `add_foreign_keys_to_fresh_schema`). This replaces the historical ~51 incremental files under `database/migrations/` as the intended L13 schema source. |
-| Schema timing | Phase 0 creates the empty MySQL DB only. **Do not copy or run** `migrations_fresh` into `airconcierge13` until explicitly approved (later phase / separate go-ahead). |
+| Schema source | Fresh baseline: **`legacy/database/migrations_fresh/`** (also mirrored at `database/migrations_fresh/` in this repo) — ~101 files, dated `2026_07_11_*`, ending with `add_foreign_keys_to_fresh_schema`. This replaces the historical ~51 incremental files under legacy `database/migrations/` as the intended L13 schema source. |
+| Schema timing | Phase 0 creates the empty MySQL DB only. **Do not run** `migrations_fresh` wholesale or promote files into live `database/migrations/` until explicitly approved (later phase / separate go-ahead). |
 | Cache / queue / sessions | Redis |
 | Local runtime | **Laravel Sail** (`vendor/bin/sail`) — app + MySQL + Redis; queue worker and scheduler via Sail/Compose services as configured in Phase 0 |
 | Production queue/scheduler | Sail/Compose where used; otherwise **supervisor** or **systemd** (as appropriate for the host) — Spec Phase 4 / Phase 6 |
@@ -135,7 +139,7 @@ Gathered by inspecting `/mnt/e/xampp/htdocs/airconcierge` (composer.json, tree, 
 | Cron | Mix of **public HTTP routes** (`/cron/*` style) and Artisan commands |
 | Email | PHPMailer directly, not Laravel Mail |
 | Migrations (legacy) | ~**51** incremental files under `database/migrations/` — historical; not the L13 baseline |
-| Migrations (fresh) | **`database/migrations_fresh/`** — ~**101** create/FK migrations (`2026_07_11_000001` … `000101`). **Source of truth for the schema** when porting to L13. Still live only in the reference app; not copied/run into `airconcierge13` yet |
+| Migrations (fresh) | **`legacy/database/migrations_fresh/`** (mirrored at `database/migrations_fresh/`) — ~**101** create/FK migrations (`2026_07_11_000001` … `000101`). **Schema reference** when porting to L13 — **do not run** wholesale until approved |
 | Blade views | ~198 templates (per prompt) |
 | Tests | Effectively **zero** meaningful coverage (legacy phpunit/phpspec scaffolding only) |
 
@@ -186,13 +190,17 @@ Hostaway, Zoho Sign / HelloSign, Dropbox, Google Drive, Slack, PDF generation (w
 ├── compose.yaml / docker-compose.yml      # Sail-managed
 └── …
 
-/mnt/e/xampp/htdocs/airconcierge/          # OLD app — OUTSIDE new git, read-only
-└── database/
-    ├── migrations/                        # ~51 legacy incremental (not L13 baseline)
-    └── migrations_fresh/                  # ~101 fresh baseline — schema source of truth
+legacy/                                    # gitignored — business-behavior reference ONLY
+├── app/                                   # L5.1 controllers, models, services, routes.php, …
+├── config/
+├── database/
+│   ├── migrations/                        # ~51 legacy incremental (not L13 baseline)
+│   └── migrations_fresh/                  # ~101 fresh baseline — schema reference
+├── resources/views/
+└── …
 ```
 
-The old app is **not** nested inside `airconcierge13`.
+`legacy/` is **not** part of the runnable L13 app. Implement against Spec / plan / ADRs; consult `legacy/` only for behavior.
 
 ---
 
@@ -281,9 +289,9 @@ Phases follow the **Structural Refactor Checklist** order in the modernization s
 Phase 0  Foundation                                          [IMPLEMENTED]
     → Phase 1  Routing & Middleware                          [IMPLEMENTED]
     → Phase 1a Early-stage gap closure (pre–Phase 2)       [IMPLEMENTED]
-    → Phase 2  Extract Services (by domain)                  [NEXT]
-         2.1 Hostaway + webhooks
-         2.2 Email / Chronology
+    → Phase 2  Extract Services (by domain)                  [IN PROGRESS]
+         2.1 Hostaway + webhooks (minimal)                   [IMPLEMENTED]
+         2.2 Email / Chronology                              [NEXT]
          2.3 Bookings & Payments
          2.4 Reports & Dashboard
          2.5 Remaining admin modules
@@ -433,7 +441,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 ### Phase 2 — Extract Services (by domain)
 
-**Status:** Not started.  
+**Status:** In progress (Phase 2.1 minimal Hostaway complete; 2.2–2.5 open).  
 **Spec alignment:** Structural Refactor Checklist — Phase 2.
 
 Extract **workflow** business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies/Gates. Simple domain predicates stay on models (ADR-009) — do **not** invent checker/query-wrapper services. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
@@ -464,38 +472,47 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Phase 2.1 — Hostaway + webhooks
 
-**Why first:** High integration risk; already has a service stub; Spec Recommended Migration Order.
+**Status:** Implemented (minimal — ADR-011).  
+**Why first:** High integration risk; Spec Recommended Migration Order.
 
 ##### Objectives
 
-- Extend/port `HostawayService`; move logic out of `HostawayController`.
-- Keep webhook path and contracts stable; processing remains fast at the HTTP boundary (signature validation already in Phase 1a).
-- Prepare Hostaway sync for full async completion in Phase 4 (`SyncHostawayReservationJob`).
+- Port/create `HostawayService` (API client); keep webhook HTTP thin.
+- Keep webhook path and contracts stable; processing remains fast at the HTTP boundary (Basic Auth already in Phase 1a).
+- Wire `SyncHostawayReservationJob` to a sync service with idempotent reservation logs; defer booking mutation to Phase 2.3.
 
 ##### Tasks
 
-- [ ] `HostawayService` — extend existing service; move logic out of `HostawayController`
-- [ ] Thin `HostawayController` / webhook controller to HTTP + service/job delegation only
-- [ ] Form Requests + Policies/Gates for non-trivial Hostaway admin endpoints as they are ported
-- [ ] Wire accepted webhooks to `SyncHostawayReservationJob` calling `HostawayService` (job hardening / retries / monitoring completed in Phase 4)
-- [ ] Prioritize tests around webhook ingest and sync idempotency
-- [ ] Upgrade `guzzlehttp/guzzle` to Guzzle 7+ if required for Hostaway HTTP client work
-- [ ] Do not change Hostaway API contracts
+- [x] `HostawayService` — create/port API client (L13 had no prior `HostawayService`; plan “extend” wording corrected)
+- [x] Thin webhook controller to HTTP + auth + job delegation only (no fat `HostawayController` port in this slice)
+- [x] Form Requests + Policies for Hostaway admin endpoints — **deferred** (no admin Hostaway UI in minimal 2.1)
+- [x] Wire accepted webhooks to `SyncHostawayReservationJob` → `HostawayReservationSyncService` (job hardening / retries / monitoring completed in Phase 4)
+- [x] Prioritize tests around webhook ingest and sync idempotency
+- [x] Guzzle 7+ via Laravel HTTP client (framework already provides Guzzle 7; no extra Composer package)
+- [x] Do not change Hostaway API contracts
 
 ##### Deliverables
 
-- `HostawayService` owning Hostaway business logic
-- Thin Hostaway HTTP layer; webhook remains fast
+- `HostawayService` (API) + `HostawayReservationSyncService` (webhook orchestration / stubs)
+- Thin webhook HTTP layer; webhook remains fast
 - Feature/integration tests for webhook ingest / sync idempotency
+- Live migrations for `hostaway_access_tokens` + `hostaway_reservation_logs` (`booking_id` nullable, no FK yet)
 
 ##### Dependencies
 
 - Phase 1a Hostaway webhook Basic Auth complete (ADR-008)
-- Schema tables for Hostaway/reservation domain available when needed
+- Schema tables for Hostaway/reservation domain — **copied for this slice only** (ADR-011)
+
+##### Deviations from original Phase 2.1 wording
+
+- **Minimal depth:** booking create/update/cancel stubbed with `*_IN_PROGRESS` + deferral comment; not marked processed (ADR-011).
+- **Create vs extend:** no in-repo `HostawayService` existed; created under `App\Services\Hostaway\`.
+- **No admin HostawayController / Hostaway logs UI** in this slice.
+- **Token refresh on demand** — not legacy provider `boot()` side effect.
 
 ##### Known fat controller
 
-- `HostawayController` (~1,170 lines)
+- Legacy `HostawayController` (~1,170 lines) — booking mutation paths deferred to Phase 2.3 services, not ported as a fat L13 controller.
 
 ---
 
@@ -627,7 +644,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - [ ] Property domain service(s) as `PropertyController` (~1,580 lines) is touched (priority fat-controller target; extract when module is migrated)
 - [ ] When importing `owners` / properties / terms schema:
   - [ ] Implement real `User::hasAgreedToTerms()` / `User::hasActiveAccess()` against domain tables — **no** checker-service or contract wrappers for those predicates (ADR-009)
-  - [ ] Canonical account enable: **`users.active` only** — do **not** port `owners.status` as a second enable flag (verify reference app; flag if a distinct lifecycle meaning exists)
+  - [ ] Canonical account enable: **`users.active` only** — do **not** port `owners.status` as a second enable flag (verify in `legacy/`; flag if a distinct lifecycle meaning exists)
   - [ ] Keep owner terms / active middleware on **owner route groups** only; extend tests for staff vs owner boundaries
   - [ ] Update AGENTS / technical docs if behavior or routes change
 - [ ] Image compression: keep `CompressUploadedImages` (or L13 equivalent) as command; prepare per-batch job dispatch for Phase 4
@@ -896,7 +913,7 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 | `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | deferred | Phase 4 (earlier if needed) |
 | `vinkla/hashids` | Verify L13 compatibility or replace | verify-then-replace | Phase 2.5 |
 | `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version | as-needed | Schema work (when required) |
-| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** (L13 already pulls Guzzle 7 via framework; confirm consumer usage at Hostaway port) | deferred | Phase 2.1 |
+| `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** (L13 already pulls Guzzle 7 via framework; confirm consumer usage at Hostaway port) | **done** (Laravel HTTP client / Guzzle 7) | Phase 2.1 |
 | `flynsarmy/csv-seeder` | Revisit — likely replace with modern seeders or one-off import commands | deferred | Phase 2.5 |
 | `filp/whoops` | Not needed on L13 (framework error handling) | not needed | N/A on L13 |
 
@@ -916,7 +933,7 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 - [x] CI pipeline runs lint, static analysis, and tests
 - [x] Horizon **not** required for Phase 0
 - [x] ADRs written under `docs/adr/`
-- [x] `docs/migration-inventory.md` produced from the reference app
+- [x] `docs/migration-inventory.md` produced from the legacy / reference app
 - [x] `docs/` tracked in git (`.gitignore` no longer ignoring the whole docs tree)
 - [x] Cursor/project rules encode behavior preservation + layering
 - [x] Old app at `/mnt/e/xampp/htdocs/airconcierge` remains untouched

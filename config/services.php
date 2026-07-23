@@ -36,6 +36,11 @@ return [
     ],
 
     'hostaway' => [
+        'base_url' => env('HOSTAWAY_BASE_URL', 'https://api.hostaway.com/v1/'),
+        'account_id' => env('HOSTAWAY_ACCOUNT_ID'),
+        'api_key' => env('HOSTAWAY_API_KEY'),
+        'timeout' => (int) env('HOSTAWAY_HTTP_TIMEOUT', 15),
+        'connect_timeout' => (int) env('HOSTAWAY_HTTP_CONNECT_TIMEOUT', 5),
         'webhook' => [
             'username' => env('HOSTAWAY_WEBHOOK_USERNAME'),
             'password' => env('HOSTAWAY_WEBHOOK_PASSWORD'),

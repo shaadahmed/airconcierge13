@@ -55,18 +55,20 @@ These are **different** concepts — do not merge them:
 - Do **not** introduce `owners.status` (or any owner-level “active” dropdown flag) as a second enable toggle.
 - Do **not** store “active access” as another owner/user flag that duplicates property state.
 
-## Reference app (read-only)
+## Legacy reference (business behavior only)
 
-- Path: `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`)
-- Never edit the reference app as part of this migration.
-- Do not copy the old tree, `vendor/`, or `.env` secrets into this repo.
-- Use the reference for **business behavior only** — not technical patterns, Entrust code, or route dumps (ADR-007).
+- **In-repo snapshot:** `legacy/` (gitignored) — curated Laravel 5.1 source for planning (app, config, database including `migrations_fresh`, views, etc.). Prefer this path when looking up how something behaves today.
+- **Original / production tree:** `/mnt/e/xampp/htdocs/airconcierge` (Windows: `E:\xampp\htdocs\airconcierge`) — system of record until cutover; never edit as part of this migration.
+- **Use for:** understanding **business logic and current behavior** only.
+- **Do not use for:** technical patterns, Entrust, fat controllers, `helpers.php`, route dumps, or L5.1 structure (ADR-007).
+- **Implementation authority:** `docs/Laravel_5.1_to_13_Modernization_Spec.md`, `docs/migration-plan.md`, accepted ADRs under `docs/adr/`, and these guidelines / Cursor rules. When legacy code conflicts with those documents, the docs and ADRs win.
+- Never commit `legacy/`, `vendor/`, or `.env` secrets. Anything under `legacy/` is reference only — never treat it as code to port wholesale.
 
 ## Schema
 
-- `database/migrations_fresh/` is **reference only** — do not run it wholesale.
+- `database/migrations_fresh/` (and the copy under `legacy/database/migrations_fresh/`) is **reference only** — do not run it wholesale.
 - Copy specific files into `database/migrations/` when a domain phase needs those tables.
-- Phase 1 uses framework default `users` + Spatie permission migrations only.
+- Phase 1 uses framework default `users` + role column (ADR-010). Hostaway tables from Phase 2.1 only when that domain is approved — do not run wholesale `migrations_fresh`.
 
 ## Local runtime
 

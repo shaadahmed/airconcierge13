@@ -1,14 +1,14 @@
-# Air Concierge — User Documentation (Phase 0–1)
+# Air Concierge — User Documentation (Phase 0–2.1)
 
 **Audience:** QA, stakeholders, and anyone trying the **new** application shell  
 **Status:** Early preview only — not production  
-**Last updated:** 2026-07-22
+**Last updated:** 2026-07-23
 
 ---
 
 ## What this is
 
-This is the **new** Air Concierge application (Laravel 13), still under development after foundation (Phase 0) and login/routing scaffold (Phase 1).
+This is the **new** Air Concierge application (Laravel 13), still under development after foundation (Phase 0), login/routing scaffold (Phase 1 / 1a), and minimal Hostaway webhook sync (Phase 2.1).
 
 It is **not** the live production system. Production continues on the existing XAMPP / legacy app until a formal cutover is approved.
 
@@ -67,11 +67,11 @@ These pages are stubs for future owner workflows. Owner terms and active-propert
 
 ## What you cannot do yet
 
-Do not expect these in the Phase 0–1 preview:
+Do not expect these in the Phase 0–2.1 preview:
 
 - Creating or managing bookings and payments  
 - Reports and the full dashboard  
-- Hostaway admin tools (webhook endpoint requires configured Basic Auth credentials; sync processing still pending)  
+- Hostaway admin tools (webhooks can be authenticated and logged; booking create/update/cancel is not live yet)  
 - Cron jobs via public web URLs  
 - Full role-based menus and admin modules from the old app  
 
@@ -91,4 +91,4 @@ For product questions or missing features, ask the migration / engineering owner
 
 ## What’s next
 
-User documentation will grow as modules ship (for example Hostaway, email/chronology, bookings & payments). Until then, treat this preview as a sign-in and shell check only.
+User documentation will grow as modules ship (for example email/chronology, bookings & payments). Until then, treat this preview as a sign-in and shell check only.

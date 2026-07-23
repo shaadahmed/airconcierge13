@@ -5,7 +5,7 @@
 
 ## Decision
 
-Phase 1 builds routing and authorization as a **greenfield Laravel 13 scaffold**. Do not split or port the legacy `routes.php`, Entrust middleware, or `OwnerAccessVerifier`. Use the legacy app only as a business-behavior oracle (role names, schedule intent, webhook URL preservation).
+Phase 1 builds routing and authorization as a **greenfield Laravel 13 scaffold**. Do not split or port the legacy `routes.php`, Entrust middleware, or `OwnerAccessVerifier`. Use `legacy/` (or the original XAMPP tree) only as a **business-behavior oracle** (role names, schedule intent, webhook URL preservation). Implementation must follow Spec, migration plan, and ADRs — never treat legacy code as the implementation template.
 
 ## Alternatives considered
 

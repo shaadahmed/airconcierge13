@@ -1,22 +1,23 @@
-# Air Concierge — Technical Documentation (Phase 0–1a)
+# Air Concierge — Technical Documentation (Phase 0–2.1)
 
 **Audience:** Developers, ops, and agents working on `airconcierge13`  
-**Status:** Phase 0 (foundation), Phase 1 (routing & auth scaffold), and Phase 1a (webhook auth + package audit) complete  
-**Last updated:** 2026-07-22
+**Status:** Phase 0–1a complete; Phase 2.1 minimal Hostaway sync implemented (ADR-011); Phase 2.2+ open  
+**Last updated:** 2026-07-23
 
-This document describes the **implemented** technical surface through Phase 1a (including the ADR-009 owner-access reshape). Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
+This document describes the **implemented** technical surface through Phase 2.1 minimal Hostaway. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
 
 ---
 
 ## 1. Purpose and status
 
-`airconcierge13` is a **fresh Laravel 13 rewrite** of the Laravel 5.1 Air Concierge application. It is a **separate deploy** from the legacy XAMPP app at `/mnt/e/xampp/htdocs/airconcierge`.
+`airconcierge13` is a **fresh Laravel 13 rewrite** of the Laravel 5.1 Air Concierge application. It is a **separate deploy** from the production XAMPP app. An in-repo **`legacy/`** snapshot (gitignored) may be consulted to understand **business behavior only**; all implementation follows Spec, `migration-plan.md`, ADRs, and `AGENTS.md`.
 
 | Phase | Delivered |
 |-------|-----------|
 | 0 | Sail runtime, MySQL + Redis, Pest/Pint/Larastan, CI, ADRs, inventory, project rules |
 | 1 | Greenfield routes, `UserRole` + Policies (ADR-010), session login shell, owner-scoped middleware + `User` predicates, Schedule command stubs, Hostaway webhook path |
 | 1a | Hostaway webhook Basic Auth (ADR-008), Spec package ownership audit (§10 / inventory), ADR gap check |
+| 2.1 | Hostaway API client + token store, reservation logs, job→`HostawayReservationSyncService` with deferred booking stubs (ADR-011) |
 
 There is **no production cutover**. Until cutover is approved, the legacy app remains the system of record.
 
@@ -38,7 +39,7 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Horizon | Not installed — plain `queue:work` |
 | Agent tooling | Laravel Boost (dev) |
 
-Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway webhook Basic Auth: `HOSTAWAY_WEBHOOK_USERNAME`, `HOSTAWAY_WEBHOOK_PASSWORD` (required for accepted webhook traffic; fail closed when empty).
+Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway: `HOSTAWAY_BASE_URL`, `HOSTAWAY_ACCOUNT_ID`, `HOSTAWAY_API_KEY`, plus webhook Basic Auth `HOSTAWAY_WEBHOOK_USERNAME` / `HOSTAWAY_WEBHOOK_PASSWORD` (fail closed when webhook credentials empty).
 
 ---
 
@@ -91,11 +92,12 @@ airconcierge13/
 ├── database/
 │   ├── migrations/           # live migrations (users + Spatie + framework)
 │   └── migrations_fresh/     # REFERENCE ONLY — do not run wholesale
+├── legacy/                   # gitignored — business-behavior reference ONLY (not runnable)
 ├── docs/                     # plan, ADRs, inventory, this file
 └── compose.yaml              # Sail-managed
 ```
 
-Copy specific files from `migrations_fresh/` into `database/migrations/` only when a later domain phase needs those tables.
+Copy specific files from `migrations_fresh/` into `database/migrations/` only when a later domain phase needs those tables. Consult `legacy/` for how the old app behaved; implement per Spec / plan / ADRs.
 
 ---
 
@@ -125,7 +127,7 @@ Service only for substantive workflows (e.g. agree + audit + notify)
 - Owner middleware/policies attach to **owner route groups** only — not the shared admin shell. Defensive `$user->role === UserRole::Owner` filters are secondary.
 - Account eligibility (`users.active`) ≠ active property access (`hasActiveAccess()` from properties). Do not reintroduce `owners.status` as a duplicate enable flag.
 - Preserve business behavior unless change is explicitly approved; document suspicious legacy behavior and wait.
-- Legacy app is a **business-behavior oracle only** — no Entrust classes, route dumps, or technical patterns ported forward ([ADR-007](adr/007-phase1-greenfield-routing-auth.md)).
+- `legacy/` (and the original XAMPP tree) is a **business-behavior oracle only** — no Entrust classes, route dumps, or technical patterns ported forward ([ADR-007](adr/007-phase1-greenfield-routing-auth.md)). Spec, plan, and ADRs govern implementation.
 - No new global helpers; no `env()` outside config; no direct `DB::` in controllers.
 
 See also [`docs/AGENTS.md`](AGENTS.md), [`.cursor/rules/architecture.mdc`](../.cursor/rules/architecture.mdc), and [`.cursor/rules/migration.mdc`](../.cursor/rules/migration.mdc).
@@ -181,17 +183,17 @@ Command bodies are stubs until the matching domain phase implements them.
 
 ---
 
-## 9. Hostaway webhook (Phase 1a)
+## 9. Hostaway (Phase 2.1 minimal)
 
 - Path preserved: `POST /wh/hostaway/booking/created`
 - Authenticated via Hostaway-native **HTTP Basic Auth** (`HostawayWebhookAuthenticator`; ADR-008)
 - Valid credentials: controller returns **200** quickly and dispatches `SyncHostawayReservationJob`
 - Invalid / missing credentials or empty config: **401**, no job dispatch
-- Job `handle()` is empty pending Phase 2.1 / Phase 4
+- Job calls `HostawayReservationSyncService`: status routing (`new`, `pending`+`paid`, `modified`, `cancelled`), idempotent `hostaway_reservation_logs`, booking mutation **stubbed** until Phase 2.3 (ADR-011)
+- `HostawayService` — OAuth client + API GETs; token refresh **on demand** (not provider boot)
+- Schema live: `hostaway_access_tokens`, `hostaway_reservation_logs` (`booking_id` nullable, no FK yet)
 
-Configure matching username/password in Hostaway’s webhook integration settings and in `.env` (`HOSTAWAY_WEBHOOK_USERNAME` / `HOSTAWAY_WEBHOOK_PASSWORD`).
-
-Do not change Hostaway API contracts when Phase 2.1 lands.
+Configure API + webhook credentials in `.env` (see `.env.example`). Do not change Hostaway API or webhook URL contracts.
 
 ---
 
@@ -203,7 +205,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs:
 2. `vendor/bin/phpstan analyse --memory-limit=1G`
 3. `vendor/bin/pest`
 
-Pest Feature coverage for Phase 1–1a includes authentication, Policy/`can:` role checks, owner-scoped middleware (model predicates; staff vs owner boundaries), Hostaway webhook Basic Auth success/failure + dispatch behavior, and stub command registration.
+Pest Feature coverage includes authentication, Policy/`can:` role checks, owner-scoped middleware, Hostaway webhook Basic Auth, Hostaway sync/idempotency + HTTP client fakes, and stub command registration.
 
 ---
 
@@ -214,18 +216,19 @@ Pest Feature coverage for Phase 1–1a includes authentication, Policy/`can:` ro
 | [Laravel_5.1_to_13_Modernization_Spec.md](Laravel_5.1_to_13_Modernization_Spec.md) | Requirements source of truth |
 | [migration-plan.md](migration-plan.md) | Execution roadmap (phases, DoD, out-of-scope) — must fully reflect the Spec |
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
-| [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–1) |
+| [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–2.1) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [010](adr/010-user-role-enum-policies.md) | Architecture decisions |
+| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [011](adr/011-hostaway-phase21-minimal-sync.md) | Architecture decisions |
 | [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc`; architecture heuristics in `architecture.mdc`) |
 
 ---
 
-## 12. Out of scope for Phase 0–1a
+## 12. Out of scope for Phase 0–2.1 (still open)
 
 - Full admin UI and Blade rewrite
-- Business schema (`migrations_fresh` live migrate)
-- Hostaway sync business logic (Phase 2.1 service; Phase 4 job hardening) — webhook auth is done in Phase 1a
-- Bookings, payments, reports, chronology, email (Phase 2+)
+- Wholesale `migrations_fresh` import (only Hostaway token + reservation log tables are live)
+- Hostaway booking create/update/cancel, admin Hostaway logs UI, reviews cron (Phase 2.3+ / later)
+- Phase 4 job hardening (retries dashboard / monitoring)
+- Bookings, payments, reports, chronology, email domain ports (Phase 2.2+)
 - Username login, password expiry, real owner terms/property data
 - Horizon, production cutover

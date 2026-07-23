@@ -7,6 +7,8 @@ alwaysApply: true
 
 Canonical detail: `docs/adr/009-owner-access-predicates-and-active-flags.md` and `docs/AGENTS.md`.
 
+`legacy/` may be consulted for **business behavior** only. Implementation must follow Spec / plan / ADRs / agent guidelines — not legacy technical patterns.
+
 ## Models vs services
 
 - **Models** own state, relationships, scopes, casts, and simple domain predicates (`hasX()`, `isY()`).
