@@ -441,7 +441,7 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 ### Phase 2 — Extract Services (by domain)
 
-**Status:** Implemented (Phase 2.1–2.5 complete; Phase 3 next).  
+**Status:** Implemented (Phase 2.1–2.5 complete; Phase 3 helpers also complete — see § Phase 3).  
 **Spec alignment:** Structural Refactor Checklist — Phase 2.
 
 Extract **workflow** business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies (`UserRole` match — ADR-010). Simple domain predicates stay on models (ADR-009) — do **not** invent checker/query-wrapper services. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
