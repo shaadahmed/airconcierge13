@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Payments\StoreBookingPaymentRequest;
+use App\Http\Requests\Admin\PropertyPayments\StorePropertyPaymentRequest;
 use App\Models\BookingPayment;
+use App\Models\PropertyPayment;
 use App\Services\Payments\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -63,5 +65,46 @@ class PaymentController extends Controller
         }
 
         return back()->with('status', 'Booking payment deleted.');
+    }
+
+    public function propertyIndex(Request $request): View|JsonResponse
+    {
+        $this->authorize('viewAny', PropertyPayment::class);
+
+        $payments = $this->paymentService->listPropertyPayments(
+            $request->integer('property_id') ?: null,
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json(['data' => $payments]);
+        }
+
+        return view('admin.property-payments.index', compact('payments'));
+    }
+
+    public function propertyStore(StorePropertyPaymentRequest $request): RedirectResponse|JsonResponse
+    {
+        $payment = $this->paymentService->createPropertyPayment($request->validated());
+
+        if ($request->wantsJson()) {
+            return response()->json(['data' => $payment], 201);
+        }
+
+        return redirect()
+            ->route('admin.property-payments.index')
+            ->with('status', 'Property payment created.');
+    }
+
+    public function propertyDestroy(PropertyPayment $propertyPayment): RedirectResponse|JsonResponse
+    {
+        $this->authorize('delete', $propertyPayment);
+
+        $this->paymentService->deletePropertyPayment($propertyPayment);
+
+        if (request()->wantsJson()) {
+            return response()->json(status: 204);
+        }
+
+        return back()->with('status', 'Property payment deleted.');
     }
 }

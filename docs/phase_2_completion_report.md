@@ -32,9 +32,9 @@ From Spec “Phase 2 --- Extract Services (by domain)”:
 | Spec item | Status | Evidence |
 |-----------|--------|----------|
 | `BookingService` | **Done** | `app/Services/Bookings/BookingService.php` (~138 lines); used by `BookingController` + Hostaway sync |
-| `PaymentService` | **Done** | `app/Services/Payments/PaymentService.php` (~103 lines); `PaymentController`, `PropertyPaymentController` |
+| `PaymentService` | **Done** | `app/Services/Payments/PaymentService.php` (~103 lines); booking + property payment HTTP on `PaymentController` (ADR-016) |
 | `ChronologyService` | **Done** | `app/Services/Chronology/ChronologyService.php` (~397 lines); deepest Phase 2 service |
-| `DashboardService` | **Done (shallow)** | `app/Services/Dashboard/DashboardService.php` (~86 lines); plan defers AjaxDashboard UI fidelity to Phase 5 |
+| `DashboardService` | **Done (shallow)** | `app/Services/Dashboard/DashboardService.php` (~86 lines); plan defers legacy dashboard UI fidelity to Phase 5 |
 | `ReportService` | **Done (shallow)** | `app/Services/Reports/ReportService.php` (~74 lines); booking summary / TOT / metrics — not full legacy `ReportController` |
 | `EmailService` | **Done** | `app/Services/Email/EmailService.php`; Laravel Mail + `OutboundEmailMailable`; no `phpmailer` in `composer.json` |
 | `HostawayService` | **Done** | `HostawayService` + `HostawayReservationSyncService` + webhook authenticator; thin webhook controller |
@@ -52,7 +52,7 @@ From Spec “Phase 2 --- Extract Services (by domain)”:
 
 | Criterion | Plan mark | Audit |
 |-----------|-----------|-------|
-| Every Spec Phase 2 service implemented or deferred with approval | `[x]` | **Pass** (HelloSign / PDF generation / AjaxDashboard fidelity deferred in ADRs/plan) |
+| Every Spec Phase 2 service implemented or deferred with approval | `[x]` | **Pass** (HelloSign / PDF generation / legacy dashboard UI fidelity deferred in ADRs/plan) |
 | Touched controllers reduced per DoD | `[x]` | **Pass** for thinness (all admin Phase 2 controllers ~15–165 lines) |
 | Critical paths have ≥1 feature/integration test | `[x]` | **Pass** with uneven depth (stronger for Hostaway/Chronology/Booking; thinner for 2.4–2.5) |
 | No new global helpers / Blade business logic from this phase | `[x]` | **Pass** (no evidence of new helpers.php patterns from Phase 2 work) |
@@ -89,9 +89,9 @@ From Spec “Phase 2 --- Extract Services (by domain)”:
 ### 2.4 Reports & Dashboard — **Structurally complete; DoD incomplete**
 
 - [x] `ReportService`, `DashboardService`  
-- [x] Thin `ReportController`, `AjaxDashboardController`, `DashboardController`  
+- [x] Thin `ReportController`, `DashboardController` (Blade + JSON APIs; ADR-016)  
 - [x] Tests in `Phase225DomainTest` (service-level)  
-- Plan-deferred: full AjaxDashboard UI → Phase 5; Yajra DataTables → ADR-014 / Phase 5  
+- Plan-deferred: full legacy dashboard UI → Phase 5; Yajra DataTables → ADR-014 / Phase 5  
 - **Gaps vs Spec DoD:** no dedicated Form Requests; auth via `BookingPolicy::viewAny` stand-in  
 
 ### 2.5 Remaining admin — **Structurally complete; DoD incomplete**
@@ -160,7 +160,7 @@ Strict Spec DoD applied to Phase 2 modules:
 2. **`images:compress-uploads`:** still a stub; either implement minimal logic or clarify as Phase 4-only in plan wording.  
 3. **Test cleanup:** delete or replace placeholder `tests/Feature/ChronologyHttpTest.php` and `ChronologyServiceTest.php`.  
 4. **Docs sync:** check Spec Phase 2 boxes (or note “see plan”); update plan §10 statuses for PHPMailer / CSV seeder / DomPDF / Facebook / Hashids to match ADR-014.  
-5. **Depth / parity:** full legacy booking, payment, report, and AjaxDashboard behavior remains future work (Phase 4–5 and incremental domain PRs) — do not treat Phase 2 “Implemented” as feature-complete vs production L5.1.
+5. **Depth / parity:** full legacy booking, payment, report, and dashboard UI behavior remains future work (Phase 4–5 and incremental domain PRs) — do not treat Phase 2 “Implemented” as feature-complete vs production L5.1.
 
 ---
 

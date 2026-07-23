@@ -639,7 +639,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Known fat controllers
 
-- `AjaxDashboardController` (~4,800 lines) — L13 exposes critical dashboard API groups; remaining chart/commission UI surfaces Phase 5
+- Legacy `AjaxDashboardController` (~4,800 lines) — L13 `DashboardController` exposes critical dashboard API groups (ADR-016); remaining chart/commission UI surfaces Phase 5
 - `ReportController` (~1,050 lines)
 
 ---

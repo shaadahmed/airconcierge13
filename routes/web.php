@@ -1,17 +1,15 @@
 <?php
 
-use App\Http\Controllers\Admin\AjaxDashboardController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ChronologyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\OwnerStatementController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PropertyController;
-use App\Http\Controllers\Admin\PropertyPaymentController;
 use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\SendEmailController;
 use App\Http\Controllers\Admin\TermsController;
 use App\Http\Controllers\Admin\ZohoSignController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -47,10 +45,10 @@ Route::middleware(['auth'])
     ->name('admin.')
     ->group(function (): void {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
-        Route::get('dashboard/stats', [AjaxDashboardController::class, 'stats'])->name('dashboard.stats');
-        Route::get('dashboard/revenue-chart', [AjaxDashboardController::class, 'revenueChart'])->name('dashboard.revenue-chart');
-        Route::get('dashboard/profile', [AjaxDashboardController::class, 'profile'])->name('dashboard.profile');
-        Route::get('dashboard/owners/{owner}/statement', [AjaxDashboardController::class, 'ownerStatement'])->name('dashboard.owner-statement');
+        Route::get('dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
+        Route::get('dashboard/revenue-chart', [DashboardController::class, 'revenueChart'])->name('dashboard.revenue-chart');
+        Route::get('dashboard/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
+        Route::get('dashboard/owners/{owner}/statement', [DashboardController::class, 'ownerStatement'])->name('dashboard.owner-statement');
 
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/tot', [ReportController::class, 'tot'])->name('reports.tot');
@@ -67,9 +65,9 @@ Route::middleware(['auth'])
         Route::post('payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
-        Route::get('property-payments', [PropertyPaymentController::class, 'index'])->name('property-payments.index');
-        Route::post('property-payments', [PropertyPaymentController::class, 'store'])->name('property-payments.store');
-        Route::delete('property-payments/{payment}', [PropertyPaymentController::class, 'destroy'])->name('property-payments.destroy');
+        Route::get('property-payments', [PaymentController::class, 'propertyIndex'])->name('property-payments.index');
+        Route::post('property-payments', [PaymentController::class, 'propertyStore'])->name('property-payments.store');
+        Route::delete('property-payments/{propertyPayment}', [PaymentController::class, 'propertyDestroy'])->name('property-payments.destroy');
 
         Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
         Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');
@@ -103,8 +101,8 @@ Route::middleware(['auth'])
         Route::get('chronologies/{chronology}/owners', [ChronologyController::class, 'previewOwners'])->name('chronologies.owners');
         Route::post('chronologies/{chronology}/owner-emails', [ChronologyController::class, 'storeOwnerEmails'])->name('chronologies.owner-emails.store');
 
-        Route::get('send-emails/create', [SendEmailController::class, 'create'])->name('send-emails.create');
-        Route::post('send-emails', [SendEmailController::class, 'store'])->name('send-emails.store');
+        Route::get('send-emails/create', [EmailController::class, 'create'])->name('send-emails.create');
+        Route::post('send-emails', [EmailController::class, 'store'])->name('send-emails.store');
 
         Route::get('zoho', [ZohoSignController::class, 'index'])->name('zoho.index');
         Route::get('zoho/download/{helloSignDetail}', [ZohoSignController::class, 'download'])->name('zoho.download');

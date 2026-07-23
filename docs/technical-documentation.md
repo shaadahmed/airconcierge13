@@ -224,14 +224,14 @@ Pest Feature coverage includes authentication, Policy/`can:` role checks, owner-
 | [migration-inventory.md](migration-inventory.md) | Checklist / cron command map from legacy inventory |
 | [technical-documentation.md](technical-documentation.md) | This file — developer reference (Phase 0–2.5) |
 | [user-documentation.md](user-documentation.md) | End-user / QA guide for the current shell |
-| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [014](adr/014-phase25-package-decisions.md) | Architecture decisions |
+| [adr/001](adr/001-fresh-laravel-13-skeleton.md) … [016](adr/016-structural-naming-and-migration-cleanup.md) | Architecture decisions |
 | [AGENTS.md](AGENTS.md) | Agent/developer guidelines (mirrored into `.cursor/rules/agents.mdc`; architecture heuristics in `architecture.mdc`) |
 
 ---
 
 ## 12. Out of scope / next (Phase 3+)
 
-- Full Blade rewrite and AjaxDashboard UI parity (Phase 5)
+- Full Blade rewrite and legacy dashboard UI parity (Phase 5)
 - Wholesale `migrations_fresh` import (domain tables copied selectively)
 - Admin Hostaway logs UI, reviews cron photo sync
 - Phase 3 helpers decomposition
