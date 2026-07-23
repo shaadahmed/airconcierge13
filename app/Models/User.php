@@ -7,10 +7,12 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'email', 'password', 'role', 'active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -18,24 +20,47 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * Whether this owner has agreed to terms.
-     *
-     * Phase 1 scaffold: always true until owner_terms_agreements (or equivalent) lands.
+     * Whether this owner has agreed to terms (ADR-009 / ADR-012).
      */
     public function hasAgreedToTerms(): bool
     {
-        return true;
+        if ($this->role !== UserRole::Owner) {
+            return true;
+        }
+
+        return $this->ownerTermsAgreement?->hasAgreed() ?? false;
     }
 
     /**
-     * Whether this owner has at least one active property.
+     * Whether this owner has at least one qualifying live property (ADR-009 / ADR-012).
      *
-     * Phase 1 scaffold: always true until the properties domain can supply the real check.
-     * Business meaning (later): derived from property status — not users.active / owners.status.
+     * Derived from properties.status — never from users.active or owners.status.
      */
     public function hasActiveAccess(): bool
     {
-        return true;
+        if ($this->role !== UserRole::Owner) {
+            return true;
+        }
+
+        return $this->owners()
+            ->whereHas('properties', fn ($query) => $query->live())
+            ->exists();
+    }
+
+    /**
+     * @return HasOne<OwnerTermsAgreement, $this>
+     */
+    public function ownerTermsAgreement(): HasOne
+    {
+        return $this->hasOne(OwnerTermsAgreement::class);
+    }
+
+    /**
+     * @return BelongsToMany<Owner, $this>
+     */
+    public function owners(): BelongsToMany
+    {
+        return $this->belongsToMany(Owner::class, 'user_owners');
     }
 
     /**
@@ -47,6 +72,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'active' => 'boolean',
         ];
     }
 }

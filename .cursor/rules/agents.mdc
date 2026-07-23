@@ -75,7 +75,8 @@ These are **different** concepts — do not merge them:
 
 - `database/migrations_fresh/` (and the copy under `legacy/database/migrations_fresh/`) is **reference only** — do not run it wholesale.
 - Copy specific files into `database/migrations/` when a domain phase needs those tables.
-- Phase 1 uses framework default `users` + role column (ADR-010). Hostaway tables from Phase 2.1 only when that domain is approved — do not run wholesale `migrations_fresh`.
+- Schema tables are copied from `migrations_fresh` into live `database/migrations/` per domain (owners/properties, chronology/email, bookings/payments, reports/admin). Do not run wholesale `migrations_fresh`.
+- Local QA dumps: `storage/app/legacy-dumps/` (gitignored).
 
 ## Local runtime
 

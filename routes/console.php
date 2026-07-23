@@ -15,6 +15,8 @@ Artisan::command('inspire', function () {
 */
 
 Schedule::command('emails:process-reviews')->hourly()->withoutOverlapping();
+Schedule::command('chronology:process-sends')->hourly()->withoutOverlapping();
+Schedule::command('zoho:poll-completions')->hourly()->withoutOverlapping();
 Schedule::command('owners:payout')->dailyAt('20:00')->withoutOverlapping();
 Schedule::command('alert:anti-gap')->dailyAt('01:00');
 Schedule::command('alert:booking-conflict')->dailyAt('09:00');

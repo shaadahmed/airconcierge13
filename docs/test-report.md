@@ -280,4 +280,4 @@ Phase 0 DoD asks for ADRs under `docs/adr/` — content exists; commit ADR-007 a
 
 **Phase 2.1 status (2026-07-23):** Implemented (minimal — ADR-011) — Hostaway API client, token + reservation log tables, job→sync service with deferred booking stubs, idempotency tests.
 
-**Next recommended step:** execute **Phase 2.2 Email / Chronology** per `docs/migration-plan.md`. Do not import remaining `migrations_fresh` tables until a domain phase explicitly requires them.
+**Next recommended step:** execute **Phase 3 Helpers Decomposition** per `docs/migration-plan.md`. Phase 2.2–2.5 are complete. Optional: import Wave A/B dumps under `storage/app/legacy-dumps/` for manual QA.

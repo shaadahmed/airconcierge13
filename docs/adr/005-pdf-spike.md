@@ -1,22 +1,21 @@
-# ADR-005: PDF generation — spike before first port
+# ADR-005: PDF generation — DomPDF
 
-**Status:** Accepted (library choice deferred until spike)  
-**Date:** 2026-07-12
+**Status:** Accepted  
+**Date:** 2026-07-12  
+**Updated:** 2026-07-23
 
 ## Decision
 
-Do **not** commit to a PDF library in Phase 0. Before the first PDF-related port (reports, payments, payouts), run a short spike comparing:
+Use **`barryvdh/laravel-dompdf`** for PDF generation.
 
-1. DomPDF (`barryvdh/laravel-dompdf` or equivalent)
-2. Browsershot (Chromium/Puppeteer)
-3. A maintained wkhtmltopdf wrapper (legacy path today: `niklasravnsborg/laravel-pdf` + binaries)
-
-Record the chosen library in a follow-up ADR or an update to this file after the spike.
+Spike result: DomPDF is Sail-friendly (no Chromium/Puppeteer, no wkhtmltopdf OS binaries). Payment receipt PDFs are a future Phase 4 consumer; Phase 2.3 only records `payment_receipts.receipt_path` and ships a stub `GeneratePdfJob` plus thin `App\Services\Pdf\PdfService`. Controllers must not generate PDFs yet.
 
 ## Alternatives considered
 
-Listed above; none selected yet.
+1. DomPDF (`barryvdh/laravel-dompdf`) — **chosen**
+2. Browsershot (Chromium/Puppeteer) — rejected (heavy Sail/runtime deps)
+3. wkhtmltopdf wrappers (legacy `niklasravnsborg/laravel-pdf`) — rejected (fragile binaries across OS/Sail images)
 
 ## Rationale
 
-The old stack depends on wkhtmltopdf binaries that are fragile across OS/Sail images. PDF quality, CSS support, and operational cost differ enough that picking without a spike risks rework in Phases 4–6. Phase 0 only requires documenting candidates and the spike gate.
+The old stack depends on wkhtmltopdf binaries that are fragile across OS/Sail images. DomPDF keeps PDF work inside PHP Composer packages and is adequate for receipt-style HTML→PDF in Phase 4.

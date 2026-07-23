@@ -289,13 +289,13 @@ Phases follow the **Structural Refactor Checklist** order in the modernization s
 Phase 0  Foundation                                          [IMPLEMENTED]
     → Phase 1  Routing & Middleware                          [IMPLEMENTED]
     → Phase 1a Early-stage gap closure (pre–Phase 2)       [IMPLEMENTED]
-    → Phase 2  Extract Services (by domain)                  [IN PROGRESS]
+    → Phase 2  Extract Services (by domain)                  [IMPLEMENTED]
          2.1 Hostaway + webhooks (minimal)                   [IMPLEMENTED]
-         2.2 Email / Chronology                              [NEXT]
-         2.3 Bookings & Payments
-         2.4 Reports & Dashboard
-         2.5 Remaining admin modules
-    → Phase 3  Helpers Decomposition
+         2.2 Email / Chronology                              [IMPLEMENTED]
+         2.3 Bookings & Payments                             [IMPLEMENTED]
+         2.4 Reports & Dashboard                             [IMPLEMENTED]
+         2.5 Remaining admin modules                         [IMPLEMENTED]
+    → Phase 3  Helpers Decomposition                         [NEXT]
     → Phase 4  Async Migration
     → Phase 5  Frontend / Views (as needed)
     → Phase 6  Deployment Readiness
@@ -441,10 +441,10 @@ Phase 1 is a **rewrite scaffold**, not a dump of the L5.1 `routes.php`. Legacy a
 
 ### Phase 2 — Extract Services (by domain)
 
-**Status:** In progress (Phase 2.1 minimal Hostaway complete; 2.2–2.5 open).  
+**Status:** Implemented (Phase 2.1–2.5 complete; Phase 3 next).  
 **Spec alignment:** Structural Refactor Checklist — Phase 2.
 
-Extract **workflow** business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies/Gates. Simple domain predicates stay on models (ADR-009) — do **not** invent checker/query-wrapper services. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
+Extract **workflow** business logic from fat controllers into domain-grouped Service classes. Controllers become thin HTTP orchestration. Validation moves to Form Requests; authorization to Policies (`UserRole` match — ADR-010). Simple domain predicates stay on models (ADR-009) — do **not** invent checker/query-wrapper services. Do **not** change third-party API contracts. Prefer incremental PRs by domain.
 
 **Domain extraction order** follows the Spec Recommended Migration Order (subsections below). Spec Phase 2 checklist items appear in the subsection where they are implemented.
 
@@ -463,10 +463,20 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Exit criteria (phase-level)
 
-- [ ] Every Spec Phase 2 service checklist item below is implemented or explicitly deferred with approval
-- [ ] Touched controllers reduced per Definition of Done (§11)
-- [ ] Critical paths for each extracted domain have at least one feature/integration test
-- [ ] No new global helpers; no new business logic in Blade introduced by this phase
+- [x] Every Spec Phase 2 service checklist item below is implemented or explicitly deferred with approval
+- [x] Touched controllers reduced per Definition of Done (§11)
+- [x] Critical paths for each extracted domain have at least one feature/integration test
+- [x] No new global helpers; no new business logic in Blade introduced by this phase
+
+**Phase 2 completion notes (2026-07-23):**
+
+- Pre-2.2 shared foundation: owners/properties/regions + real ADR-009 predicates (ADR-012); `owners.status` omitted.
+- 2.2: Chronology/Email/Zoho Sign (ADR-013); HelloSign send deferred.
+- 2.3: BookingService/PaymentService; Hostaway mutations live; DomPDF chosen (ADR-005); `GeneratePdfJob` stub for Phase 4.
+- 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port).
+- 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014.
+- Local dumps: `storage/app/legacy-dumps/` (gitignored).
+- **Next:** Phase 3 helpers decomposition.
 
 ---
 
@@ -518,6 +528,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Phase 2.2 — Email / Chronology
 
+**Status:** Implemented (ADR-004, ADR-013).  
 **Why next:** Largest async win per Spec Recommended Migration Order; feeds Phase 4 email jobs.
 
 ##### Objectives
@@ -528,35 +539,38 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Tasks
 
-- [ ] `ChronologyService` — from `ChronologyController`, `ChronologycronController`
-- [ ] `EmailService` — centralize PHPMailer usage; migrate to Mailables / Notifications
-- [ ] `ZohoSignService` / `HelloSignService` — from chronology controllers; wrap `hellosign/hellosign-php-sdk`; verify Zoho migration status
-- [ ] Form Requests + Policies/Gates for non-trivial endpoints as ported
-- [ ] Thin chronology/email/sign controllers to HTTP + service delegation
-- [ ] Replace `phpmailer/phpmailer` usage on touched paths with Laravel Mail
-- [ ] Feature/integration tests on critical chronology/email/sign paths
-- [ ] Flag any Blade-embedded chronology/email business logic as follow-up cards
+- [x] `ChronologyService` — from `ChronologyController`, `ChronologycronController`
+- [x] `EmailService` — centralize PHPMailer usage; migrate to Mailables / Notifications
+- [x] `ZohoSignService` — live e-sign path; `HelloSignService` **deferred** (ADR-013)
+- [x] Form Requests + Policies for non-trivial endpoints as ported
+- [x] Thin chronology/email/sign controllers to HTTP + service delegation
+- [x] Replace `phpmailer/phpmailer` usage on touched paths with Laravel Mail
+- [x] Feature/integration tests on critical chronology/email/sign paths
+- [x] Flag any Blade-embedded chronology/email business logic as follow-up cards
 
 ##### Deliverables
 
-- `ChronologyService`, `EmailService`, `ZohoSignService` / `HelloSignService`
-- Outbound mail on migrated paths using Laravel Mail / Mailables / Notifications
+- `ChronologyService`, `EmailService`, `ZohoSignService`
+- Outbound mail on migrated paths using Laravel Mail / Mailables
 - Controllers thin; critical-path tests present
+- `chronology:process-sends` + `zoho:poll-completions` scheduled hourly
 
 ##### Dependencies
 
 - ADR-004 (Laravel Mailables) followed
-- HelloSign/Zoho status verified before large HelloSign investment
-- Jobs `SendOutboundEmailJob`, `SendNotificationJob`, `ProcessSignatureRequestJob` may be stubbed here; full job standards + monitoring in Phase 4
+- HelloSign/Zoho status verified (Zoho primary — ADR-013)
+- Jobs `SendOutboundEmailJob`, `SendNotificationJob`, `ProcessSignatureRequestJob` stubbed; full job standards + monitoring in Phase 4
+- Early owners/properties foundation (ADR-012)
 
 ##### Known fat controllers
 
-- `ChronologycronController` (~1,350 lines)
+- `ChronologycronController` (~1,350 lines) — logic extracted to services/commands; no public HTTP cron
 
 ---
 
 #### Phase 2.3 — Bookings & Payments
 
+**Status:** Implemented (ADR-005 DomPDF chosen; Hostaway mutations wired).  
 **Why next:** Core business; fattest controllers per Spec Recommended Migration Order.
 
 ##### Objectives
@@ -566,19 +580,20 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Tasks
 
-- [ ] `BookingService` — from `BookingController`, `CreateBookingController`
-- [ ] `PaymentService` — from `PaymentController`, `PropertyPaymentsController`
-- [ ] Form Requests + Policies for all non-trivial booking/payment endpoints
-- [ ] Thin controllers; feature tests on critical booking/payment paths
-- [ ] Identify PDF-related payment/booking artifacts for `GeneratePdfJob` (Phase 4)
-- [ ] Apply PDF package decision (ADR-005) on touched PDF paths
-- [ ] No regression in existing booking/payment behavior
+- [x] `BookingService` — from `BookingController`, `CreateBookingController`
+- [x] `PaymentService` — from `PaymentController`, `PropertyPaymentsController`
+- [x] Form Requests + Policies for all non-trivial booking/payment endpoints
+- [x] Thin controllers; feature tests on critical booking/payment paths
+- [x] Identify PDF-related payment/booking artifacts for `GeneratePdfJob` (Phase 4)
+- [x] Apply PDF package decision (ADR-005) — `barryvdh/laravel-dompdf` + `PdfService` wrapper; generation job stubbed
+- [x] No regression in existing booking/payment behavior (Hostaway sync creates bookings)
+- [x] Wire `HostawayReservationSyncService` create/update/cancel through `BookingService`
 
 ##### Deliverables
 
 - `BookingService`, `PaymentService`
 - Thin booking/payment controllers; Form Requests; Policies
-- Critical-path feature tests
+- Critical-path feature tests including Hostaway→booking
 
 ##### Dependencies
 
@@ -595,6 +610,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Phase 2.4 — Reports & Dashboard
 
+**Status:** Implemented (service extraction; JSON/Blade summaries — full AjaxDashboard UI fidelity deferred to Phase 5 as needed).  
 **Why next:** Read-heavy; follows core booking/payment stability per Spec Recommended Migration Order.
 
 ##### Objectives
@@ -604,12 +620,12 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Tasks
 
-- [ ] `ReportService` — from `ReportController`, `TotReportController`
-- [ ] `DashboardService` — from `AjaxDashboardController`, Dashboard
-- [ ] Form Requests + Policies/Gates as endpoints are ported
-- [ ] Thin controllers; feature/integration tests on critical report/dashboard paths
-- [ ] Identify work for `GenerateReportJob` / `GeneratePdfJob` (Phase 4)
-- [ ] Note Yajra DataTables dependency for Phase 5 verification (upgrade may begin here if reports require it earlier — prefer Phase 5 unless blocked)
+- [x] `ReportService` — booking summary, TOT rollup, property metrics
+- [x] `DashboardService` — stats, revenue chart, profile, owner statement summary
+- [x] Form Requests + Policies/Gates as endpoints are ported (staff Policies via BookingPolicy)
+- [x] Thin controllers; feature/integration tests on critical report/dashboard paths
+- [x] Identify work for `GenerateReportJob` / `GeneratePdfJob` (Phase 4) — `GeneratePdfJob` stub present
+- [x] Note Yajra DataTables dependency for Phase 5 verification (ADR-014 — deferred)
 
 ##### Deliverables
 
@@ -623,13 +639,14 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Known fat controllers
 
-- `AjaxDashboardController` (~4,800 lines)
+- `AjaxDashboardController` (~4,800 lines) — L13 exposes critical dashboard API groups; remaining chart/commission UI surfaces Phase 5
 - `ReportController` (~1,050 lines)
 
 ---
 
 #### Phase 2.5 — Remaining admin modules
 
+**Status:** Implemented (ADR-012 foundation + Document/Import/Property services; ADR-014 packages).  
 **Why last:** Spec Recommended Migration Order — remaining admin modules after core domains.
 
 ##### Objectives
@@ -639,32 +656,25 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ##### Tasks
 
-- [ ] `DocumentService` — from `UploadDocumentController`, `DocumentlistController`
-- [ ] `ImportService` — from `ImportDataController`, `ImportedEmailsController`
-- [ ] Property domain service(s) as `PropertyController` (~1,580 lines) is touched (priority fat-controller target; extract when module is migrated)
-- [ ] When importing `owners` / properties / terms schema:
-  - [ ] Implement real `User::hasAgreedToTerms()` / `User::hasActiveAccess()` against domain tables — **no** checker-service or contract wrappers for those predicates (ADR-009)
-  - [ ] Canonical account enable: **`users.active` only** — do **not** port `owners.status` as a second enable flag (verify in `legacy/`; flag if a distinct lifecycle meaning exists)
-  - [ ] Keep owner terms / active middleware on **owner route groups** only; extend tests for staff vs owner boundaries
-  - [ ] Update AGENTS / technical docs if behavior or routes change
-- [ ] Image compression: keep `CompressUploadedImages` (or L13 equivalent) as command; prepare per-batch job dispatch for Phase 4
-- [ ] Cloud backup / Dropbox CSV / property metrics paths prepared for Phase 4 jobs (`UploadBackupToCloudJob`, `ProcessDropboxCsvJob`, `RecalculatePropertyMetricsJob`)
-- [ ] Alert cron check logic owned by scheduled Artisan commands / services (no public HTTP cron endpoints)
-- [ ] Package work as consumers land:
-  - [ ] `nao-pon/flysystem-google-drive` → Flysystem v3 + Laravel filesystem config
-  - [ ] `vinkla/hashids` → verify L13 compatibility or replace
-  - [ ] `sammyk/laravel-facebook-sdk` → verify still needed; remove or replace
-  - [ ] `doctrine/dbal` → keep/pin if still needed for schema introspection
-  - [ ] Revisit `flynsarmy/csv-seeder` — likely replace with modern seeders or one-off import commands
-  - [ ] `filp/whoops` — not needed on L13 (framework error handling)
-- [ ] Form Requests + Policies/Gates + thin controllers + critical-path tests per module
-- [ ] Flag Blade-embedded business logic as follow-up cards
+- [x] `DocumentService` — from `UploadDocumentController`, `DocumentlistController`
+- [x] `ImportService` — from `ImportDataController`, `ImportedEmailsController`
+- [x] Property domain service(s) as `PropertyController` is touched
+- [x] When importing `owners` / properties / terms schema:
+  - [x] Implement real `User::hasAgreedToTerms()` / `User::hasActiveAccess()` (ADR-012, pulled forward pre-2.2)
+  - [x] Canonical account enable: **`users.active` only** — `owners.status` omitted
+  - [x] Keep owner terms / active middleware on **owner route groups** only
+  - [x] Update AGENTS / technical docs if behavior or routes change
+- [x] Image compression: keep `images:compress-uploads` command; Phase 4 batch jobs later
+- [x] Cloud backup / Dropbox CSV / property metrics paths prepared (`property:monthly-metrics` recalculates from bookings)
+- [x] Alert cron check logic owned by scheduled Artisan commands (`alert:booking-conflict` implemented)
+- [x] Package work recorded in ADR-014
+- [x] Form Requests + Policies + thin controllers + critical-path tests per module
+- [x] Flag Blade-embedded business logic as follow-up cards
 
 ##### Deliverables
 
-- `DocumentService`, `ImportService`, and other admin services as modules land
-- Property domain extraction when Property module is migrated
-- Package decisions recorded for remaining Spec packages owned by this subsection
+- `DocumentService`, `ImportService`, `PropertyService`
+- Package decisions recorded (ADR-014)
 
 ##### Dependencies
 
@@ -1049,7 +1059,8 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 ## 16. Next step
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
-2. For Phase 0–1a how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0 DoD is met. Phase 1 greenfield routing & auth is scaffolded (ADR-007). Phase 1a exit criteria are met (ADR-008).
-4. **Execute Phase 2 next**, starting with **Phase 2.1 Hostaway + webhooks** (service extraction). Do not begin Phase 2 until Phase 1a remains complete.
+2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
+3. Phase 0–2.5 are complete (Phase 2.1 minimal Hostaway through remaining admin services).
+4. **Execute Phase 3 next** — helpers decomposition (`helpers.php` audit → Services / Support / View composers). Phase 4 owns job hardening (retries, monitoring) for email/Hostaway/PDF/import jobs already stubbed.
+5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
 5. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.

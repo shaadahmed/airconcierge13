@@ -3,17 +3,19 @@
 namespace App\Services\Hostaway;
 
 use App\Enums\HostawayReservationLogStatus;
+use App\Models\Booking;
 use App\Models\HostawayReservationLog;
+use App\Services\Bookings\BookingService;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Orchestrates Hostaway webhook payloads into reservation logs.
  *
- * Booking create/update/cancel are stubbed until Phase 2.3 (ADR-011).
+ * Booking create/update/cancel are applied through BookingService.
  */
 class HostawayReservationSyncService
 {
-    public const DEFERRED_COMMENT = 'Awaiting BookingService (Phase 2.3) — booking mutation deferred.';
+    public function __construct(private BookingService $bookingService) {}
 
     private const STATUS_PENDING = 'pending';
 
@@ -42,25 +44,25 @@ class HostawayReservationSyncService
         $paymentStatus = strtolower((string) ($reservation['paymentStatus'] ?? ''));
 
         if ($status === self::STATUS_PENDING && $paymentStatus === self::PAYMENT_STATUS_PAID) {
-            $this->stubCreate($reservation);
+            $this->create($reservation);
 
             return;
         }
 
         if ($status === self::STATUS_NEW) {
-            $this->stubCreate($reservation);
+            $this->create($reservation);
 
             return;
         }
 
         if ($status === self::STATUS_MODIFIED) {
-            $this->stubModify($reservation);
+            $this->modify($reservation);
 
             return;
         }
 
         if ($status === self::STATUS_CANCELLED) {
-            $this->stubCancel($reservation);
+            $this->cancel($reservation);
         }
     }
 
@@ -98,54 +100,62 @@ class HostawayReservationSyncService
     /**
      * @param  array<string, mixed>  $reservation
      */
-    private function stubCreate(array $reservation): void
+    private function create(array $reservation): void
     {
-        $this->recordDeferredStub(
+        $this->process(
             $reservation,
-            HostawayReservationLogStatus::BookingCreateInProgress,
-            [HostawayReservationLogStatus::Processed, HostawayReservationLogStatus::BookingCreateInProgress],
+            HostawayReservationLogStatus::Processed,
+            [
+                HostawayReservationLogStatus::Processed,
+                HostawayReservationLogStatus::BookingCreateInProgress,
+            ],
+            fn () => $this->bookingService->createFromHostawayReservation($reservation),
         );
     }
 
     /**
      * @param  array<string, mixed>  $reservation
      */
-    private function stubModify(array $reservation): void
+    private function modify(array $reservation): void
     {
-        $this->recordDeferredStub(
+        $this->process(
             $reservation,
-            HostawayReservationLogStatus::BookingUpdateInProgress,
+            HostawayReservationLogStatus::BookingUpdateSuccess,
             [
                 HostawayReservationLogStatus::BookingUpdateSuccess,
                 HostawayReservationLogStatus::BookingUpdateInProgress,
                 HostawayReservationLogStatus::Processed,
             ],
+            fn () => $this->bookingService->updateFromHostawayReservation($reservation),
         );
     }
 
     /**
      * @param  array<string, mixed>  $reservation
      */
-    private function stubCancel(array $reservation): void
+    private function cancel(array $reservation): void
     {
-        $this->recordDeferredStub(
+        $this->process(
             $reservation,
-            HostawayReservationLogStatus::CancellationInProgress,
+            HostawayReservationLogStatus::Cancelled,
             [
                 HostawayReservationLogStatus::Cancelled,
                 HostawayReservationLogStatus::CancellationInProgress,
             ],
+            fn () => $this->bookingService->cancelFromHostawayReservation($reservation),
         );
     }
 
     /**
      * @param  array<string, mixed>  $reservation
      * @param  list<HostawayReservationLogStatus>  $idempotentStatuses
+     * @param  callable(): Booking  $operation
      */
-    private function recordDeferredStub(
+    private function process(
         array $reservation,
-        HostawayReservationLogStatus $inProgressStatus,
+        HostawayReservationLogStatus $successStatus,
         array $idempotentStatuses,
+        callable $operation,
     ): void {
         $reservationId = isset($reservation['id']) ? (int) $reservation['id'] : 0;
 
@@ -174,26 +184,42 @@ class HostawayReservationSyncService
         $guestName = isset($reservation['guestName']) ? (string) $reservation['guestName'] : null;
         $encodedPayload = json_encode($reservation);
 
-        if ($existing === null) {
-            HostawayReservationLog::query()->create([
+        try {
+            $booking = $operation();
+            $attributes = [
                 'reservation_id' => $reservationId,
+                'booking_id' => $booking->id,
                 'booking_code' => $bookingCode,
                 'guest_name' => $guestName,
-                'status' => $inProgressStatus,
+                'status' => $successStatus,
                 'log_type' => HostawayReservationLog::LOG_TYPE_BOOKING,
-                'comments' => self::DEFERRED_COMMENT,
+                'comments' => null,
                 'hostaway_response' => $encodedPayload === false ? null : $encodedPayload,
+            ];
+            if ($existing === null) {
+                HostawayReservationLog::query()->create($attributes);
+            } else {
+                $existing->update($attributes);
+            }
+        } catch (\Throwable $exception) {
+            $attributes = [
+                'booking_code' => $bookingCode,
+                'guest_name' => $guestName,
+                'status' => HostawayReservationLogStatus::Failed,
+                'log_type' => HostawayReservationLog::LOG_TYPE_BOOKING,
+                'comments' => $exception->getMessage(),
+                'hostaway_response' => $encodedPayload === false ? null : $encodedPayload,
+            ];
+            if ($existing === null) {
+                HostawayReservationLog::query()->create(['reservation_id' => $reservationId, ...$attributes]);
+            } else {
+                $existing->update($attributes);
+            }
+
+            Log::warning('Hostaway booking sync failed.', [
+                'reservation_id' => $reservationId,
+                'exception' => $exception->getMessage(),
             ]);
-
-            return;
         }
-
-        $existing->update([
-            'booking_code' => $bookingCode,
-            'guest_name' => $guestName,
-            'status' => $inProgressStatus,
-            'comments' => self::DEFERRED_COMMENT,
-            'hostaway_response' => $encodedPayload === false ? null : $encodedPayload,
-        ]);
     }
 }

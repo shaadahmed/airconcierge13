@@ -2,19 +2,25 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Models\OutboundEmailLog;
 use Illuminate\Console\Command;
 
 class EmailsCleanupOutboundLogsCommand extends Command
 {
-    use StubDomainCommand;
+    protected $signature = 'emails:cleanup-outbound-logs {--days=30 : Delete logs older than this many days}';
 
-    protected $signature = 'emails:cleanup-outbound-logs';
-
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Delete outbound email logs older than the retention window.';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        $days = max(1, (int) $this->option('days'));
+
+        $deleted = OutboundEmailLog::query()
+            ->where('created_at', '<', now()->subDays($days))
+            ->delete();
+
+        $this->info("Deleted {$deleted} outbound email log(s) older than {$days} day(s).");
+
+        return self::SUCCESS;
     }
 }

@@ -47,4 +47,14 @@ return [
         ],
     ],
 
+    'zoho' => [
+        'client_id' => env('ZOHO_CLIENT_ID'),
+        'client_secret' => env('ZOHO_CLIENT_SECRET_KEY'),
+        'redirect_url' => env('ZOHO_REDIRECT_URL'),
+        'account_url' => env('ZOHO_ACCOUNT_URL', 'https://accounts.zoho.com'),
+        'api_base_url' => env('ZOHO_API_BASE_URL', 'https://sign.zoho.com/api/v1'),
+        'refresh_grace_minutes' => (int) env('ZOHO_REFRESH_GRACE_MINUTES', 50),
+        'timeout' => (int) env('ZOHO_HTTP_TIMEOUT', 15),
+    ],
+
 ];

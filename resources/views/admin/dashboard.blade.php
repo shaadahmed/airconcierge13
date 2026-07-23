@@ -8,6 +8,12 @@
 <body>
     <h1>Admin dashboard</h1>
     <p>Signed in as {{ auth()->user()?->email }}</p>
+    <ul>
+        <li>Bookings this month: {{ $stats['bookings_this_month'] ?? 0 }}</li>
+        <li>Active properties: {{ $stats['active_properties'] ?? 0 }}</li>
+        <li>Owners: {{ $stats['owners'] ?? 0 }}</li>
+        <li>Revenue this month: {{ $stats['revenue_this_month'] ?? 0 }}</li>
+    </ul>
     <form method="POST" action="{{ route('logout') }}">
         @csrf
         <button type="submit">Log out</button>
