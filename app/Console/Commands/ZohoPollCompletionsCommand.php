@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Chronology\ChronologyService;
+use App\Jobs\ProcessSignatureRequestJob;
 use Illuminate\Console\Command;
 
 class ZohoPollCompletionsCommand extends Command
@@ -11,10 +11,10 @@ class ZohoPollCompletionsCommand extends Command
 
     protected $description = 'Poll Zoho Sign for completed signature requests linked to chronology.';
 
-    public function handle(ChronologyService $chronologyService): int
+    public function handle(): int
     {
-        $completed = $chronologyService->pollZohoCompletions();
-        $this->info("Marked {$completed} Zoho signature request(s) complete.");
+        ProcessSignatureRequestJob::dispatch(null);
+        $this->info('Queued ProcessSignatureRequestJob for Zoho completion polling.');
 
         return self::SUCCESS;
     }

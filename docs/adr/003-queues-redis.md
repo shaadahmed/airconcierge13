@@ -16,3 +16,7 @@ Use **Redis** as the queue (and cache/session) driver via Laravel Sail. Run work
 ## Rationale
 
 Redis matches the long-term target in the migration plan and supports async email, Hostaway sync, PDF, and imports in later phases. Horizon adds dashboard/ops value but is unnecessary for a greenfield foundation; revisit after meaningful job volume exists.
+
+## Phase 4 update (2026-07-24)
+
+Meaningful job volume arrived in Phase 4. Monitoring was implemented **without** Horizon: superadmin failed-jobs UI + Slack notifications (see **ADR-017**). Horizon remains deferred.

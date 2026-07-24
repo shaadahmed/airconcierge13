@@ -41,8 +41,10 @@ class PaymentController extends Controller
         $payment = $this->paymentService->createBookingPayment($validated);
 
         if (is_string($receiptPath) && $receiptPath !== '') {
-            // Receipt PDF rendering is Phase 4; only the path is stored now.
             $this->paymentService->recordReceiptPath($payment, $receiptPath);
+        } else {
+            // Sync path recording stays sync; PDF HTML→PDF is queued (Phase 4).
+            $this->paymentService->queuePaymentReceiptPdf($payment);
         }
 
         if ($request->wantsJson()) {

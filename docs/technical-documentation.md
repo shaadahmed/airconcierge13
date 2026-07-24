@@ -41,10 +41,11 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Tests | Pest |
 | Style | Laravel Pint (`pint.json` excludes `database/migrations_fresh`) |
 | Static analysis | Larastan level 5 |
-| Horizon | Not installed — plain `queue:work` |
+| Horizon | Not installed — plain `queue:work` (ADR-003 / ADR-017) |
+| Failed jobs | Superadmin UI at `/admin/failed-jobs` + Slack on `failed()` |
 | Agent tooling | Laravel Boost (dev) |
 
-Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway: `HOSTAWAY_*`. Zoho Sign: `ZOHO_*`. Optional local SQL dumps: `storage/app/legacy-dumps/` (gitignored).
+Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway: `HOSTAWAY_*`. Zoho Sign: `ZOHO_*`. Slack failures: `SLACK_BOT_USER_*`. Optional Google Drive: `GOOGLE_DRIVE_*`. Optional local SQL dumps: `storage/app/legacy-dumps/` (gitignored).
 
 ---
 
@@ -61,7 +62,7 @@ cp .env.example .env   # if needed
 ./vendor/bin/sail artisan db:seed
 ```
 
-Sail Compose runs the app plus MySQL, Redis, a **queue** worker (`queue:work` on Redis), and a **scheduler** (`schedule:work`).
+Sail Compose runs the app plus MySQL, Redis, a **queue** worker (`queue:work` on Redis), and a **scheduler** (`schedule:work`). Production worker examples live under `docs/deploy/`.
 
 Quality checks (also run in CI):
 
@@ -229,12 +230,12 @@ Pest Feature coverage includes authentication, Policy/`can:` role checks, owner-
 
 ---
 
-## 12. Out of scope / next (Phase 3+)
+## 12. Out of scope / next (Phase 5+)
 
 - Full Blade rewrite and legacy dashboard UI parity (Phase 5)
 - Wholesale `migrations_fresh` import (domain tables copied selectively)
 - Admin Hostaway logs UI, reviews cron photo sync
-- Phase 3 helpers decomposition
-- Phase 4 job hardening (retries dashboard / monitoring) for email/Hostaway/PDF/import jobs
-- Horizon, production cutover
+- Google Drive Flysystem adapter install (Phase 4 job ready; Composer package deferred — ADR-014)
+- Remaining alert/Dropbox domain body parity (Schedule→Job pipeline live)
+- Horizon (still deferred — ADR-017), production cutover (Phase 6)
 - HelloSign SDK (deferred — ADR-013)

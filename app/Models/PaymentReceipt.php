@@ -14,8 +14,7 @@ class PaymentReceipt extends Model
     /** @use HasFactory<PaymentReceiptFactory> */
     use HasFactory;
 
-    // Payment receipt PDF generation is deferred to Phase 4 (ADR-005 / GeneratePdfJob).
-
+    // Payment receipt PDF generation lives in PdfService / GeneratePdfJob (ADR-005 / Phase 4).
     /**
      * @return BelongsTo<BookingPayment, $this>
      */

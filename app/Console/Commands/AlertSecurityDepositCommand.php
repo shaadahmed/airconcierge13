@@ -2,19 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Console\Commands\Concerns\DispatchesScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class AlertSecurityDepositCommand extends Command
 {
-    use StubDomainCommand;
+    use DispatchesScheduledAlertJob;
 
     protected $signature = 'alert:security-deposit';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue scheduled alert: security-deposit.';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        return $this->dispatchAlert('security-deposit');
     }
 }

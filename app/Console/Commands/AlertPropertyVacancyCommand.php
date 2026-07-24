@@ -2,19 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Console\Commands\Concerns\DispatchesScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class AlertPropertyVacancyCommand extends Command
 {
-    use StubDomainCommand;
+    use DispatchesScheduledAlertJob;
 
     protected $signature = 'alert:property-vacancy';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue scheduled alert: property-vacancy.';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        return $this->dispatchAlert('property-vacancy');
     }
 }

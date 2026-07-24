@@ -60,6 +60,18 @@ return [
             'report' => false,
         ],
 
+        'gdrive' => [
+            // Requires masbug/flysystem-google-drive-ext + AppServiceProvider driver registration (ADR-014).
+            'driver' => 'local',
+            'root' => storage_path('app/gdrive-fallback'),
+            'clientId' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'clientSecret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'refreshToken' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+            'folder' => env('GOOGLE_DRIVE_FOLDER'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

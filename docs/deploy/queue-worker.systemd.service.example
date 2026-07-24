@@ -1,0 +1,17 @@
+# Example systemd unit for Air Concierge queue workers (Phase 4).
+# Copy to /etc/systemd/system/airconcierge-queue.service and adjust paths/user.
+# Local/dev uses Sail compose service `queue` instead.
+
+[Unit]
+Description=Air Concierge queue worker
+After=network.target redis.service mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/bin/php /var/www/airconcierge13/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 --timeout=120
+WorkingDirectory=/var/www/airconcierge13
+
+[Install]
+WantedBy=multi-user.target

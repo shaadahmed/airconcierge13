@@ -19,5 +19,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(BookingPayment::class, PaymentPolicy::class);
         Gate::policy(PropertyPayment::class, PaymentPolicy::class);
+
+        // Google Drive (`gdrive` disk) registration lands with masbug/flysystem-google-drive-ext
+        // when Composer can install google/apiclient-services (ADR-014). Until then backups stay local.
     }
 }

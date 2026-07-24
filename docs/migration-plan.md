@@ -296,7 +296,7 @@ Phase 0  Foundation                                          [IMPLEMENTED]
          2.4 Reports & Dashboard                             [IMPLEMENTED]
          2.5 Remaining admin modules                         [IMPLEMENTED]
     → Phase 3  Helpers Decomposition                         [DONE]
-    → Phase 4  Async Migration                               [NEXT]
+    → Phase 4  Async Migration                               [IMPLEMENTED]
     → Phase 5  Frontend / Views (as needed)
     → Phase 6  Deployment Readiness
 ```
@@ -476,7 +476,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port).
 - 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014.
 - Local dumps: `storage/app/legacy-dumps/` (gitignored).
-- **Next:** Phase 4 async migration (Phase 3 helpers decomposition complete).
+- **Next:** Phase 5 frontend / views (Phase 4 async migration complete).
 
 ---
 
@@ -496,7 +496,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - [x] `HostawayService` — create/port API client (L13 had no prior `HostawayService`; plan “extend” wording corrected)
 - [x] Thin webhook controller to HTTP + auth + job delegation only (no fat `HostawayController` port in this slice)
 - [x] Form Requests + Policies for Hostaway admin endpoints — **deferred** (no admin Hostaway UI in minimal 2.1)
-- [x] Wire accepted webhooks to `SyncHostawayReservationJob` → `HostawayReservationSyncService` (job hardening / retries / monitoring completed in Phase 4)
+- [x] Wire accepted webhooks to `SyncHostawayReservationJob` → `HostawayReservationSyncService` (job hardening / retries / monitoring deferred to Phase 4 — now complete)
 - [x] Prioritize tests around webhook ingest and sync idempotency
 - [x] Guzzle 7+ via Laravel HTTP client (framework already provides Guzzle 7; no extra Composer package)
 - [x] Do not change Hostaway API contracts
@@ -748,8 +748,9 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ### Phase 4 — Async Migration
 
-**Status:** Not started.  
-**Spec alignment:** Structural Refactor Checklist — Phase 4; Queues & Jobs section.
+**Status:** Implemented (2026-07-24).  
+**Spec alignment:** Structural Refactor Checklist — Phase 4; Queues & Jobs section.  
+**ADR:** ADR-017 (lightweight failed-job UI + Slack; Horizon still deferred).
 
 #### Objectives
 
@@ -761,52 +762,58 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Tasks
 
-- [ ] Stand up queue worker infrastructure (supervisor/systemd in production; Sail `queue:work` already for local/dev from Phase 0)
-- [ ] Implement jobs listed in the Queues section (prioritize email + Hostaway webhook + PDF):
+- [x] Stand up queue worker infrastructure (supervisor/systemd **templates** in `docs/deploy/`; Sail `queue:work` already for local/dev from Phase 0 — live host verify in Phase 6)
+- [x] Implement jobs listed in the Queues section (prioritize email + Hostaway webhook + PDF):
 
   | Operation | Current location (old app) | Recommended approach / target job |
   |-----------|----------------------------|-------------------------------------|
   | Outbound emails / chronology mail | ChronologycronController, SendemailsController, helpers.php | `SendOutboundEmailJob` |
   | Owner/regional notifications | OwnerEmailNotificationController, cron controllers | `SendNotificationJob` |
   | PDF generation | ReportController, PaymentController, BookingCancellationController, OwnersMonthlyPayout | `GeneratePdfJob` |
-  | Image compression | CompressUploadedImages command | Keep as command; dispatch per-batch jobs |
+  | Image compression | CompressUploadedImages command | Keep as command; dispatch per-batch `CompressImagesBatchJob` |
   | Email imports (Airbnb/VRBO) | ProcessAirbnbEmails, ProcessVrboEmails, ImportEmails | `ProcessImportedEmailJob` |
-  | Google Drive backup | CloudBackupCronController | `UploadBackupToCloudJob` |
+  | Google Drive backup | CloudBackupCronController | `UploadBackupToCloudJob` (local snapshot until Drive adapter installs — ADR-014) |
   | Dropbox CSV processing | DropboxFormCSVController | `ProcessDropboxCsvJob` |
   | Hostaway sync / webhooks | HostawayController | `SyncHostawayReservationJob` (webhook returns fast) |
   | Zoho Sign / HelloSign flows | ChronologycronController, ZohoSignController | `ProcessSignatureRequestJob` |
-  | Property monthly metrics | PropertyMonthlyMatricsCalculation | `RecalculatePropertyMetricsJob` (batched) |
-  | Alert cron checks | CronJobsController HTTP routes | Migrate to scheduled Artisan commands dispatching jobs — remove public HTTP cron endpoints |
+  | Property monthly metrics | PropertyMonthlyMatricsCalculation | `RecalculatePropertyMetricsJob` |
+  | Alert cron checks | CronJobsController HTTP routes | Schedule → commands → `RunScheduledAlertJob` (no public HTTP cron endpoints) |
   | Report generation | ReportController, TotReportController | `GenerateReportJob` |
 
-- [ ] Migrate HTTP crons to Laravel Schedule dispatching jobs (L13: `routes/console.php` schedule definitions; Spec references `app/Console/Kernel.php` — use the L13 equivalent)
-- [ ] Preserve all existing cron schedules and webhook URL paths unless DevOps coordinates cutover
-- [ ] Add failed-job monitoring and retry dashboard
-- [ ] Replace `jeremykenedy/slack-laravel` with Laravel’s Slack notification channel for failure/monitoring signals (if not done earlier)
-- [ ] Apply Job Standards to every job: small & single-purpose; idempotent where possible; `$tries`/backoff; structured logging (entity ID, user, correlation ID); `failed()` → monitoring; batch/chain where appropriate
-- [ ] Document sync exceptions briefly when work is intentionally not queued (user waiting, transactional integrity, or <~100ms)
+- [x] Migrate HTTP crons to Laravel Schedule dispatching jobs (`routes/console.php`)
+- [x] Preserve all existing cron schedules and webhook URL paths unless DevOps coordinates cutover
+- [x] Add failed-job monitoring and retry dashboard (superadmin UI — ADR-017; **no Horizon**)
+- [x] Replace `jeremykenedy/slack-laravel` with Laravel’s Slack notification channel (`laravel/slack-notification-channel`)
+- [x] Apply Job Standards via `HandlesJobFailures` trait on every Spec catalog job
+- [x] Document sync exceptions (`--sync` flags on metrics/alerts; summary HTTP report endpoints stay sync)
 
 #### Deliverables
 
-- All Spec-listed high-priority jobs implemented (or documented sync-with-rationale where not queued)
-- Production queue workers via supervisor/systemd (or equivalent host standard)
-- Schedule-driven cron replacement fully eliminating public HTTP cron endpoints
-- Failed-job monitoring + retry dashboard
-- Slack (or equivalent) failure surfacing wired
+- Spec-listed high-priority jobs implemented with standards (alert/Dropbox domain bodies may still be stubs — pipeline live; follow-up cards)
+- Production queue worker **templates** (supervisor/systemd) under `docs/deploy/`
+- Schedule-driven cron replacement; no public HTTP cron endpoints
+- Failed-job monitoring + retry dashboard (`admin/failed-jobs`)
+- Slack failure surfacing wired (env-gated)
 
 #### Dependencies
 
 - Phase 2 services that jobs call should exist for prioritized domains (email, Hostaway, PDF consumers)
 - Redis queue connection from Phase 0
-- Package: Slack notification channel; PDF package decision for `GeneratePdfJob`
+- Package: Slack notification channel; PDF package decision for `GeneratePdfJob` (DomPDF — ADR-005)
 
 #### Exit criteria
 
-- [ ] Queue worker infrastructure stood up for the target deploy environment
-- [ ] Spec job catalog implemented with standards applied (email + Hostaway + PDF prioritized first)
-- [ ] HTTP crons fully migrated to Schedule → commands/jobs
-- [ ] Failed-job monitoring and retry dashboard in place
-- [ ] No queuing solely for the sake of queues; sync exceptions documented
+- [x] Queue worker infrastructure stood up for the target deploy environment (**templates** + Sail; Phase 6 verifies hosts)
+- [x] Spec job catalog implemented with standards applied (email + Hostaway + PDF prioritized first)
+- [x] HTTP crons fully migrated to Schedule → commands/jobs
+- [x] Failed-job monitoring and retry dashboard in place
+- [x] No queuing solely for the sake of queues; sync exceptions documented
+
+#### Deviations / follow-ups
+
+- **Horizon not installed** (explicit Phase 4 choice; ADR-017).
+- **Google Drive Flysystem adapter** not Composer-installed (Sail extract timeout on `google/apiclient-services`); backups remain local with warning until adapter lands (ADR-014).
+- **Alert / Dropbox / owners-payout domain bodies** still stubbed inside `AlertDispatchService` / `DropboxFormService` — Schedule→Job pipeline is complete; full legacy parity is a follow-up card.
 
 ---
 
@@ -933,8 +940,8 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 | `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | deferred | Phase 2.2 |
 | `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
 | `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status | deferred | Phase 2.2 |
-| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | deferred | Phase 2.5 |
-| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | deferred | Phase 4 (earlier if needed) |
+| `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | deferred (adapter install timed out in Sail; job + disk config ready — ADR-014) | Phase 4 follow-up |
+| `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | **done** (`laravel/slack-notification-channel`) | Phase 4 |
 | `vinkla/hashids` | Verify L13 compatibility or replace | verify-then-replace | Phase 2.5 |
 | `doctrine/dbal` | Keep if needed for schema introspection; pin compatible version | as-needed | Schema work (when required) |
 | `guzzlehttp/guzzle` ~6 | Upgrade to **Guzzle 7+** (L13 already pulls Guzzle 7 via framework; confirm consumer usage at Hostaway port) | **done** (Laravel HTTP client / Guzzle 7) | Phase 2.1 |
@@ -1074,7 +1081,8 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0–2.5 are complete (Phase 2.1 minimal Hostaway through remaining admin services).
-4. **Execute Phase 4 next** — async migration (job hardening, retries, failed-job monitoring) for email/Hostaway/PDF/import jobs already stubbed. Pull deferred helper destinations into Services/Models as consumers need them (see Phase 3 inventory).
+3. Phase 0–4 are complete (async jobs, failed-job UI, Slack alerts, Schedule→Job pipelines).
+4. **Execute Phase 5 next** — frontend / Blade refactor as modules are touched; Yajra DataTables verification.
 5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
 6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
+7. Follow-ups from Phase 4: install Google Drive Flysystem adapter when Composer timeout allows; port remaining alert/Dropbox domain bodies; Phase 6 verifies supervisor/systemd on real hosts.

@@ -77,7 +77,8 @@ These are **different** concepts — do not merge them:
 - Use Laravel Sail (`./vendor/bin/sail`).
 - MySQL DB name: `airconcierge` (empty of business schema in Phase 0).
 - Redis for queue, cache, and session.
-- Horizon is not in Phase 0 — plain `queue:work` only.
+- Horizon is not installed — plain `queue:work` (ADR-003). Phase 4 monitoring uses the superadmin failed-jobs UI + Slack on job `failed()` (ADR-017), not Horizon.
+- Production worker templates: `docs/deploy/`.
 
 ## Quality
 

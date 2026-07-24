@@ -1,6 +1,8 @@
 <?php
 
+use App\Jobs\UploadBackupToCloudJob;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Queue;
 
 it('registers the phase 1 stub artisan commands', function (): void {
     $commands = array_keys(Artisan::all());
@@ -12,7 +14,15 @@ it('registers the phase 1 stub artisan commands', function (): void {
         ->toContain('property:monthly-metrics');
 });
 
-it('runs a stub command successfully', function (): void {
+it('runs cron:test successfully', function (): void {
     $this->artisan('cron:test')
         ->assertSuccessful();
+});
+
+it('queues cloud backup instead of stubbing', function (): void {
+    Queue::fake();
+
+    $this->artisan('cloud:weekly-data-backup')->assertSuccessful();
+
+    Queue::assertPushed(UploadBackupToCloudJob::class);
 });

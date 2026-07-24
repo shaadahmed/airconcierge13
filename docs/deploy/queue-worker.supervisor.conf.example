@@ -1,0 +1,16 @@
+; Example supervisor program for Air Concierge queue workers (Phase 4).
+; Adjust user, paths, and process count for the target host.
+; Local/dev uses Sail compose service `queue` instead.
+
+[program:airconcierge-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/airconcierge13/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 --timeout=120
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/log/airconcierge-queue.log
+stopwaitsecs=3600

@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\RunScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class EmailsLimitOwnerBlockCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'emails:limit-owner-block';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue owner-block email limit job (domain body follow-up).';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        RunScheduledAlertJob::dispatch('emails-limit-owner-block');
+        $this->info('Queued RunScheduledAlertJob for emails-limit-owner-block.');
+
+        return self::SUCCESS;
     }
 }

@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\UploadBackupToCloudJob;
 use Illuminate\Console\Command;
 
 class CloudWeeklyDataBackupCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'cloud:weekly-data-backup';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue weekly data backup upload to cloud storage.';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        UploadBackupToCloudJob::dispatch();
+        $this->info('Queued UploadBackupToCloudJob.');
+
+        return self::SUCCESS;
     }
 }

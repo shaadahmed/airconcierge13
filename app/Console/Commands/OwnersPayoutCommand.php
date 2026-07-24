@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\RunScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class OwnersPayoutCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'owners:payout';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue owners payout processing (domain body follow-up).';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        RunScheduledAlertJob::dispatch('owners-payout');
+        $this->info('Queued RunScheduledAlertJob for owners-payout.');
+
+        return self::SUCCESS;
     }
 }

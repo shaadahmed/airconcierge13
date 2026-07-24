@@ -145,6 +145,37 @@ class ZohoSignService
         ]);
     }
 
+    /**
+     * Process a single pending signature detail (idempotent if already completed).
+     */
+    public function processCompletedRequest(int $helloSignDetailId): HelloSignDetail
+    {
+        $detail = HelloSignDetail::query()->findOrFail($helloSignDetailId);
+
+        if ($detail->isCompleted()) {
+            return $detail;
+        }
+
+        if (! filled($detail->zoho_request_id)) {
+            throw new RuntimeException("HelloSignDetail {$helloSignDetailId} has no Zoho request id.");
+        }
+
+        $request = $this->getRequest((string) $detail->zoho_request_id);
+        $status = strtolower((string) data_get($request, 'requests.request_status', data_get($request, 'status', '')));
+
+        if ($status !== 'completed') {
+            return $detail;
+        }
+
+        $detail->update([
+            'zoho_sign_status' => 1,
+            'is_opened' => 1,
+            'update_date' => now(),
+        ]);
+
+        return $detail->fresh() ?? $detail;
+    }
+
     private function apiClient(string $token): PendingRequest
     {
         return Http::baseUrl(rtrim((string) config('services.zoho.api_base_url'), '/').'/')

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ChronologyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmailController;
+use App\Http\Controllers\Admin\FailedJobController;
 use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\OwnerStatementController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -49,6 +50,11 @@ Route::middleware(['auth'])
         Route::get('dashboard/revenue-chart', [DashboardController::class, 'revenueChart'])->name('dashboard.revenue-chart');
         Route::get('dashboard/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
         Route::get('dashboard/owners/{owner}/statement', [DashboardController::class, 'ownerStatement'])->name('dashboard.owner-statement');
+
+        Route::get('failed-jobs', [FailedJobController::class, 'index'])->name('failed-jobs.index');
+        Route::post('failed-jobs/retry-all', [FailedJobController::class, 'retryAll'])->name('failed-jobs.retry-all');
+        Route::post('failed-jobs/{uuid}/retry', [FailedJobController::class, 'retry'])->name('failed-jobs.retry');
+        Route::delete('failed-jobs/{uuid}', [FailedJobController::class, 'destroy'])->name('failed-jobs.destroy');
 
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/tot', [ReportController::class, 'tot'])->name('reports.tot');

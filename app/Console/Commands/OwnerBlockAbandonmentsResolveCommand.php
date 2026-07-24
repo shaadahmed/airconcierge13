@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\RunScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class OwnerBlockAbandonmentsResolveCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'owner-block-abandonments:resolve';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue owner-block abandonment resolution (domain body follow-up).';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        RunScheduledAlertJob::dispatch('owner-block-abandonments');
+        $this->info('Queued RunScheduledAlertJob for owner-block-abandonments.');
+
+        return self::SUCCESS;
     }
 }

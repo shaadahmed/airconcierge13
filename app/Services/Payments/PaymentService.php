@@ -2,6 +2,7 @@
 
 namespace App\Services\Payments;
 
+use App\Jobs\GeneratePdfJob;
 use App\Models\BookingIncomingPayment;
 use App\Models\BookingPayment;
 use App\Models\PaymentReceipt;
@@ -111,7 +112,7 @@ class PaymentService
 
     /**
      * Record a receipt file path for a booking payment.
-     * PDF generation itself is Phase 4 (see GeneratePdfJob / ADR-005).
+     * Prefer dispatching GeneratePdfJob for HTML→PDF rendering (ADR-005).
      */
     public function recordReceiptPath(BookingPayment $payment, string $path): PaymentReceipt
     {
@@ -119,5 +120,13 @@ class PaymentService
             ['booking_payment_id' => $payment->id],
             ['receipt_path' => $path],
         );
+    }
+
+    /**
+     * Queue payment receipt PDF generation (I/O-bound DomPDF work).
+     */
+    public function queuePaymentReceiptPdf(BookingPayment $payment): void
+    {
+        GeneratePdfJob::dispatch("payment-receipt:{$payment->id}");
     }
 }

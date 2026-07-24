@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\RunScheduledAlertJob;
 use Illuminate\Console\Command;
 
 class EmailsProcessReviewsCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'emails:process-reviews';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue review-email processing (domain body follow-up).';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        RunScheduledAlertJob::dispatch('emails-process-reviews');
+        $this->info('Queued RunScheduledAlertJob for emails-process-reviews.');
+
+        return self::SUCCESS;
     }
 }

@@ -2,25 +2,38 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\HandlesJobFailures;
+use App\Services\Pdf\PdfService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Stub for Phase 4 PDF generation (ADR-005).
+ * Async PDF generation (ADR-005 DomPDF via PdfService).
  *
- * Intended future consumer: payment receipt PDFs via PdfService / DomPDF.
+ * documentKey formats:
+ * - "payment-receipt:{bookingPaymentId}"
+ * - "report:{reportType}" (optional filters in $options)
  */
 class GeneratePdfJob implements ShouldQueue
 {
+    use HandlesJobFailures;
     use Queueable;
 
-    public function __construct(public ?string $documentKey = null) {}
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function __construct(
+        public string $documentKey,
+        public array $options = [],
+    ) {}
 
-    public function handle(): void
+    public function handle(PdfService $pdfService): void
     {
-        Log::info('GeneratePdfJob stub — PDF generation deferred to Phase 4.', [
+        Log::info('GeneratePdfJob rendering document.', $this->jobLogContext([
             'document_key' => $this->documentKey,
-        ]);
+        ]));
+
+        $pdfService->generateQueuedDocument($this->documentKey, $this->options);
     }
 }

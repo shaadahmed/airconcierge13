@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Commands\Concerns\StubDomainCommand;
+use App\Jobs\ProcessDropboxCsvJob;
 use Illuminate\Console\Command;
 
 class DropboxFormSyncDbCommand extends Command
 {
-    use StubDomainCommand;
-
     protected $signature = 'dropbox:form-sync-db';
 
-    protected $description = 'Phase 1 stub — implement in the matching domain phase.';
+    protected $description = 'Queue Dropbox form database sync.';
 
     public function handle(): int
     {
-        return $this->reportStub();
+        ProcessDropboxCsvJob::dispatch('sync-db');
+        $this->info('Queued ProcessDropboxCsvJob (sync-db).');
+
+        return self::SUCCESS;
     }
 }
