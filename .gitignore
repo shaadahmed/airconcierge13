@@ -16,6 +16,7 @@
 /.zed
 /auth.json
 /legacy
+/nuxtjs-theme
 /node_modules
 /public/build
 /public/fonts-manifest.dev.json
