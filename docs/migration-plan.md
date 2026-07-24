@@ -817,10 +817,23 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ---
 
+### Nuxt SPA frontend (ADR-018) — not Phase 5
+
+**Status:** Implemented (initial cutover).  
+**Canonical app:** `frontend/`  
+**Style reference:** `nuxtjs-theme/` (gitignored; no runtime imports)  
+**Standing UI/UX rule:** `frontend/docs/ui-ux.md` — match theme equivalents when present; otherwise same Sneat design language on every page.
+
+Converted UI routes live under Nuxt (`/`, `/login`, `/admin/*`). PDF Blade retained at `resources/views/pdf/`. Auth: Sanctum CSRF + session; `/admin/*` JSON stays on `web.php`.
+
+---
+
 ### Phase 5 — Frontend / Views (as needed)
 
-**Status:** Not started.  
+**Status:** Not started (Blade incremental refactor / Yajra — separate from Nuxt SPA).  
 **Spec alignment:** Structural Refactor Checklist — Phase 5.
+
+> **Related:** Nuxt SPA UI cutover is tracked under **ADR-018** (`frontend/`), not as Phase 5. Standing UI/UX style rule: `frontend/docs/ui-ux.md`.
 
 #### Objectives
 
@@ -1082,7 +1095,7 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
 3. Phase 0–4 are complete (async jobs, failed-job UI, Slack alerts, Schedule→Job pipelines).
-4. **Execute Phase 5 next** — frontend / Blade refactor as modules are touched; Yajra DataTables verification.
+4. **Nuxt SPA frontend** is the UI layer (`frontend/`, ADR-018) — convert/maintain admin pages there; Spec Phase 5 Blade checklist remains separate (Yajra/DataTables as needed).
 5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
 6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
 7. Follow-ups from Phase 4: install Google Drive Flysystem adapter when Composer timeout allows; port remaining alert/Dropbox domain bodies; Phase 6 verifies supervisor/systemd on real hosts.

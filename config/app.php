@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend SPA URL (Nuxt)
+    |--------------------------------------------------------------------------
+    |
+    | Used for redirects away from legacy Blade auth/UI entry points after the
+    | Nuxt SPA cutover (docs/adr/018-nuxt-spa-frontend.md).
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

@@ -42,10 +42,11 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Style | Laravel Pint (`pint.json` excludes `database/migrations_fresh`) |
 | Static analysis | Larastan level 5 |
 | Horizon | Not installed — plain `queue:work` (ADR-003 / ADR-017) |
-| Failed jobs | Superadmin UI at `/admin/failed-jobs` + Slack on `failed()` |
+| Failed jobs | Superadmin UI at Nuxt `/admin/failed-jobs` (JSON API) + Slack on `failed()` |
+| Frontend UI | Nuxt 3 SPA in `frontend/` (ADR-018); Sneat style reference `nuxtjs-theme/` (no runtime imports) |
 | Agent tooling | Laravel Boost (dev) |
 
-Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`. Hostaway: `HOSTAWAY_*`. Zoho Sign: `ZOHO_*`. Slack failures: `SLACK_BOT_USER_*`. Optional Google Drive: `GOOGLE_DRIVE_*`. Optional local SQL dumps: `storage/app/legacy-dumps/` (gitignored).
+Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`. Hostaway: `HOSTAWAY_*`. Zoho Sign: `ZOHO_*`. Slack failures: `SLACK_BOT_USER_*`. Optional Google Drive: `GOOGLE_DRIVE_*`. Optional local SQL dumps: `storage/app/legacy-dumps/` (gitignored).
 
 ---
 
@@ -60,9 +61,15 @@ cp .env.example .env   # if needed
 ./vendor/bin/sail artisan key:generate
 ./vendor/bin/sail artisan migrate
 ./vendor/bin/sail artisan db:seed
+
+# Nuxt SPA (separate terminal)
+cd frontend
+cp .env.example .env
+npm install
+npm run dev   # http://localhost:3000 — proxies /admin,/login,/sanctum to Laravel
 ```
 
-Sail Compose runs the app plus MySQL, Redis, a **queue** worker (`queue:work` on Redis), and a **scheduler** (`schedule:work`). Production worker examples live under `docs/deploy/`.
+Sail Compose runs the app plus MySQL, Redis, a **queue** worker (`queue:work` on Redis), and a **scheduler** (`schedule:work`). Production worker examples live under `docs/deploy/`. UI is the Nuxt SPA; DomPDF still uses Blade under `resources/views/pdf/`.
 
 Quality checks (also run in CI):
 

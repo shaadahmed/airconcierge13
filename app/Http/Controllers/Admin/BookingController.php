@@ -8,91 +8,59 @@ use App\Http\Requests\Admin\Bookings\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class BookingController extends Controller
 {
     public function __construct(private BookingService $bookingService) {}
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Booking::class);
 
         $bookings = $this->bookingService->list($request->only(['property_id', 'cancelled']));
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $bookings]);
-        }
-
-        return view('admin.bookings.index', compact('bookings'));
+        return response()->json(['data' => $bookings]);
     }
 
-    public function show(Booking $booking): View|JsonResponse
+    public function show(Booking $booking): JsonResponse
     {
         $this->authorize('view', $booking);
 
         $booking->load(['property', 'guests', 'payments']);
 
-        if (request()->wantsJson()) {
-            return response()->json(['data' => $booking]);
-        }
-
-        return view('admin.bookings.show', compact('booking'));
+        return response()->json(['data' => $booking]);
     }
 
-    public function store(StoreBookingRequest $request): RedirectResponse|JsonResponse
+    public function store(StoreBookingRequest $request): JsonResponse
     {
         $booking = $this->bookingService->create($request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $booking], 201);
-        }
-
-        return redirect()
-            ->route('admin.bookings.show', $booking)
-            ->with('status', 'Booking created.');
+        return response()->json(['data' => $booking], 201);
     }
 
-    public function update(UpdateBookingRequest $request, Booking $booking): RedirectResponse|JsonResponse
+    public function update(UpdateBookingRequest $request, Booking $booking): JsonResponse
     {
         $booking = $this->bookingService->update($booking, $request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $booking]);
-        }
-
-        return redirect()
-            ->route('admin.bookings.show', $booking)
-            ->with('status', 'Booking updated.');
+        return response()->json(['data' => $booking]);
     }
 
-    public function destroy(Booking $booking): RedirectResponse|JsonResponse
+    public function destroy(Booking $booking): JsonResponse
     {
         $this->authorize('delete', $booking);
 
         $this->bookingService->delete($booking);
 
-        if (request()->wantsJson()) {
-            return response()->json(status: 204);
-        }
-
-        return redirect()
-            ->route('admin.bookings.index')
-            ->with('status', 'Booking deleted.');
+        return response()->json(status: 204);
     }
 
-    public function cancel(Booking $booking): RedirectResponse|JsonResponse
+    public function cancel(Booking $booking): JsonResponse
     {
         $this->authorize('update', $booking);
 
         $booking = $this->bookingService->cancel($booking);
 
-        if (request()->wantsJson()) {
-            return response()->json(['data' => $booking]);
-        }
-
-        return back()->with('status', 'Booking cancelled.');
+        return response()->json(['data' => $booking]);
     }
 }

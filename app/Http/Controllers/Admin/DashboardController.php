@@ -8,16 +8,17 @@ use App\Models\Owner;
 use App\Services\Dashboard\DashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function __construct(private DashboardService $dashboardService) {}
 
-    public function __invoke(): View
+    public function __invoke(): JsonResponse
     {
-        return view('admin.dashboard', [
-            'stats' => $this->dashboardService->summaryStats(),
+        $this->authorize('viewAny', Booking::class);
+
+        return response()->json([
+            'data' => $this->dashboardService->summaryStats(),
         ]);
     }
 

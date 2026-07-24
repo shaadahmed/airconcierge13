@@ -122,12 +122,12 @@ it('allows superadmin to view failed jobs and forbids others', function (): void
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($superAdmin)
-        ->get(route('admin.failed-jobs.index'))
+        ->getJson(route('admin.failed-jobs.index'))
         ->assertOk()
-        ->assertSee('SendOutboundEmailJob');
+        ->assertJsonFragment(['display_name' => 'App\\Jobs\\SendOutboundEmailJob']);
 
     $this->actingAs($admin)
-        ->get(route('admin.failed-jobs.index'))
+        ->getJson(route('admin.failed-jobs.index'))
         ->assertForbidden();
 });
 

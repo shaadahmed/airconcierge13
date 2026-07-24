@@ -12,8 +12,6 @@ use App\Models\Owner;
 use App\Services\Email\EmailService;
 use App\Services\Zoho\ZohoSignService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 
 class EmailController extends Controller
 {
@@ -22,18 +20,20 @@ class EmailController extends Controller
         private ZohoSignService $zohoSignService,
     ) {}
 
-    public function create(): View
+    public function create(): JsonResponse
     {
         $this->authorize('viewAny', Chronology::class);
 
-        return view('admin.send-emails.create', [
-            'owners' => Owner::query()->notDeleted()->orderBy('full_name')->get(),
-            'templates' => EmailTemplate::query()->orderBy('name')->get(),
-            'documents' => DocumentUpload::query()->orderBy('name')->get(),
+        return response()->json([
+            'data' => [
+                'owners' => Owner::query()->notDeleted()->orderBy('full_name')->get(),
+                'templates' => EmailTemplate::query()->orderBy('name')->get(),
+                'documents' => DocumentUpload::query()->orderBy('name')->get(),
+            ],
         ]);
     }
 
-    public function store(StoreEmailRequest $request): RedirectResponse|JsonResponse
+    public function store(StoreEmailRequest $request): JsonResponse
     {
         $data = $request->validated();
         $owner = Owner::query()->findOrFail($data['owner_id']);
@@ -80,12 +80,6 @@ class EmailController extends Controller
             ]);
         }
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $mailSend], 201);
-        }
-
-        return redirect()
-            ->route('admin.send-emails.create')
-            ->with('status', 'Email / signature request sent.');
+        return response()->json(['data' => $mailSend], 201);
     }
 }

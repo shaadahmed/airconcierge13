@@ -20,12 +20,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'owner.active' => EnsureOwnerHasActiveAccess::class,
         ]);
 
+        $middleware->statefulApi();
+
         $middleware->validateCsrfTokens(except: [
             'wh/hostaway/booking/created',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->is('wh/*'),
+            fn (Request $request) => $request->expectsJson()
+                || $request->is('api/*')
+                || $request->is('wh/*'),
         );
     })->create();

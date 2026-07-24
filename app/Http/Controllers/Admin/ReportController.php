@@ -7,26 +7,22 @@ use App\Models\Booking;
 use App\Services\Reports\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class ReportController extends Controller
 {
     public function __construct(private ReportService $reportService) {}
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Booking::class);
 
         $filters = $request->only(['year', 'month', 'region_id', 'property_id']);
-        $summary = $this->reportService->bookingSummary($filters);
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $summary]);
-        }
-
-        return view('admin.reports.index', [
-            'summary' => $summary,
-            'regions' => $this->reportService->regions(),
+        return response()->json([
+            'data' => [
+                'summary' => $this->reportService->bookingSummary($filters),
+                'regions' => $this->reportService->regions(),
+            ],
         ]);
     }
 

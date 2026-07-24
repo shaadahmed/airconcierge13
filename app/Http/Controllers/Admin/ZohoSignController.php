@@ -9,13 +9,12 @@ use App\Models\ZohoCodeDetail;
 use App\Services\Zoho\ZohoSignService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Illuminate\View\View;
 
 class ZohoSignController extends Controller
 {
     public function __construct(private ZohoSignService $zohoSignService) {}
 
-    public function index(): View|JsonResponse
+    public function index(): JsonResponse
     {
         $this->authorize('viewAny', Chronology::class);
 
@@ -24,15 +23,13 @@ class ZohoSignController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        if (request()->wantsJson()) {
-            return response()->json([
+        return response()->json([
+            'data' => [
                 'configured' => $token !== null,
                 'expires_soon' => $token?->isExpired() ?? true,
                 'updated_at' => $token?->update_dtm,
-            ]);
-        }
-
-        return view('admin.zoho.index', compact('token'));
+            ],
+        ]);
     }
 
     public function download(HelloSignDetail $helloSignDetail): Response

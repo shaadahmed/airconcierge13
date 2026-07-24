@@ -19,7 +19,7 @@ use App\Http\Controllers\Webhooks\HostawayWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->away(rtrim((string) config('app.frontend_url'), '/').'/');
 })->name('home');
 
 Route::middleware('guest')->group(function (): void {

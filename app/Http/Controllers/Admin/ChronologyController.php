@@ -12,108 +12,74 @@ use App\Models\DocumentUpload;
 use App\Models\EmailTemplate;
 use App\Services\Chronology\ChronologyService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class ChronologyController extends Controller
 {
     public function __construct(private ChronologyService $chronologyService) {}
 
-    public function index(Request $request): View|JsonResponse
+    public function index(): JsonResponse
     {
         $this->authorize('viewAny', Chronology::class);
 
-        $chronologies = $this->chronologyService->list();
-
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $chronologies]);
-        }
-
-        return view('admin.chronologies.index', compact('chronologies'));
+        return response()->json(['data' => $this->chronologyService->list()]);
     }
 
-    public function create(): View
+    public function create(): JsonResponse
     {
         $this->authorize('create', Chronology::class);
 
-        return view('admin.chronologies.create');
+        return response()->json(['data' => []]);
     }
 
-    public function store(StoreChronologyRequest $request): RedirectResponse|JsonResponse
+    public function store(StoreChronologyRequest $request): JsonResponse
     {
         $chronology = $this->chronologyService->create($request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $chronology], 201);
-        }
-
-        return redirect()
-            ->route('admin.chronologies.show', $chronology)
-            ->with('status', 'Chronology created.');
+        return response()->json(['data' => $chronology], 201);
     }
 
-    public function show(Chronology $chronology): View|JsonResponse
+    public function show(Chronology $chronology): JsonResponse
     {
         $this->authorize('view', $chronology);
 
         $chronology->load(['orders', 'regions', 'subregions']);
 
-        if (request()->wantsJson()) {
-            return response()->json(['data' => $chronology]);
-        }
-
-        return view('admin.chronologies.show', compact('chronology'));
+        return response()->json(['data' => $chronology]);
     }
 
-    public function edit(Chronology $chronology): View
+    public function edit(Chronology $chronology): JsonResponse
     {
         $this->authorize('update', $chronology);
 
-        return view('admin.chronologies.edit', compact('chronology'));
+        $chronology->load(['orders', 'regions', 'subregions']);
+
+        return response()->json(['data' => $chronology]);
     }
 
-    public function update(UpdateChronologyRequest $request, Chronology $chronology): RedirectResponse|JsonResponse
+    public function update(UpdateChronologyRequest $request, Chronology $chronology): JsonResponse
     {
         $chronology = $this->chronologyService->update($chronology, $request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $chronology]);
-        }
-
-        return redirect()
-            ->route('admin.chronologies.show', $chronology)
-            ->with('status', 'Chronology updated.');
+        return response()->json(['data' => $chronology]);
     }
 
-    public function destroy(Chronology $chronology): RedirectResponse|JsonResponse
+    public function destroy(Chronology $chronology): JsonResponse
     {
         $this->authorize('delete', $chronology);
 
         $this->chronologyService->delete($chronology);
 
-        if (request()->wantsJson()) {
-            return response()->json(status: 204);
-        }
-
-        return redirect()
-            ->route('admin.chronologies.index')
-            ->with('status', 'Chronology deleted.');
+        return response()->json(status: 204);
     }
 
-    public function copy(Chronology $chronology): RedirectResponse|JsonResponse
+    public function copy(Chronology $chronology): JsonResponse
     {
         $this->authorize('create', Chronology::class);
 
         $copy = $this->chronologyService->copy($chronology);
 
-        if (request()->wantsJson()) {
-            return response()->json(['data' => $copy], 201);
-        }
-
-        return redirect()
-            ->route('admin.chronologies.show', $copy)
-            ->with('status', 'Chronology copied.');
+        return response()->json(['data' => $copy], 201);
     }
 
     public function templates(Request $request): JsonResponse
@@ -156,42 +122,30 @@ class ChronologyController extends Controller
         return response()->json(['status' => $exists ? 'exist' : 'notexist']);
     }
 
-    public function storeOrder(StoreChronologyOrderRequest $request, Chronology $chronology): RedirectResponse|JsonResponse
+    public function storeOrder(StoreChronologyOrderRequest $request, Chronology $chronology): JsonResponse
     {
         $order = $this->chronologyService->createOrder($chronology, $request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $order], 201);
-        }
-
-        return back()->with('status', 'Order step created.');
+        return response()->json(['data' => $order], 201);
     }
 
-    public function updateOrder(StoreChronologyOrderRequest $request, Chronology $chronology, ChronologyOrder $order): RedirectResponse|JsonResponse
+    public function updateOrder(StoreChronologyOrderRequest $request, Chronology $chronology, ChronologyOrder $order): JsonResponse
     {
         abort_unless($order->chronology_id === $chronology->id, 404);
 
         $order = $this->chronologyService->updateOrder($order, $request->validated());
 
-        if ($request->wantsJson()) {
-            return response()->json(['data' => $order]);
-        }
-
-        return back()->with('status', 'Order step updated.');
+        return response()->json(['data' => $order]);
     }
 
-    public function destroyOrder(Chronology $chronology, ChronologyOrder $order): RedirectResponse|JsonResponse
+    public function destroyOrder(Chronology $chronology, ChronologyOrder $order): JsonResponse
     {
         $this->authorize('update', $chronology);
         abort_unless($order->chronology_id === $chronology->id, 404);
 
         $this->chronologyService->deleteOrder($order);
 
-        if (request()->wantsJson()) {
-            return response()->json(status: 204);
-        }
-
-        return back()->with('status', 'Order step deleted.');
+        return response()->json(status: 204);
     }
 
     public function previewOwners(Chronology $chronology): JsonResponse
@@ -201,7 +155,7 @@ class ChronologyController extends Controller
         return response()->json(['data' => $this->chronologyService->previewOwners($chronology)]);
     }
 
-    public function storeOwnerEmails(Request $request, Chronology $chronology): RedirectResponse|JsonResponse
+    public function storeOwnerEmails(Request $request, Chronology $chronology): JsonResponse
     {
         $this->authorize('update', $chronology);
 
@@ -212,10 +166,6 @@ class ChronologyController extends Controller
 
         $this->chronologyService->saveOwnerOptOuts($chronology, $validated['owner_ids'] ?? []);
 
-        if ($request->wantsJson()) {
-            return response()->json(['status' => 'ok']);
-        }
-
-        return back()->with('status', 'Owner opt-outs saved.');
+        return response()->json(['status' => 'ok']);
     }
 }

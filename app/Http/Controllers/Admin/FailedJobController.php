@@ -4,66 +4,70 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
+use Illuminate\Support\Str;
 use stdClass;
 
 class FailedJobController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): JsonResponse
     {
         $this->authorize('accessSuperAdminArea', User::class);
 
         $failedJobs = DB::table('failed_jobs')
             ->orderByDesc('failed_at')
             ->paginate(25)
-            ->through(function (stdClass $job): stdClass {
+            ->through(function (stdClass $job): array {
                 $payload = json_decode($job->payload, true);
-                $job->display_name = is_array($payload)
-                    ? ($payload['displayName'] ?? $payload['job'] ?? 'Unknown')
-                    : 'Unknown';
 
-                return $job;
+                return [
+                    'id' => $job->id,
+                    'uuid' => $job->uuid,
+                    'connection' => $job->connection,
+                    'queue' => $job->queue,
+                    'failed_at' => $job->failed_at,
+                    'display_name' => is_array($payload)
+                        ? ($payload['displayName'] ?? $payload['job'] ?? 'Unknown')
+                        : 'Unknown',
+                    'exception' => Str::limit((string) $job->exception, 500),
+                ];
             });
 
-        return view('admin.failed-jobs.index', [
-            'failedJobs' => $failedJobs,
-        ]);
+        return response()->json($failedJobs);
     }
 
-    public function retry(string $uuid): RedirectResponse
+    public function retry(string $uuid): JsonResponse
     {
         $this->authorize('accessSuperAdminArea', User::class);
 
         Artisan::call('queue:retry', ['id' => [$uuid]]);
 
-        return redirect()
-            ->route('admin.failed-jobs.index')
-            ->with('status', "Retry queued for failed job {$uuid}.");
+        return response()->json([
+            'status' => "Retry queued for failed job {$uuid}.",
+        ]);
     }
 
-    public function destroy(string $uuid): RedirectResponse
+    public function destroy(string $uuid): JsonResponse
     {
         $this->authorize('accessSuperAdminArea', User::class);
 
         Artisan::call('queue:forget', ['id' => $uuid]);
 
-        return redirect()
-            ->route('admin.failed-jobs.index')
-            ->with('status', "Forgot failed job {$uuid}.");
+        return response()->json([
+            'status' => "Forgot failed job {$uuid}.",
+        ]);
     }
 
-    public function retryAll(): RedirectResponse
+    public function retryAll(): JsonResponse
     {
         $this->authorize('accessSuperAdminArea', User::class);
 
         Artisan::call('queue:retry', ['id' => ['all']]);
 
-        return redirect()
-            ->route('admin.failed-jobs.index')
-            ->with('status', 'Retry queued for all failed jobs.');
+        return response()->json([
+            'status' => 'Retry queued for all failed jobs.',
+        ]);
     }
 }
