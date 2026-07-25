@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Email\StoreEmailRequest;
-use App\Models\Chronology;
 use App\Models\DocumentUpload;
 use App\Models\EmailTemplate;
 use App\Models\MailSend;
@@ -22,8 +21,6 @@ class EmailController extends Controller
 
     public function create(): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         return response()->json([
             'data' => [
                 'owners' => Owner::query()->notDeleted()->orderBy('full_name')->get(),

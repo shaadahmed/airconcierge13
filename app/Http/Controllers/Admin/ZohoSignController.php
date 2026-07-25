@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Chronology;
 use App\Models\HelloSignDetail;
 use App\Models\ZohoCodeDetail;
 use App\Services\Zoho\ZohoSignService;
@@ -16,8 +15,6 @@ class ZohoSignController extends Controller
 
     public function index(): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         $token = ZohoCodeDetail::query()
             ->where('is_deleted', 0)
             ->orderByDesc('id')
@@ -34,8 +31,6 @@ class ZohoSignController extends Controller
 
     public function download(HelloSignDetail $helloSignDetail): Response
     {
-        $this->authorize('viewAny', Chronology::class);
-
         abort_unless(
             filled($helloSignDetail->zoho_request_id) && filled($helloSignDetail->zoho_document_id),
             404,

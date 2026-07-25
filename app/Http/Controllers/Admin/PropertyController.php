@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Properties\StorePropertyRequest;
 use App\Http\Requests\Admin\Properties\UpdatePropertyRequest;
-use App\Models\Booking;
 use App\Models\Property;
 use App\Services\Properties\PropertyService;
 use Illuminate\Http\JsonResponse;
@@ -17,8 +16,6 @@ class PropertyController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->propertyService->list($request->only(['region_id', 'status'])),
         ]);
@@ -40,8 +37,6 @@ class PropertyController extends Controller
 
     public function destroy(Property $property): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->propertyService->delete($property),
         ]);

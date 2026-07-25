@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -14,8 +13,6 @@ class FailedJobController extends Controller
 {
     public function index(): JsonResponse
     {
-        $this->authorize('accessSuperAdminArea', User::class);
-
         $failedJobs = DB::table('failed_jobs')
             ->orderByDesc('failed_at')
             ->paginate(25)
@@ -40,8 +37,6 @@ class FailedJobController extends Controller
 
     public function retry(string $uuid): JsonResponse
     {
-        $this->authorize('accessSuperAdminArea', User::class);
-
         Artisan::call('queue:retry', ['id' => [$uuid]]);
 
         return response()->json([
@@ -51,8 +46,6 @@ class FailedJobController extends Controller
 
     public function destroy(string $uuid): JsonResponse
     {
-        $this->authorize('accessSuperAdminArea', User::class);
-
         Artisan::call('queue:forget', ['id' => $uuid]);
 
         return response()->json([
@@ -62,8 +55,6 @@ class FailedJobController extends Controller
 
     public function retryAll(): JsonResponse
     {
-        $this->authorize('accessSuperAdminArea', User::class);
-
         Artisan::call('queue:retry', ['id' => ['all']]);
 
         return response()->json([

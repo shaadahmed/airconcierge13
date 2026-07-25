@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Booking;
 use App\Models\Owner;
 use App\Services\Dashboard\DashboardService;
 use Illuminate\Http\JsonResponse;
@@ -15,8 +14,6 @@ class DashboardController extends Controller
 
     public function __invoke(): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->dashboardService->summaryStats(),
         ]);
@@ -24,15 +21,11 @@ class DashboardController extends Controller
 
     public function stats(): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json(['data' => $this->dashboardService->summaryStats()]);
     }
 
     public function revenueChart(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->dashboardService->revenueChart((int) $request->integer('months', 6)),
         ]);
@@ -49,8 +42,6 @@ class DashboardController extends Controller
 
     public function ownerStatement(Owner $owner): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->dashboardService->ownerStatementSummary($owner),
         ]);

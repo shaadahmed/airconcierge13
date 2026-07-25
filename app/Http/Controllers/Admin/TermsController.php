@@ -15,8 +15,6 @@ class TermsController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $this->authorize('viewOwnerTerms', User::class);
-
         /** @var User $user */
         $user = $request->user();
 
@@ -27,8 +25,6 @@ class TermsController extends Controller
 
     public function agree(Request $request): JsonResponse
     {
-        $this->authorize('viewOwnerTerms', User::class);
-
         /** @var User $user */
         $user = $request->user();
 
@@ -39,8 +35,6 @@ class TermsController extends Controller
 
     public function disagree(Request $request): JsonResponse
     {
-        $this->authorize('viewOwnerTerms', User::class);
-
         /** @var User $user */
         $user = $request->user();
 

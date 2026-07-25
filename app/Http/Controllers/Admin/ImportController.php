@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Imports\ImportOwnersRequest;
 use App\Http\Requests\Admin\Imports\ImportPropertiesRequest;
 use App\Http\Requests\Admin\Imports\StoreImportedEmailRequest;
-use App\Models\Booking;
 use App\Services\Import\ImportService;
 use Illuminate\Http\JsonResponse;
 
@@ -30,8 +29,6 @@ class ImportController extends Controller
 
     public function importedEmails(): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json(['data' => $this->importService->listImportedEmails()]);
     }
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Booking;
 use App\Services\Reports\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,8 +13,6 @@ class ReportController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         $filters = $request->only(['year', 'month', 'region_id', 'property_id']);
 
         return response()->json([
@@ -28,8 +25,6 @@ class ReportController extends Controller
 
     public function tot(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->reportService->totReport($request->only(['year'])),
         ]);
@@ -37,8 +32,6 @@ class ReportController extends Controller
 
     public function metrics(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         return response()->json([
             'data' => $this->reportService->propertyMetrics($request->only(['year', 'region_id'])),
         ]);

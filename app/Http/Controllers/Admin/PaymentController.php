@@ -17,8 +17,6 @@ class PaymentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', BookingPayment::class);
-
         $payments = $this->paymentService->listBookingPayments(
             $request->integer('booking_id') ?: null,
         );
@@ -45,8 +43,6 @@ class PaymentController extends Controller
 
     public function destroy(BookingPayment $payment): JsonResponse
     {
-        $this->authorize('delete', $payment);
-
         $this->paymentService->deleteBookingPayment($payment);
 
         return response()->json(status: 204);
@@ -54,8 +50,6 @@ class PaymentController extends Controller
 
     public function propertyIndex(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', PropertyPayment::class);
-
         $payments = $this->paymentService->listPropertyPayments(
             $request->integer('property_id') ?: null,
         );
@@ -72,8 +66,6 @@ class PaymentController extends Controller
 
     public function propertyDestroy(PropertyPayment $propertyPayment): JsonResponse
     {
-        $this->authorize('delete', $propertyPayment);
-
         $this->paymentService->deletePropertyPayment($propertyPayment);
 
         return response()->json(status: 204);

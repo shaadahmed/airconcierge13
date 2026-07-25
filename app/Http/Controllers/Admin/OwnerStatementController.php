@@ -16,8 +16,6 @@ class OwnerStatementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewOwnerStatements', User::class);
-
         /** @var User $user */
         $user = $request->user();
 

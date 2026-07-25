@@ -12,12 +12,13 @@ use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
-    public function __construct(private BookingService $bookingService) {}
+    public function __construct(private BookingService $bookingService)
+    {
+        $this->authorizeResource(Booking::class, 'booking');
+    }
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
         $bookings = $this->bookingService->list($request->only(['property_id', 'cancelled']));
 
         return response()->json(['data' => $bookings]);
@@ -25,8 +26,6 @@ class BookingController extends Controller
 
     public function show(Booking $booking): JsonResponse
     {
-        $this->authorize('view', $booking);
-
         $booking->load(['property', 'guests', 'payments']);
 
         return response()->json(['data' => $booking]);
@@ -48,8 +47,6 @@ class BookingController extends Controller
 
     public function destroy(Booking $booking): JsonResponse
     {
-        $this->authorize('delete', $booking);
-
         $this->bookingService->delete($booking);
 
         return response()->json(status: 204);
@@ -57,8 +54,6 @@ class BookingController extends Controller
 
     public function cancel(Booking $booking): JsonResponse
     {
-        $this->authorize('update', $booking);
-
         $booking = $this->bookingService->cancel($booking);
 
         return response()->json(['data' => $booking]);
