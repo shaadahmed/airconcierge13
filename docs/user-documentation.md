@@ -1,27 +1,25 @@
-# Air Concierge — User Documentation (Phase 0–2.1)
+# Air Concierge — User Documentation
 
-**Audience:** QA, stakeholders, and anyone trying the **new** application shell  
-**Status:** Early preview only — not production  
-**Last updated:** 2026-07-23
+**Audience:** QA, stakeholders, and anyone trying the **new** application  
+**Status:** Migration preview — Nuxt admin UI live; not production cutover  
+**Last updated:** 2026-07-25
 
 ---
 
 ## What this is
 
-This is the **new** Air Concierge application (Laravel 13), still under development after foundation (Phase 0), login/routing scaffold (Phase 1 / 1a), and minimal Hostaway webhook sync (Phase 2.1).
+This is the **new** Air Concierge application (Laravel 13 API + Nuxt 3 admin SPA). Production continues on the existing XAMPP / legacy app until a formal cutover is approved.
 
-It is **not** the live production system. Production continues on the existing XAMPP / legacy app until a formal cutover is approved.
-
-Most business features (bookings, payments, reports, property admin, and so on) are **not available** in this build. You will mainly see login, a simple dashboard, and a few placeholder pages.
+Interactive admin screens live in the Nuxt app (typically `http://localhost:3000` locally). Laravel serves JSON under `/admin/*`, auth, and PDF downloads.
 
 ---
 
 ## How to access
 
-1. Open the application URL provided by your team (locally this is usually the Sail / `APP_URL` address, for example `http://localhost`).
-2. Use **Login** (or go to `/login`).
+1. Open the SPA URL provided by your team (local Nuxt: `http://localhost:3000`).
+2. Use **Login**.
 
-If you cannot open the site, contact engineering — the stack may not be running.
+If you cannot open the site, contact engineering — Sail and/or Nuxt may not be running. See [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md) for production hosting notes.
 
 ---
 
@@ -31,64 +29,46 @@ If you cannot open the site, contact engineering — the stack may not be runnin
 2. Optionally check **Remember me**.
 3. Select **Log in**.
 
-Notes for this preview:
+Notes:
 
 - Sign-in uses **email**, not username.
 - Repeated failed attempts may be temporarily blocked (rate limiting).
-- Password-expiry and other legacy login rules are **not** in this build yet.
 
 ### Local development seed (QA only)
 
-After a fresh migrate + seed on a **local** environment, a sample account may exist:
+After migrate + seed on a **local** environment:
 
 | Field | Value |
 |-------|--------|
 | Email | `test@example.com` |
 | Password | `password` (User factory default) |
-| Role | `superadmin` (`UserRole::SuperAdmin`) |
+| Role | `superadmin` |
 
-Use this **only** on local/dev. Never treat it as a production credential.
+Use this **only** on local/dev.
 
 ---
 
 ## After you sign in
 
-- You land on the **Admin dashboard** shell (`/admin/dashboard`).
-- Use **Log out** to end the session.
+You land on the **Admin dashboard** with summary stats and a revenue chart.
 
-Placeholder pages that may appear in the URL structure (content is not finished):
+Available admin areas (nav):
 
-- **Owner statements** (`/admin/owner-statements`)
-- **Terms** (`/admin/terms`)
+- Bookings, properties, payments, property payments  
+- Documents, imports  
+- Chronologies, send email  
+- Reports, Zoho Sign status, failed jobs  
+- **Owner terms** — view agreement; Accept or Decline (decline ends the session)  
+- **Owner statements** — property + date-range profit/loss summary and CSV export  
 
-These pages are stubs for future owner workflows. Owner terms and active-property checks apply on those owner routes (not the shared dashboard); with current model stubs, enforcement is not active for real business data yet.
-
----
-
-## What you cannot do yet
-
-Do not expect these in the Phase 0–2.1 preview:
-
-- Creating or managing bookings and payments  
-- Reports and the full dashboard  
-- Hostaway admin tools (webhooks can be authenticated and logged; booking create/update/cancel is not live yet)  
-- Cron jobs via public web URLs  
-- Full role-based menus and admin modules from the old app  
-
-For product questions or missing features, ask the migration / engineering owner. For a technical overview, see [`technical-documentation.md`](technical-documentation.md).
+Owner terms and active-property middleware apply on owner terms/statements routes (not the whole admin shell).
 
 ---
 
-## Who to contact
+## What is still follow-up
 
-| Issue | Contact |
-|-------|---------|
-| Cannot log in / wrong environment | Engineering team managing `airconcierge13` |
-| Access to the live production app | Keep using the legacy Air Concierge system |
-| Feature requests for unfinished modules | Raise via the project migration process |
+- Full legacy dashboard commission / headline filter suite  
+- Complete legacy P&amp;L line items that are not yet on the L13 bookings schema  
+- Staff CMS to edit/reset owner agreement content  
 
----
-
-## What’s next
-
-User documentation will grow as modules ship (for example email/chronology, bookings & payments). Until then, treat this preview as a sign-in and shell check only.
+For a technical overview, see [`technical-documentation.md`](technical-documentation.md).

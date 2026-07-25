@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Documents\StoreDocumentRequest;
+use App\Http\Requests\Admin\Documents\UpdateDocumentRequest;
 use App\Models\Booking;
 use App\Models\DocumentUpload;
 use App\Services\Documents\DocumentService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
@@ -20,48 +21,16 @@ class DocumentController extends Controller
         return response()->json(['data' => $this->documentService->list()]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreDocumentRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'ownerspecific' => ['nullable', 'string', 'max:255'],
-            'type' => ['nullable', 'integer'],
-            'signid' => ['nullable', 'string', 'max:255'],
-            'zohoactionid' => ['nullable', 'string', 'max:255'],
-            'roletitle' => ['nullable', 'string', 'max:255'],
-            'region_ids' => ['nullable', 'array'],
-            'region_ids.*' => ['integer'],
-            'subregion_ids' => ['nullable', 'array'],
-            'subregion_ids.*' => ['integer'],
-            'owner_ids' => ['nullable', 'array'],
-            'owner_ids.*' => ['integer'],
-            'file' => ['nullable', 'file', 'max:10240'],
-        ]);
-
-        $document = $this->documentService->create($validated, $request->file('file'));
+        $document = $this->documentService->create($request->validated(), $request->file('file'));
 
         return response()->json(['data' => $document], 201);
     }
 
-    public function update(Request $request, DocumentUpload $document): JsonResponse
+    public function update(UpdateDocumentRequest $request, DocumentUpload $document): JsonResponse
     {
-        $this->authorize('viewAny', Booking::class);
-
-        $validated = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'ownerspecific' => ['nullable', 'string', 'max:255'],
-            'type' => ['nullable', 'integer'],
-            'signid' => ['nullable', 'string', 'max:255'],
-            'zohoactionid' => ['nullable', 'string', 'max:255'],
-            'roletitle' => ['nullable', 'string', 'max:255'],
-            'region_ids' => ['nullable', 'array'],
-            'subregion_ids' => ['nullable', 'array'],
-            'owner_ids' => ['nullable', 'array'],
-        ]);
-
-        return response()->json(['data' => $this->documentService->update($document, $validated)]);
+        return response()->json(['data' => $this->documentService->update($document, $request->validated())]);
     }
 
     public function destroy(DocumentUpload $document): JsonResponse

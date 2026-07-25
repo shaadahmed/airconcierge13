@@ -1,6 +1,4 @@
 <script setup>
-defineOptions({ inheritAttrs: false })
-
 const props = defineProps({
   modelValue: { type: String, default: '' },
   label: { type: String, default: '' },
@@ -15,6 +13,8 @@ const props = defineProps({
 })
 
 defineEmits(['update:modelValue'])
+
+defineOptions({ inheritAttrs: false })
 
 const errorMessages = computed(() => props.error === true ? [] : props.error || [])
 </script>

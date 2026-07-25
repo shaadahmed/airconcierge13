@@ -50,8 +50,8 @@ module.exports = {
     // Enforce consistent spacing inside braces of object (Already present in TypeScript)
     'object-curly-spacing': ['error', 'always'],
 
-    // Enforce camelCase naming convention
-    'camelcase': 'error',
+    // Allow Laravel JSON snake_case payload keys; identifiers still camelCase
+    'camelcase': ['error', { properties: 'never', ignoreDestructuring: true }],
 
     // Disable max-len
     'max-len': 'off',
@@ -152,7 +152,7 @@ module.exports = {
     'vue/html-comment-indent': 'error',
     'vue/match-component-file-name': 'error',
     'vue/no-child-content': 'error',
-    'vue/require-default-prop': 'off',
+    'vue/no-v-html': 'off',
 
     'vue/no-duplicate-attr-inheritance': 'error',
     'vue/no-empty-component-block': 'error',

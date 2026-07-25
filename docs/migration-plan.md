@@ -297,7 +297,7 @@ Phase 0  Foundation                                          [IMPLEMENTED]
          2.5 Remaining admin modules                         [IMPLEMENTED]
     → Phase 3  Helpers Decomposition                         [DONE]
     → Phase 4  Async Migration                               [IMPLEMENTED]
-    → Phase 5  Frontend / Views (Nuxt SPA — initial cutover done; polish remaining)
+    → Phase 5  Frontend / Views (Nuxt SPA — closed; ADR-018 + ADR-014)
     → Phase 6  Deployment Readiness
 ```
 
@@ -476,7 +476,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port).
 - 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014.
 - Local dumps: `storage/app/legacy-dumps/` (gitignored).
-- **Next:** Phase 5 remaining frontend polish / screens (Nuxt SPA initial cutover done — ADR-018); then Phase 6 deployment readiness.
+- **Next:** Phase 6 deployment readiness (Phase 0–5 complete — Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
 
 ---
 
@@ -817,69 +817,65 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ---
 
-### Phase 5 — Frontend / Views (Nuxt SPA)
+### Nuxt SPA frontend (ADR-018) — not Phase 5 Blade
 
-**Status:** Initial cutover **complete** (2026-07-24); remaining polish / screens / DataTables decision **in progress**.  
-**Spec alignment:** Structural Refactor Checklist — Phase 5 (UI layer fulfilled via Nuxt, not a Blade big-bang of ~198 legacy templates).  
-**Canonical detail:** [`docs/adr/018-nuxt-spa-frontend.md`](adr/018-nuxt-spa-frontend.md), [`docs/frontend-report.md`](frontend-report.md), [`frontend/docs/ui-ux.md`](../frontend/docs/ui-ux.md).
+**Status:** Implemented (cutover + remaining polish).  
+**Canonical app:** `frontend/`  
+**Style reference:** `nuxtjs-theme/` (gitignored; no runtime imports)  
+**Standing UI/UX rule:** `frontend/docs/ui-ux.md` — match theme equivalents when present; otherwise same Sneat design language on every page.  
+**Production hosting:** `docs/deploy/spa-hosting.md`  
+**Canonical detail:** [`docs/adr/018-nuxt-spa-frontend.md`](adr/018-nuxt-spa-frontend.md), [`docs/frontend-report.md`](frontend-report.md).
 
-> **Supersedes earlier Phase 5 wording** that assumed incremental Blade-only refactor of ~198 L5.1 templates. L13 UI Blade pages are cut over to Nuxt; Spec "no one-pass rewrite of all 198" still holds for any *legacy* template inventory — do not port unused L5.1 views wholesale.
+Converted UI routes live under Nuxt (`/`, `/login`, `/admin/*`). PDF Blade retained at `resources/views/pdf/`. Auth: Sanctum CSRF + session; `/admin/*` JSON stays on `web.php`.
+
+---
+
+### Phase 5 — Frontend / Views (closed for interactive UI)
+
+**Status:** Completed (interactive UI via Nuxt ADR-018; Yajra declined — ADR-014).  
+**Spec alignment:** Structural Refactor Checklist — Phase 5 (Blade/Yajra rows closed as N/A for SPA; PDF Blade residual retained).
+
+> **Related:** Nuxt SPA is the sole interactive admin UI. Wholesale port of legacy ~198 L5.1 Blade templates is **out of scope** and is not happening.
 
 #### Objectives
 
-- Own all interactive admin UI in the **Nuxt 3 SPA** under `frontend/` (Sneat visual language).
-- Keep Laravel as API/auth/domain; SPA uses services + Pinia stores (display only).
-- Preserve URL parity; keep `/admin/*` JSON on `web.php` (no `/api` move unless separately approved).
-- Retain DomPDF **Blade** under `resources/views/pdf/` for PDF generation.
-- Finish remaining screens, visual fidelity, shared components, and any DataTables needs without reintroducing Blade UI.
+- Interactive admin UI in Nuxt with Sneat fidelity (not a Blade rewrite).
+- Close Yajra package deferral by accepting Nuxt/Vuetify tables.
+- Keep DomPDF Blade for PDFs only; flag any PDF business logic as follow-up cards.
 
-#### Done (initial cutover)
+#### Tasks
 
-- [x] Scaffold `frontend/` from Sneat reference (`nuxtjs-theme/` copy-once; **no** runtime imports)
-- [x] Sanctum SPA CSRF + session auth; Nuxt proxy `/sanctum`, `/login`, `/logout`, `/admin` → Sail
-- [x] Base UI primitives (`BaseButton`, `BaseInput`, `BaseTextarea`, `BaseSelect`, `BaseCheckbox`, `BaseRadio`, `BaseLink` — same-tab default)
-- [x] Convert L13 UI Blade pages → Nuxt (`/`, `/login`, `/admin/dashboard`, bookings, payments, property-payments, chronologies, send-emails, reports, zoho, failed-jobs, terms, owner-statements)
-- [x] Admin controllers JSON-only for those surfaces; remove UI Blade views
-- [x] Standing UI/UX style rule documented (ADR-018 + `frontend/docs/ui-ux.md`)
-- [x] Auth / failed-jobs Pest coverage updated for JSON + SPA redirects
-
-#### Tasks (remaining)
-
-- [ ] Visual polish: match Sneat equivalents page-by-page (tables, forms, dashboard cards) per standing style rule
-- [ ] Componentize on second use (page header, empty state, data table shell, confirm dialogs, alerts)
-- [ ] Add Nuxt screens for JSON-only domains that never had L13 Blade (properties, documents, imports) when product needs them
-- [ ] Wire real owner terms / owner-statements flows (currently placeholders)
-- [ ] Dashboard chart / commission UI fidelity beyond summary stats (deferred from Phase 2.4 AjaxDashboard port)
-- [ ] Yajra DataTables: either upgrade for any remaining server-side table need **or** explicitly accept Nuxt/Vuetify tables and close the Spec package deferral (ADR-014)
-- [ ] Remove unused Sneat demo cruft from `frontend/` (`UpgradeToPro`, unused demo views/assets)
-- [ ] Optional CI: `npm ci` + lint for `frontend/`
-- [ ] Document / implement production same-origin hosting (proxy or SPA build + history fallback)
-- [ ] Flag any business logic discovered in remaining Blade (PDF) or accidentally reintroduced in Nuxt — follow-up cards only; do not silently "fix"
-- [ ] Do **not** wholesale-port legacy ~198 L5.1 Blade templates into Nuxt
+- [x] Nuxt SPA owns interactive admin UI (ADR-018) — no wholesale ~198 Blade port
+- [x] Shared UI shells extracted (PageHeader, EmptyState, DataTableShell, ConfirmDialog, AppAlert)
+- [x] Properties / documents / imports Nuxt screens against existing `/admin/*` JSON
+- [x] Owner terms agree/disagree + `dynamic_content` owner-agreement
+- [x] Owner statements report JSON/CSV (available booking columns; schema gaps documented)
+- [x] Dashboard revenue chart + Sneat stat cards (commission/headline suite = follow-up)
+- [x] Yajra DataTables — declined; Nuxt/Vuetify tables accepted (ADR-014)
+- [x] Remove unused Sneat demo cruft (`UpgradeToPro`, unused `frontend/views`)
+- [x] Frontend CI: `npm ci` + lint
+- [x] Document production same-origin SPA hosting (`docs/deploy/spa-hosting.md`)
+- [x] PDF Blade retained; no silent business-logic fixes in PDF/Nuxt
+- [x] Confirm no wholesale L5.1 Blade template port
 
 #### Deliverables
 
-- Nuxt SPA as sole interactive UI; PDF Blade only under `resources/views/pdf/`
-- Standing style rule applied on every new/changed page
-- Remaining admin domains covered in Nuxt when required
-- Yajra/DataTables disposition closed (upgrade **or** explicit Nuxt-table acceptance)
-- Frontend report / ADR kept current ([`docs/frontend-report.md`](frontend-report.md))
+- Nuxt admin UI at Sneat parity for shipped pages
+- ADR-014 Yajra row closed
+- SPA hosting doc for Phase 6
+- Follow-up cards: staff commission dashboard, full AjaxDashboard headline/charts, booking schema line-item expansion for full legacy P&amp;L, CMS edit/reset for terms
 
 #### Dependencies
 
-- Phase 2+ JSON `/admin/*` endpoints (already in place for cut-over domains)
-- Sanctum + `FRONTEND_URL` / `SANCTUM_STATEFUL_DOMAINS` for SPA auth
-- Phase 6 for production worker/host verification of SPA deploy topology
+- Domain JSON APIs from Phase 2+
+- ADR-018 Nuxt cutover
 
 #### Exit criteria
 
-- [x] Initial L13 UI Blade → Nuxt cutover complete (ADR-018)
-- [ ] Standing UI/UX style checks applied to shipped admin pages
-- [ ] Placeholder owner surfaces replaced or explicitly deferred with approval
-- [ ] Properties/documents/imports Nuxt coverage decided (ship or defer with approval)
-- [ ] Yajra package row closed (upgrade verified **or** accepted as N/A for Nuxt tables)
-- [ ] No new business logic in Nuxt; PDF remains DomPDF Blade
-- [ ] Prod SPA hosting approach documented for Phase 6
+- [x] Interactive UI served by Nuxt (no Blade UI for cut-over surfaces)
+- [x] Yajra not required / not installed; tables are Nuxt/Vuetify
+- [x] PDF Blade residual only; business-logic findings tracked as follow-up cards
+- [x] Phase 5 checklist above completed or explicitly deferred with documented approval
 
 ---
 
@@ -961,7 +957,7 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 | Current package | Action for L13 | Status | Ownership |
 |-----------------|----------------|--------|-----------|
 | `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | **replaced** | Phase 1 (done) |
-| `yajra/laravel-datatables-oracle` ~5 | Upgrade **or** accept Nuxt/Vuetify tables and close as N/A | deferred | Phase 5 remaining (ADR-014) |
+| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | closed — Nuxt/Vuetify tables (ADR-014) | Phase 5 |
 | `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | verify-then-remove/replace | Phase 2.5 |
 | `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | deferred | Phase 2.2 |
 | `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
@@ -1107,8 +1103,8 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0–4 are complete (async jobs, failed-job UI, Slack alerts, Schedule→Job pipelines).
-4. **Execute Phase 5 remaining work** — Nuxt SPA initial cutover is done (ADR-018 / `frontend/`); finish polish, missing screens, Yajra disposition, prod SPA hosting notes ([`docs/frontend-report.md`](frontend-report.md)).
+3. Phase 0–5 are complete (Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
+4. **Phase 6 — Deployment readiness** is next (quality gates, workers, staging, QA). SPA hosting: [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md).
 5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
-6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
-7. Follow-ups from Phase 4: install Google Drive Flysystem adapter when Composer timeout allows; port remaining alert/Dropbox domain bodies; Phase 6 verifies supervisor/systemd on real hosts.
+6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` wholesale — only specific tables when a domain needs them.
+7. Follow-ups: Google Drive adapter; alert/Dropbox domain bodies; Phase 5 cards (commission dashboard, full P&amp;L schema columns, terms CMS).

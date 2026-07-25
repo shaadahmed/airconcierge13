@@ -116,8 +116,16 @@ Route::middleware(['auth'])
         Route::middleware(['owner.terms', 'owner.active'])->group(function (): void {
             Route::get('owner-statements', [OwnerStatementController::class, 'index'])
                 ->name('owner-statements.index');
+            Route::get('owner-statements/report', [OwnerStatementController::class, 'report'])
+                ->name('owner-statements.report');
+            Route::get('owner-statements/export', [OwnerStatementController::class, 'export'])
+                ->name('owner-statements.export');
 
             Route::get('terms', [TermsController::class, 'show'])
                 ->name('terms.show');
+            Route::post('terms/agree', [TermsController::class, 'agree'])
+                ->name('terms.agree');
+            Route::post('terms/disagree', [TermsController::class, 'disagree'])
+                ->name('terms.disagree');
         });
     });

@@ -35,7 +35,9 @@ definePageMeta({ layout: 'blank', middleware: 'guest' })
             to="/"
             class="app-logo"
           >
-            <h1 class="app-logo-title">Air Concierge</h1>
+            <h1 class="app-logo-title">
+              Air Concierge
+            </h1>
           </BaseLink>
         </VCardItem>
 
@@ -43,7 +45,9 @@ definePageMeta({ layout: 'blank', middleware: 'guest' })
           <h4 class="text-h4 mb-1">
             Welcome back
           </h4>
-          <p class="mb-0">Sign in to manage Air Concierge.</p>
+          <p class="mb-0">
+            Sign in to manage Air Concierge.
+          </p>
         </VCardText>
 
         <VCardText>

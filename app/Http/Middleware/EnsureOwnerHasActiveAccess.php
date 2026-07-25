@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\UserRole;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +16,7 @@ class EnsureOwnerHasActiveAccess
     {
         $user = $request->user();
 
-        if ($user === null || $user->role !== UserRole::Owner) {
+        if (! $user instanceof User || ! $user->isOwner()) {
             return $next($request);
         }
 
@@ -30,6 +30,13 @@ class EnsureOwnerHasActiveAccess
             'logout',
         )) {
             return $next($request);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Owner active property access required.',
+                'redirect_to' => '/admin/owner-statements',
+            ], 409);
         }
 
         return redirect()

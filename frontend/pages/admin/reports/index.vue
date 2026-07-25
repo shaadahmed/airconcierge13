@@ -1,6 +1,7 @@
 <script setup>
 const reports = useReportsStore()
 const filters = reactive({ year: new Date().getFullYear(), month: '', region_id: '', property_id: '' })
+const sections = computed(() => reports.data || {})
 
 onMounted(() => reports.load(filters))
 
@@ -9,11 +10,17 @@ definePageMeta({ middleware: 'auth' })
 
 <template>
   <div>
+    <PageHeader
+      title="Reports"
+      subtitle="TOT, occupancy, and performance summaries"
+    />
+
     <VCard
       title="Report filters"
       class="mb-6"
     >
       <VCardText>
+        <AppAlert :errors="reports.errors" />
         <VForm @submit.prevent="reports.load(filters)">
           <VRow>
             <VCol
@@ -38,26 +45,37 @@ definePageMeta({ middleware: 'auth' })
         </VForm>
       </VCardText>
     </VCard>
-    <VAlert
-      v-if="reports.errors.general"
-      type="error"
-      class="mb-6"
-    >
-      {{ reports.errors.general[0] }}
-    </VAlert>
+
     <VRow>
       <VCol
-        v-for="(section, name) in reports.data"
+        v-for="(section, name) in sections"
         :key="name"
         cols="12"
         md="4"
       >
-        <VCard :title="String(name).toUpperCase()">
+        <VCard :title="String(name).replaceAll('_', ' ')">
           <VCardText>
             <pre class="text-body-2 text-wrap">{{ section }}</pre>
           </VCardText>
         </VCard>
       </VCol>
+      <VCol
+        v-if="!reports.loading && Object.keys(sections).length === 0"
+        cols="12"
+      >
+        <VCard>
+          <EmptyState
+            title="No report data"
+            description="Adjust filters and run reports."
+          />
+        </VCard>
+      </VCol>
     </VRow>
+
+    <VProgressLinear
+      v-if="reports.loading"
+      indeterminate
+      class="mt-4"
+    />
   </div>
 </template>

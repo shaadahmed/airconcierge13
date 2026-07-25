@@ -15,7 +15,9 @@ definePageMeta({ layout: 'blank' })
       class="pa-8 text-center"
       max-width="560"
     >
-      <VCardTitle class="text-h3">Air Concierge</VCardTitle>
+      <VCardTitle class="text-h3">
+        Air Concierge
+      </VCardTitle>
       <VCardText>Property operations, bookings, payments, and owner communications.</VCardText>
       <BaseLink
         :to="auth.user ? '/admin/dashboard' : '/login'"

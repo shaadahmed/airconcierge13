@@ -1,5 +1,6 @@
 <script setup>
 const emails = useEmailsStore()
+
 const form = reactive({
   owner_id: null,
   property_id: null,
