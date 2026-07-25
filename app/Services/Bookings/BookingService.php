@@ -2,12 +2,14 @@
 
 namespace App\Services\Bookings;
 
+use App\DataTransferObjects\BookingData;
 use App\Models\Booking;
 use App\Models\Guest;
 use App\Models\OwnerEmailNotificationLog;
 use App\Models\Property;
 use App\Services\Email\EmailService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -24,18 +26,27 @@ class BookingService
             ->latest('id')->get();
     }
 
-    /** @param array<string, mixed> $attributes */
+    /**
+     * Create a booking from a validated payload.
+     *
+     * Uses BookingData as the reference DTO pattern for service inputs; extend
+     * the same approach to other services when touching their create/update paths.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     public function create(array $attributes): Booking
     {
-        return DB::transaction(function () use ($attributes): Booking {
-            $guestIds = $attributes['guest_ids'] ?? [];
+        $data = BookingData::fromArray($attributes);
+
+        return DB::transaction(function () use ($data): Booking {
             $booking = Booking::query()->create([
-                ...collect($attributes)->except('guest_ids')->all(),
+                ...$data->attributes,
                 'dateadded' => now(),
-                'deleted' => $attributes['deleted'] ?? false,
-                'cancelled_booking' => $attributes['cancelled_booking'] ?? false,
+                'deleted' => $data->attributes['deleted'] ?? false,
+                'cancelled_booking' => $data->attributes['cancelled_booking'] ?? false,
             ]);
-            $this->syncGuests($booking, $guestIds);
+
+            $this->syncGuests($booking, $data->guestIds);
 
             return $booking->load(['property', 'guests']);
         });
@@ -45,9 +56,11 @@ class BookingService
     public function update(Booking $booking, array $attributes): Booking
     {
         return DB::transaction(function () use ($booking, $attributes): Booking {
-            $booking->update(collect($attributes)->except('guest_ids')->all());
+            $data = Arr::except($attributes, ['guest_ids']);
+            $booking->update($data);
+
             if (array_key_exists('guest_ids', $attributes)) {
-                $this->syncGuests($booking, $attributes['guest_ids']);
+                $this->syncGuests($booking, $attributes['guest_ids'] ?? []);
             }
 
             return $booking->load(['property', 'guests']);
