@@ -89,7 +89,7 @@ These are **different** concepts — do not merge them:
 
 ## Quality
 
-- Pest for tests; Pint for style; Larastan level 5 for static analysis.
+- Pest for tests; Pint for style; Larastan level 8 for static analysis.
 - CI must stay green on lint, analysis, and tests.
 
 ===

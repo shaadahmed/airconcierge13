@@ -40,7 +40,7 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | AuthZ | `UserRole` enum + Laravel Policies (ADR-010) |
 | Tests | Pest |
 | Style | Laravel Pint (`pint.json` excludes `database/migrations_fresh`) |
-| Static analysis | Larastan level 5 |
+| Static analysis | Larastan level 8 |
 | Horizon | Not installed — plain `queue:work` (ADR-003 / ADR-017) |
 | Failed jobs | Superadmin UI at Nuxt `/admin/failed-jobs` (JSON API) + Slack on `failed()` |
 | Frontend UI | Nuxt 3 SPA in `frontend/` (ADR-018); Sneat style reference `nuxtjs-theme/` (no runtime imports) |
@@ -107,7 +107,8 @@ airconcierge13/
 │   └── migrations_fresh/     # REFERENCE ONLY — do not run wholesale
 ├── legacy/                   # gitignored — business-behavior reference ONLY (not runnable)
 ├── docs/                     # plan, ADRs, inventory, this file
-└── compose.yaml              # Sail-managed
+├── compose.yaml              # Thin include → docker/compose.yaml
+└── docker/compose.yaml       # Sail-managed (source of truth)
 ```
 
 Copy specific files from `migrations_fresh/` into `database/migrations/` only when a later domain phase needs those tables. Consult `legacy/` for how the old app behaved; implement per Spec / plan / ADRs.
