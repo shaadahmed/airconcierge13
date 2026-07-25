@@ -327,7 +327,7 @@ Spec Recommended Migration Order (maps onto Phase 0 → 1 → 2.1 → 2.2 → 2.
 | Env | Redis for queue/cache/session; MySQL DB **`airconcierge`** (empty of business schema); `.env.example` without secrets |
 | Schema | Fresh baseline exists at reference `database/migrations_fresh/` (~101 files). **Phase 0 does not copy or run them.** Framework default migrations only if needed to boot. Port/adapt `migrations_fresh` into L13 `database/migrations/` only when explicitly approved later. |
 | Tests | **Pest** — at least one smoke test |
-| Quality | Laravel Pint + **Larastan level 5** |
+| Quality | Laravel Pint + **Larastan level 8** (baseline for existing debt) |
 | Horizon | **Not** in Phase 0 — plain Redis `queue:work` only |
 | CI | Lint (`pint --test`), static analysis, tests |
 | Agent tooling | Laravel Boost (`composer require laravel/boost --dev`) |
@@ -342,7 +342,7 @@ Spec Recommended Migration Order (maps onto Phase 0 → 1 → 2.1 → 2.2 → 2.
 - [x] PHP 8.2+ runtime requirement → satisfied by PHP 8.3+ / Sail 8.4
 - [x] Configure `.env` / config for queue driver (Redis recommended), cache, sessions
 - [x] Set up PHPUnit/Pest test harness (currently zero tests)
-- [x] Add CI pipeline: lint, test, static analysis (PHPStan/Psalm at sensible level) → Pint + Larastan level 5 + Pest in CI
+- [x] Add CI pipeline: lint, test, static analysis (PHPStan/Psalm at sensible level) → Pint + Larastan level 8 + Pest in CI
 - [x] Document rollback plan → ADR-006
 
 **Rollback (Phase 0 / pre-cutover):**
@@ -473,10 +473,10 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - Pre-2.2 shared foundation: owners/properties/regions + real ADR-009 predicates (ADR-012); `owners.status` omitted.
 - 2.2: Chronology/Email/Zoho Sign (ADR-013); HelloSign send deferred.
 - 2.3: BookingService/PaymentService; Hostaway mutations live; DomPDF chosen (ADR-005); `GeneratePdfJob` stub for Phase 4.
-- 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port).
-- 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014.
+- 2.4: ReportService + DashboardService (summary/charts/TOT/metrics JSON APIs — not a line-for-line AjaxDashboard port). **Open:** Report/Dashboard Form Requests + dedicated Policies.
+- 2.5: DocumentService, ImportService, PropertyService; package decisions ADR-014. Form Requests present; **Open:** dedicated Document/Import/Property Policies (BookingPolicy stand-in).
 - Local dumps: `storage/app/legacy-dumps/` (gitignored).
-- **Next:** Phase 6 deployment readiness (Phase 0–5 complete — Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
+- **Next:** Close open DoD checklist items (see §16 / `complete_not_done_tasks_prompt.md`), then Phase 6 deployment readiness.
 
 ---
 
@@ -610,7 +610,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Phase 2.4 — Reports & Dashboard
 
-**Status:** Implemented (service extraction; JSON/Blade summaries — full AjaxDashboard UI fidelity deferred to Phase 5 as needed).  
+**Status:** Implemented (service extraction; JSON/Blade summaries — full AjaxDashboard UI fidelity deferred to Phase 5 as needed). **Open DoD:** Report/Dashboard Form Requests + dedicated Policies (see tasks below).  
 **Why next:** Read-heavy; follows core booking/payment stability per Spec Recommended Migration Order.
 
 ##### Objectives
@@ -622,10 +622,11 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 - [x] `ReportService` — booking summary, TOT rollup, property metrics
 - [x] `DashboardService` — stats, revenue chart, profile, owner statement summary
-- [x] Form Requests + Policies/Gates as endpoints are ported (staff Policies via BookingPolicy)
-- [x] Thin controllers; feature/integration tests on critical report/dashboard paths
-- [x] Identify work for `GenerateReportJob` / `GeneratePdfJob` (Phase 4) — `GeneratePdfJob` stub present
-- [x] Note Yajra DataTables dependency for Phase 5 verification (ADR-014 — deferred)
+- [ ] Form Requests for Report/Dashboard endpoints (controllers still use raw `Illuminate\Http\Request`)
+- [ ] Dedicated `ReportPolicy` / `DashboardPolicy` (currently `BookingPolicy::viewAny` stand-in via route `can` middleware)
+- [x] Thin controllers; feature/integration tests on critical report/dashboard paths (service-level present; HTTP depth partial)
+- [x] Identify work for `GenerateReportJob` / `GeneratePdfJob` (Phase 4) — jobs present
+- [x] Yajra DataTables — declined; Nuxt/Vuetify tables accepted (ADR-014)
 
 ##### Deliverables
 
@@ -646,7 +647,7 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 #### Phase 2.5 — Remaining admin modules
 
-**Status:** Implemented (ADR-012 foundation + Document/Import/Property services; ADR-014 packages).  
+**Status:** Implemented (ADR-012 foundation + Document/Import/Property services; ADR-014 packages). **Open DoD:** dedicated Document/Import/Property Policies (BookingPolicy stand-in).  
 **Why last:** Spec Recommended Migration Order — remaining admin modules after core domains.
 
 ##### Objectives
@@ -668,7 +669,9 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 - [x] Cloud backup / Dropbox CSV / property metrics paths prepared (`property:monthly-metrics` recalculates from bookings)
 - [x] Alert cron check logic owned by scheduled Artisan commands (`alert:booking-conflict` implemented)
 - [x] Package work recorded in ADR-014
-- [x] Form Requests + Policies + thin controllers + critical-path tests per module
+- [x] Form Requests for Document / Import / Property modules
+- [ ] Dedicated `DocumentPolicy` / `ImportPolicy` / `PropertyPolicy` (currently `BookingPolicy::viewAny` stand-in)
+- [x] Thin controllers + critical-path tests per module (service/flow tests present; HTTP depth partial)
 - [x] Flag Blade-embedded business logic as follow-up cards
 
 ##### Deliverables
@@ -812,8 +815,12 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 #### Deviations / follow-ups
 
 - **Horizon not installed** (explicit Phase 4 choice; ADR-017).
-- **Google Drive Flysystem adapter** not Composer-installed (Sail extract timeout on `google/apiclient-services`); backups remain local with warning until adapter lands (ADR-014).
-- **Alert / Dropbox / owners-payout domain bodies** still stubbed inside `AlertDispatchService` / `DropboxFormService` — Schedule→Job pipeline is complete; full legacy parity is a follow-up card.
+- Schedule→Job pipeline is complete; remaining domain parity is open below:
+
+- [ ] Google Drive Flysystem adapter Composer-installed and wired (job + disk config ready; local backup until then — ADR-014)
+- [ ] `AlertDispatchService` domain bodies beyond `booking-conflict` (other alert keys still stub-log)
+- [ ] `DropboxFormService` domain bodies (`processCsv` / `syncDatabase` / `updateStatuses` still stub-log)
+- [ ] Owners-payout domain body (if still stubbed behind Phase 4 pipeline)
 
 ---
 
@@ -959,8 +966,8 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 | `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | **replaced** | Phase 1 (done) |
 | `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | closed — Nuxt/Vuetify tables (ADR-014) | Phase 5 |
 | `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | verify-then-remove/replace | Phase 2.5 |
-| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | deferred | Phase 2.2 |
-| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
+| `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | **done** (Laravel Mail / Mailables; phpmailer not installed) | Phase 2.2 |
+| `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | **done** (`barryvdh/laravel-dompdf` + `PdfService` — ADR-005) | Phase 2.3/2.4 + Phase 4 |
 | `hellosign/hellosign-php-sdk` | Wrap in HelloSignService; verify Zoho migration status | deferred | Phase 2.2 |
 | `nao-pon/flysystem-google-drive` | Upgrade to **Flysystem v3** + Laravel filesystem config | deferred (adapter install timed out in Sail; job + disk config ready — ADR-014) | Phase 4 follow-up |
 | `jeremykenedy/slack-laravel` | Replace with Laravel’s **Slack notification channel** | **done** (`laravel/slack-notification-channel`) | Phase 4 |
@@ -982,7 +989,7 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 - [x] Redis up; queue worker runs against Redis
 - [x] Scheduler process configured for local/dev (Sail)
 - [x] **Pest** smoke test passes
-- [x] Pint + Larastan **level 5** configured and passing on the greenfield tree
+- [x] Pint + Larastan **level 8** configured (with baseline) and passing on the greenfield tree
 - [x] CI pipeline runs lint, static analysis, and tests
 - [x] Horizon **not** required for Phase 0
 - [x] ADRs written under `docs/adr/`
@@ -991,19 +998,22 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 - [x] Cursor/project rules encode behavior preservation + layering
 - [x] Old app at `/mnt/e/xampp/htdocs/airconcierge` remains untouched
 - [x] No production secrets copied into the new repo
+- [x] Sail Compose source of truth under `docker/compose.yaml` (thin root `compose.yaml` include)
 
 ### Per-module DoD (Spec Definition of Done — apply to every migrated module)
 
-- [ ] Controller reduced to CRUD routing + service delegation
-- [ ] Validation in Form Request(s)
-- [ ] Authorization in Policy/Gate (scoped to the smallest appropriate boundary)
-- [ ] Workflow business logic in Service(s); simple domain predicates on Model(s) — no query-wrapper services
-- [ ] Async work in Job(s) where applicable
-- [ ] No regression in existing behavior (manual QA checklist or automated test)
-- [ ] Deprecated patterns removed from touched files
-- [ ] No duplicate sources of truth for enable/active (ADR-009)
-- [ ] Brief migration note added if behavior/routing changed
-- [ ] Suspected bugs documented and held for approval — not silently “fixed”
+Remaining open modules (see `docs/phase_wise_completion_report.md`): Report, Dashboard, Document, Import, Property — Form Requests and/or dedicated Policies still incomplete. Booking / Payment / Chronology largely meet the bar.
+
+- [x] Controller reduced to CRUD routing + service delegation (touched Phase 2 controllers; ADR-019)
+- [ ] Validation in Form Request(s) — **open for Report / Dashboard** (Document / Import / Property / Booking / Payment / Chronology done)
+- [ ] Authorization in Policy/Gate (scoped to the smallest appropriate boundary) — **open for Document / Import / Property / Report / Dashboard** (BookingPolicy stand-in); Booking / Payment / Chronology / User done
+- [x] Workflow business logic in Service(s); simple domain predicates on Model(s) — no query-wrapper services (scaffold depth; not legacy parity)
+- [x] Async work in Job(s) where applicable (Phase 4 catalog; some domain bodies still stubs)
+- [ ] No regression in existing behavior (manual QA checklist or automated test) — automated coverage uneven; full manual QA is Phase 6
+- [x] Deprecated patterns removed from touched files (as migrated)
+- [x] No duplicate sources of truth for enable/active (ADR-009)
+- [x] Brief migration note added if behavior/routing changed (ADRs / plan / technical docs)
+- [x] Suspected bugs documented and held for approval — not silently “fixed”
 
 ### Final (end of Phase 6) deployment readiness
 
@@ -1093,9 +1103,11 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 | Laravel 13 scaffold / Sail | **Phase 0 complete** — Sail boots with MySQL `airconcierge`, Redis queue/cache/session, queue worker + scheduler |
 | Phase 1 routing & auth | **Scaffolded** — `UserRole` + Policies (ADR-010), session login, owner-scoped middleware + `User` predicates (ADR-009), Schedule command stubs, Hostaway webhook path. See ADR-007 |
 | Phase 1a | **Complete** — Hostaway webhook Basic Auth (ADR-008) + Spec package ownership status matrix (§10) |
-| Quality | Pest (incl. Phase 1a webhook auth tests), Pint, Larastan level 5, GitHub Actions CI, Laravel Boost |
+| Quality | Pest, Pint, Larastan **level 8** (+ baseline), GitHub Actions CI, Laravel Boost |
+| Sail Compose | Root `compose.yaml` includes `docker/compose.yaml` (source of truth) |
 | Fresh schema (`migrations_fresh`) | Present under `database/migrations_fresh/` as **reference only** — not run via `artisan migrate`; copy specific files into `database/migrations/` per domain phase |
 | Legacy `database/migrations/` | ~51 historical files — not the L13 baseline |
+| Open DoD gaps | Report/Dashboard Form Requests; dedicated Policies for Document/Import/Property/Report/Dashboard; Phase 4 Drive/alert/Dropbox domain follow-ups — see §8 and [`phase_wise_completion_report.md`](phase_wise_completion_report.md) |
 
 ---
 
@@ -1103,8 +1115,9 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0–5 are complete (Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
-4. **Phase 6 — Deployment readiness** is next (quality gates, workers, staging, QA). SPA hosting: [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md).
-5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
-6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` wholesale — only specific tables when a domain needs them.
-7. Follow-ups: Google Drive adapter; alert/Dropbox domain bodies; Phase 5 cards (commission dashboard, full P&amp;L schema columns, terms CMS).
+3. Phase 0–5 are complete at plan exit-criteria depth (Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
+4. **Close open checklist items** in Phase 2.4 / 2.5 / Phase 4 follow-ups and §11 per-module DoD gaps (prompt: [`complete_not_done_tasks_prompt.md`](complete_not_done_tasks_prompt.md)).
+5. **Phase 6 — Deployment readiness** follows (quality gates, workers, staging, QA). SPA hosting: [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md).
+6. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
+7. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` wholesale — only specific tables when a domain needs them.
+8. Other follow-ups (Phase 5 cards): commission dashboard, full P&amp;L schema columns, terms CMS.
