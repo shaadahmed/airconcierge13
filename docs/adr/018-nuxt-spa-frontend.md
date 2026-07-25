@@ -1,21 +1,24 @@
 # ADR-018: Nuxt SPA frontend (Sneat UI)
 
 **Status:** Accepted  
-**Date:** 2026-07-24
+**Date:** 2026-07-24  
+**Updated:** 2026-07-25
 
 ## Context
 
-UI was served as minimal Blade views. A free Sneat Nuxt theme exists at `nuxtjs-theme/` (gitignored) as a visual reference. Spec Phase 5 remains an incremental Blade-refactor checklist and is **not** this work.
+UI was served as minimal Blade views. A free Sneat Nuxt theme exists at `nuxtjs-theme/` (gitignored) as a visual reference. Spec Phase 5 Blade/Yajra checklist is closed for interactive UI via this SPA track (PDF Blade retained; Yajra declined per ADR-014).
 
 ## Decision
 
 1. The Air Concierge UI is a **Nuxt 3 SPA** under `frontend/`.
 2. `nuxtjs-theme/` is **UI/UX style reference + one-time copy source only** — no product code, no runtime imports into `frontend/`.
 3. Keep Laravel **`/admin/*` on `web.php`** for JSON; do not move SPA calls to `/api` in this cutover.
-4. Auth: session cookies + **Laravel Sanctum** CSRF (`/sanctum/csrf-cookie`) with Nuxt dev proxy; production **same-origin**.
+4. Auth: session cookies + **Laravel Sanctum** CSRF (`/sanctum/csrf-cookie`) with Nuxt dev proxy; production **same-origin** (see `docs/deploy/spa-hosting.md`).
 5. Frontend uses **services** + **Pinia stores**; all calculation/processing stays in Laravel.
 6. DomPDF **Blade** templates under `resources/views/pdf/` remain for PDF generation.
 7. Foundational `components/ui` Base* controls (including `BaseLink`, default same-tab) are required for converted pages.
+8. Shared shells (`PageHeader`, `DataTableShell`, `EmptyState`, `ConfirmDialog`, `AppAlert`) are preferred when a pattern repeats.
+9. Interactive tables are **Nuxt/Vuetify** — Yajra is not installed (ADR-014).
 
 ## Standing UI/UX style rule
 
@@ -30,3 +33,4 @@ See also `frontend/docs/ui-ux.md`.
 - Blade UI views are retired in favor of Nuxt pages with URL parity.
 - CORS/`SANCTUM_STATEFUL_DOMAINS`/`FRONTEND_URL` must be configured for local Nuxt (`:3000`) and production host.
 - Future UI work lands in `frontend/` only.
+- Production hosting guidance: `docs/deploy/spa-hosting.md`.

@@ -1,6 +1,7 @@
 <script setup>
 const route = useRoute()
 const bookings = useBookingsStore()
+
 const form = reactive({
   booking_code: '',
   reservation_start_date: '',

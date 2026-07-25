@@ -817,56 +817,64 @@ Extract **workflow** business logic from fat controllers into domain-grouped Ser
 
 ---
 
-### Nuxt SPA frontend (ADR-018) — not Phase 5
+### Nuxt SPA frontend (ADR-018) — not Phase 5 Blade
 
-**Status:** Implemented (initial cutover).  
+**Status:** Implemented (cutover + remaining polish).  
 **Canonical app:** `frontend/`  
 **Style reference:** `nuxtjs-theme/` (gitignored; no runtime imports)  
-**Standing UI/UX rule:** `frontend/docs/ui-ux.md` — match theme equivalents when present; otherwise same Sneat design language on every page.
+**Standing UI/UX rule:** `frontend/docs/ui-ux.md` — match theme equivalents when present; otherwise same Sneat design language on every page.  
+**Production hosting:** `docs/deploy/spa-hosting.md`
 
 Converted UI routes live under Nuxt (`/`, `/login`, `/admin/*`). PDF Blade retained at `resources/views/pdf/`. Auth: Sanctum CSRF + session; `/admin/*` JSON stays on `web.php`.
 
 ---
 
-### Phase 5 — Frontend / Views (as needed)
+### Phase 5 — Frontend / Views (closed for interactive UI)
 
-**Status:** Not started (Blade incremental refactor / Yajra — separate from Nuxt SPA).  
-**Spec alignment:** Structural Refactor Checklist — Phase 5.
+**Status:** Completed (interactive UI via Nuxt ADR-018; Yajra declined — ADR-014).  
+**Spec alignment:** Structural Refactor Checklist — Phase 5 (Blade/Yajra rows closed as N/A for SPA; PDF Blade residual retained).
 
-> **Related:** Nuxt SPA UI cutover is tracked under **ADR-018** (`frontend/`), not as Phase 5. Standing UI/UX style rule: `frontend/docs/ui-ux.md`.
+> **Related:** Nuxt SPA is the sole interactive admin UI. Wholesale port of legacy ~198 L5.1 Blade templates is **out of scope** and is not happening.
 
 #### Objectives
 
-- Refactor Blade templates incrementally as modules are touched — not all ~198 at once.
-- Replace inline PHP/logic in views with View Models or components where touched.
-- Verify DataTables JS integration after Yajra upgrade.
+- Interactive admin UI in Nuxt with Sneat fidelity (not a Blade rewrite).
+- Close Yajra package deferral by accepting Nuxt/Vuetify tables.
+- Keep DomPDF Blade for PDFs only; flag any PDF business logic as follow-up cards.
 
 #### Tasks
 
-- [ ] ~198 Blade templates — refactor incrementally, not all at once
-- [ ] Replace inline PHP/logic in views with View Models or components where touched
-- [ ] DataTables JS integration — verify compatibility after Yajra upgrade
-- [ ] Upgrade `yajra/laravel-datatables-oracle` ~5 to current Yajra DataTables for L13 (if not already completed when reports required it)
-- [ ] Flag any business logic discovered in Blade during migration — log as follow-up card; do not silently “fix” while migrating another concern
-- [ ] No full rewrite of all 198 Blade templates in one pass (out of scope unless separately approved)
+- [x] Nuxt SPA owns interactive admin UI (ADR-018) — no wholesale ~198 Blade port
+- [x] Shared UI shells extracted (PageHeader, EmptyState, DataTableShell, ConfirmDialog, AppAlert)
+- [x] Properties / documents / imports Nuxt screens against existing `/admin/*` JSON
+- [x] Owner terms agree/disagree + `dynamic_content` owner-agreement
+- [x] Owner statements report JSON/CSV (available booking columns; schema gaps documented)
+- [x] Dashboard revenue chart + Sneat stat cards (commission/headline suite = follow-up)
+- [x] Yajra DataTables — declined; Nuxt/Vuetify tables accepted (ADR-014)
+- [x] Remove unused Sneat demo cruft (`UpgradeToPro`, unused `frontend/views`)
+- [x] Frontend CI: `npm ci` + lint
+- [x] Document production same-origin SPA hosting (`docs/deploy/spa-hosting.md`)
+- [x] PDF Blade retained; no silent business-logic fixes in PDF/Nuxt
+- [x] Confirm no wholesale L5.1 Blade template port
 
 #### Deliverables
 
-- Touched Blade views free of newly introduced business logic; extracted View Models/components where logic was moved
-- Yajra DataTables on L13 with verified JS integration
-- Follow-up cards for Blade business logic found during migration
+- Nuxt admin UI at Sneat parity for shipped pages
+- ADR-014 Yajra row closed
+- SPA hosting doc for Phase 6
+- Follow-up cards: staff commission dashboard, full AjaxDashboard headline/charts, booking schema line-item expansion for full legacy P&amp;L, CMS edit/reset for terms
 
 #### Dependencies
 
-- Domain modules from Phase 2 that own the views being touched
-- Yajra upgrade completed before final DataTables verification
+- Domain JSON APIs from Phase 2+
+- ADR-018 Nuxt cutover
 
 #### Exit criteria
 
-- [ ] Incremental Blade refactor approach followed (no big-bang rewrite)
-- [ ] Inline logic replaced with View Models/components on touched templates
-- [ ] DataTables JS verified after Yajra L13 upgrade
-- [ ] Blade business-logic findings tracked as follow-up cards
+- [x] Interactive UI served by Nuxt (no Blade UI for cut-over surfaces)
+- [x] Yajra not required / not installed; tables are Nuxt/Vuetify
+- [x] PDF Blade residual only; business-logic findings tracked as follow-up cards
+- [x] Phase 5 checklist above completed or explicitly deferred with documented approval
 
 ---
 
@@ -948,7 +956,7 @@ Audit and replace/reconfigure all Composer dependencies for Laravel 13 compatibi
 | Current package | Action for L13 | Status | Ownership |
 |-----------------|----------------|--------|-----------|
 | `zizaco/entrust` | Replace with **Spatie Permission** + Policies/Gates | **replaced** | Phase 1 (done) |
-| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | deferred | Phase 5 (may start earlier if blocked) |
+| `yajra/laravel-datatables-oracle` ~5 | Upgrade to current Yajra DataTables for L13 | closed — Nuxt/Vuetify tables (ADR-014) | Phase 5 |
 | `sammyk/laravel-facebook-sdk` | Verify still needed; remove or replace | verify-then-remove/replace | Phase 2.5 |
 | `phpmailer/phpmailer` | Migrate to **Laravel Mail** + Mailables / Notifications | deferred | Phase 2.2 |
 | `niklasravnsborg/laravel-pdf` + wkhtmltopdf binaries | Evaluate Browsershot, DomPDF, or a maintained PDF package (ADR-005) | deferred (spike) | ADR-005 → Phase 2.3/2.4 + Phase 4 |
@@ -1094,8 +1102,8 @@ Every major heading/requirement area from `docs/Laravel_5.1_to_13_Modernization_
 
 1. Treat `docs/Laravel_5.1_to_13_Modernization_Spec.md` as the requirements source of truth and this plan as the execution roadmap.
 2. For how-to and current surface area, see [`technical-documentation.md`](technical-documentation.md) and [`user-documentation.md`](user-documentation.md).
-3. Phase 0–4 are complete (async jobs, failed-job UI, Slack alerts, Schedule→Job pipelines).
-4. **Nuxt SPA frontend** is the UI layer (`frontend/`, ADR-018) — convert/maintain admin pages there; Spec Phase 5 Blade checklist remains separate (Yajra/DataTables as needed).
+3. Phase 0–5 are complete (Nuxt SPA + Phase 5 closure; Yajra declined per ADR-014).
+4. **Phase 6 — Deployment readiness** is next (quality gates, workers, staging, QA). SPA hosting: [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md).
 5. Optional: import Wave A/B SQL dumps into `storage/app/legacy-dumps/` for manual QA against Sail MySQL.
-6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` until the relevant domain phase needs those tables.
-7. Follow-ups from Phase 4: install Google Drive Flysystem adapter when Composer timeout allows; port remaining alert/Dropbox domain bodies; Phase 6 verifies supervisor/systemd on real hosts.
+6. Do **not** copy `database/migrations_fresh/` into live `database/migrations/` wholesale — only specific tables when a domain needs them.
+7. Follow-ups: Google Drive adapter; alert/Dropbox domain bodies; Phase 5 cards (commission dashboard, full P&amp;L schema columns, terms CMS).

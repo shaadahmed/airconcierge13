@@ -39,7 +39,9 @@ definePageMeta({ middleware: 'auth' })
           :subtitle="String(chronology.chronologyoption ?? '—')"
         />
       </VList>
-      <h3 class="text-h6 mt-6 mb-2">Orders</h3>
+      <h3 class="text-h6 mt-6 mb-2">
+        Orders
+      </h3>
       <VTable>
         <thead><tr><th>Order</th><th>Template</th><th>Document</th></tr></thead>
         <tbody>

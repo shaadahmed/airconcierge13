@@ -1,8 +1,8 @@
 # Air Concierge — Technical Documentation (Phase 0–2.5)
 
 **Audience:** Developers, ops, and agents working on `airconcierge13`  
-**Status:** Phase 0–2.5 complete; Phase 3 (helpers) next  
-**Last updated:** 2026-07-23
+**Status:** Phase 0–5 complete; Phase 6 (deployment readiness) next  
+**Last updated:** 2026-07-25
 
 This document describes the **implemented** technical surface through Phase 2.5. Requirements live in [`Laravel_5.1_to_13_Modernization_Spec.md`](Laravel_5.1_to_13_Modernization_Spec.md). Sequencing, DoD, and future phases live in [`migration-plan.md`](migration-plan.md). Architecture decisions live under [`adr/`](adr/).
 
@@ -237,9 +237,11 @@ Pest Feature coverage includes authentication, Policy/`can:` role checks, owner-
 
 ---
 
-## 12. Out of scope / next (Phase 5+)
+## 12. Out of scope / next (Phase 6+)
 
-- Full Blade rewrite and legacy dashboard UI parity (Phase 5)
+- Deployment readiness (Phase 6): workers, staging, QA gates  
+- Follow-up cards: AjaxDashboard commission/headline suite; bookings schema expansion for full legacy P&amp;L lines; owner-terms CMS edit/reset  
+- See [`docs/deploy/spa-hosting.md`](deploy/spa-hosting.md) and [`docs/frontend-report.md`](frontend-report.md)
 - Wholesale `migrations_fresh` import (domain tables copied selectively)
 - Admin Hostaway logs UI, reviews cron photo sync
 - Google Drive Flysystem adapter install (Phase 4 job ready; Composer package deferred — ADR-014)

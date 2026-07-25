@@ -1,6 +1,4 @@
 <script setup>
-import UpgradeToPro from '@/components/UpgradeToPro.vue'
-
 const { isMobile } = useDevice()
 if (isMobile)
   configStore.appContentLayoutNav = 'vertical'
@@ -11,6 +9,5 @@ if (isMobile)
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <UpgradeToPro />
   </VApp>
 </template>

@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-23  
-**Updated:** 2026-07-24
+**Updated:** 2026-07-25
 
 ## Decision
 
@@ -14,10 +14,11 @@
 | `flynsarmy/csv-seeder` | Replace with `ImportService` + Artisan/one-off commands (done for owners/properties/guests) |
 | `doctrine/dbal` | Not added; Laravel 13 schema builder covers current alters |
 | `filp/whoops` | Not needed — framework error handling |
-| Yajra DataTables | Remain Phase 5 unless a report is blocked (reports currently return JSON/Blade summaries) |
+| Yajra DataTables | **Closed:** do **not** install. Interactive admin tables are Nuxt/Vuetify client tables (ADR-018). Spec Yajra upgrade is N/A while no server-side DataTables remain in L13. |
 
 ## Consequences
 
 - Dropbox / cloud backup / metrics scheduled commands dispatch Phase 4 jobs.
 - Image compression uses `images:compress-uploads` dispatching per-batch `CompressImagesBatchJob`.
 - Without Drive credentials/package, weekly backups remain on the local disk and log a warning (not a silent no-op).
+- Staff commission / legacy DataTables-heavy surfaces (if rebuilt) use Nuxt tables + JSON APIs — not Yajra.

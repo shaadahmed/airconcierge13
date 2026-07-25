@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\UserRole;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +16,7 @@ class EnsureOwnerTermsAgreed
     {
         $user = $request->user();
 
-        if ($user === null || $user->role !== UserRole::Owner) {
+        if (! $user instanceof User || ! $user->isOwner()) {
             return $next($request);
         }
 
@@ -26,6 +26,13 @@ class EnsureOwnerTermsAgreed
 
         if ($request->routeIs('admin.terms.*', 'logout')) {
             return $next($request);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Owner terms agreement required.',
+                'redirect_to' => '/admin/terms',
+            ], 409);
         }
 
         return redirect()->route('admin.terms.show');

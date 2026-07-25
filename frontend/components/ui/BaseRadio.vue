@@ -1,6 +1,4 @@
 <script setup>
-defineOptions({ inheritAttrs: false })
-
 defineProps({
   modelValue: { type: [String, Number, Boolean], default: null },
   label: { type: String, default: '' },
@@ -15,6 +13,8 @@ defineProps({
 })
 
 defineEmits(['update:modelValue'])
+
+defineOptions({ inheritAttrs: false })
 </script>
 
 <template>

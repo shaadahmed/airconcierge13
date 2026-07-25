@@ -1,31 +1,40 @@
 <script setup>
-defineProps({
+const props = defineProps({
   modelValue: { type: Object, required: true },
   errors: { type: Object, default: () => ({}) },
   loading: Boolean,
   submitLabel: { type: String, default: 'Save chronology' },
 })
 
-defineEmits(['submit'])
+const emit = defineEmits(['update:modelValue', 'submit'])
+
+const updateField = (field, value) => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [field]: value,
+  })
+}
 </script>
 
 <template>
   <VForm @submit.prevent="$emit('submit')">
     <BaseInput
-      v-model="modelValue.name"
+      :model-value="modelValue.name"
       label="Name"
       required
       :error="errors.name"
+      @update:model-value="updateField('name', $event)"
     />
     <BaseInput
-      v-model="modelValue.startdate"
+      :model-value="modelValue.startdate"
       label="Start date"
       type="date"
       required
       :error="errors.startdate"
+      @update:model-value="updateField('startdate', $event)"
     />
     <BaseSelect
-      v-model="modelValue.chronologyoption"
+      :model-value="modelValue.chronologyoption"
       label="Chronology option"
       :items="[
         { title: 'Default', value: 0 },
@@ -33,6 +42,7 @@ defineEmits(['submit'])
         { title: 'Option 2', value: 2 },
       ]"
       :error="errors.chronologyoption"
+      @update:model-value="updateField('chronologyoption', $event)"
     />
     <BaseButton
       type="submit"

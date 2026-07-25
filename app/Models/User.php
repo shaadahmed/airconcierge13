@@ -19,12 +19,19 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public function isOwner(): bool
+    {
+        $role = $this->getAttributes()['role'] ?? null;
+
+        return $role === UserRole::Owner->value;
+    }
+
     /**
      * Whether this owner has agreed to terms (ADR-009 / ADR-012).
      */
     public function hasAgreedToTerms(): bool
     {
-        if ($this->role !== UserRole::Owner) {
+        if (! $this->isOwner()) {
             return true;
         }
 
@@ -38,12 +45,15 @@ class User extends Authenticatable
      */
     public function hasActiveAccess(): bool
     {
-        if ($this->role !== UserRole::Owner) {
+        if (! $this->isOwner()) {
             return true;
         }
 
         return $this->owners()
-            ->whereHas('properties', fn ($query) => $query->live())
+            ->whereHas('properties', function ($query): void {
+                $query->where(fn ($q) => $q->where('status', true)->orWhere('status', 1))
+                    ->where(fn ($q) => $q->where('deleted', false)->orWhereNull('deleted'));
+            })
             ->exists();
     }
 

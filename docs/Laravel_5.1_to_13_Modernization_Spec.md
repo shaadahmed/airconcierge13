@@ -210,8 +210,9 @@ compatibility:
                                                    Permission or native
                                                    Policies/Gates
 
-  yajra/laravel-datatables-oracle \~5              Upgrade to current Yajra
-                                                   DataTables for L13
+  yajra/laravel-datatables-oracle \~5              Closed — Nuxt/Vuetify
+                                                   tables (ADR-014); do not
+                                                   install Yajra
 
   sammyk/laravel-facebook-sdk                      Verify still needed;
                                                    remove or replace
@@ -338,13 +339,12 @@ dispatching jobs
 
 Phase 5 --- Frontend / Views (as needed)
 
-\[ \] \~198 Blade templates --- refactor incrementally, not all at once
+\[x\] Interactive admin UI via Nuxt SPA (ADR-018) --- not a wholesale
+\~198 Blade port; PDF Blade retained
 
-\[ \] Replace inline PHP/logic in views with View Models or components
-where touched
+\[x\] Shared Nuxt shells / Sneat fidelity for shipped pages
 
-\[ \] DataTables JS integration --- verify compatibility after Yajra
-upgrade
+\[x\] DataTables --- Yajra declined; Nuxt/Vuetify tables (ADR-014)
 
 Code Quality Rules (Enforce During PR Review)
 
