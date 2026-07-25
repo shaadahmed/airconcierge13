@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Chronology\StoreChronologyOrderRequest;
+use App\Http\Requests\Admin\Chronology\StoreChronologyOwnerEmailsRequest;
 use App\Http\Requests\Admin\Chronology\StoreChronologyRequest;
 use App\Http\Requests\Admin\Chronology\UpdateChronologyRequest;
 use App\Models\Chronology;
@@ -16,19 +17,18 @@ use Illuminate\Http\Request;
 
 class ChronologyController extends Controller
 {
-    public function __construct(private ChronologyService $chronologyService) {}
+    public function __construct(private ChronologyService $chronologyService)
+    {
+        $this->authorizeResource(Chronology::class, 'chronology');
+    }
 
     public function index(): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         return response()->json(['data' => $this->chronologyService->list()]);
     }
 
     public function create(): JsonResponse
     {
-        $this->authorize('create', Chronology::class);
-
         return response()->json(['data' => []]);
     }
 
@@ -41,8 +41,6 @@ class ChronologyController extends Controller
 
     public function show(Chronology $chronology): JsonResponse
     {
-        $this->authorize('view', $chronology);
-
         $chronology->load(['orders', 'regions', 'subregions']);
 
         return response()->json(['data' => $chronology]);
@@ -50,8 +48,6 @@ class ChronologyController extends Controller
 
     public function edit(Chronology $chronology): JsonResponse
     {
-        $this->authorize('update', $chronology);
-
         $chronology->load(['orders', 'regions', 'subregions']);
 
         return response()->json(['data' => $chronology]);
@@ -66,8 +62,6 @@ class ChronologyController extends Controller
 
     public function destroy(Chronology $chronology): JsonResponse
     {
-        $this->authorize('delete', $chronology);
-
         $this->chronologyService->delete($chronology);
 
         return response()->json(status: 204);
@@ -75,8 +69,6 @@ class ChronologyController extends Controller
 
     public function copy(Chronology $chronology): JsonResponse
     {
-        $this->authorize('create', Chronology::class);
-
         $copy = $this->chronologyService->copy($chronology);
 
         return response()->json(['data' => $copy], 201);
@@ -84,8 +76,6 @@ class ChronologyController extends Controller
 
     public function templates(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         $templates = EmailTemplate::query()
             ->when($request->integer('region_id'), function ($query, int $regionId): void {
                 $query->whereHas('regions', fn ($q) => $q->where('regions.id', $regionId));
@@ -98,8 +88,6 @@ class ChronologyController extends Controller
 
     public function documents(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         $documents = DocumentUpload::query()
             ->when($request->integer('region_id'), function ($query, int $regionId): void {
                 $query->whereHas('regions', fn ($q) => $q->where('regions.id', $regionId));
@@ -112,8 +100,6 @@ class ChronologyController extends Controller
 
     public function checkName(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Chronology::class);
-
         $exists = Chronology::query()
             ->where('name', $request->string('name')->toString())
             ->when($request->integer('ignore_id'), fn ($q, int $id) => $q->where('id', '!=', $id))
@@ -140,7 +126,6 @@ class ChronologyController extends Controller
 
     public function destroyOrder(Chronology $chronology, ChronologyOrder $order): JsonResponse
     {
-        $this->authorize('update', $chronology);
         abort_unless($order->chronology_id === $chronology->id, 404);
 
         $this->chronologyService->deleteOrder($order);
@@ -150,21 +135,12 @@ class ChronologyController extends Controller
 
     public function previewOwners(Chronology $chronology): JsonResponse
     {
-        $this->authorize('view', $chronology);
-
         return response()->json(['data' => $this->chronologyService->previewOwners($chronology)]);
     }
 
-    public function storeOwnerEmails(Request $request, Chronology $chronology): JsonResponse
+    public function storeOwnerEmails(StoreChronologyOwnerEmailsRequest $request, Chronology $chronology): JsonResponse
     {
-        $this->authorize('update', $chronology);
-
-        $validated = $request->validate([
-            'owner_ids' => ['nullable', 'array'],
-            'owner_ids.*' => ['integer', 'exists:owners,id'],
-        ]);
-
-        $this->chronologyService->saveOwnerOptOuts($chronology, $validated['owner_ids'] ?? []);
+        $this->chronologyService->saveOwnerOptOuts($chronology, $request->validated('owner_ids') ?? []);
 
         return response()->json(['status' => 'ok']);
     }
