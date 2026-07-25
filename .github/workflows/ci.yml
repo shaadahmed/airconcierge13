@@ -39,7 +39,7 @@ jobs:
       - name: Pint (lint)
         run: vendor/bin/pint --test
 
-      - name: Larastan (level 5)
+      - name: Larastan (level 8)
         run: vendor/bin/phpstan analyse --memory-limit=1G
 
       - name: Pest
