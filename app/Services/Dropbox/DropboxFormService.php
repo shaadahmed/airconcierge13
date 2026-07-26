@@ -5,24 +5,35 @@ namespace App\Services\Dropbox;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Dropbox form CSV workflows (Phase 4 async pipeline).
+ * HelloWorks workflow CSV pipeline (legacy name: DropboxForm).
  *
- * Domain parity with legacy DropboxFormCSVController is a follow-up card.
+ * Schedule→Job plumbing is live. Full domain parity is deferred until:
+ * - HELLOWORKS_* credentials live in config (never hardcode legacy secrets)
+ * - dropbox_form_list / dropbox_form_transations migrations are copied into live migrations
+ * - Chronology mail status update path is verified against L13 schema
  */
 class DropboxFormService
 {
     public function processCsv(): void
     {
-        Log::info('DropboxFormService::processCsv — pipeline ready; domain body follow-up.');
+        $this->defer('processCsv', 'HelloWorks CSV download requires config credentials + storage path port');
     }
 
     public function syncDatabase(): void
     {
-        Log::info('DropboxFormService::syncDatabase — pipeline ready; domain body follow-up.');
+        $this->defer('syncDatabase', 'dropbox_form_transations table not in live migrations');
     }
 
     public function updateStatuses(): void
     {
-        Log::info('DropboxFormService::updateStatuses — pipeline ready; domain body follow-up.');
+        $this->defer('updateStatuses', 'status updates depend on synced HelloWorks rows + chronology_mail fields');
+    }
+
+    private function defer(string $method, string $reason): void
+    {
+        Log::info("DropboxFormService::{$method} deferred.", [
+            'reason' => $reason,
+            'note' => 'Pipeline ready; domain body pending schema + HelloWorks config approval.',
+        ]);
     }
 }

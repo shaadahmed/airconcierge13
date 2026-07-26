@@ -2,14 +2,18 @@
 
 namespace App\Http\Requests\Admin\Documents;
 
-use App\Models\Booking;
+use App\Models\DocumentUpload;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateDocumentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Booking::class) ?? false;
+        $document = $this->route('document');
+
+        return $document instanceof DocumentUpload
+            ? ($this->user()?->can('update', $document) ?? false)
+            : false;
     }
 
     /**

@@ -61,8 +61,8 @@ return [
         ],
 
         'gdrive' => [
-            // Requires masbug/flysystem-google-drive-ext + AppServiceProvider driver registration (ADR-014).
-            'driver' => 'local',
+            // Set FILESYSTEM_GDRIVE_DRIVER=google after masbug/flysystem-google-drive-ext installs (ADR-014).
+            'driver' => env('FILESYSTEM_GDRIVE_DRIVER', 'local'),
             'root' => storage_path('app/gdrive-fallback'),
             'clientId' => env('GOOGLE_DRIVE_CLIENT_ID'),
             'clientSecret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),

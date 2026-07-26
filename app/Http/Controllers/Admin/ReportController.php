@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Reports\ReportIndexRequest;
+use App\Http\Requests\Admin\Reports\ReportMetricsRequest;
+use App\Http\Requests\Admin\Reports\ReportTotRequest;
 use App\Services\Reports\ReportService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
     public function __construct(private ReportService $reportService) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ReportIndexRequest $request): JsonResponse
     {
-        $filters = $request->only(['year', 'month', 'region_id', 'property_id']);
+        $filters = $request->safe()->only(['year', 'month', 'region_id', 'property_id']);
 
         return response()->json([
             'data' => [
@@ -23,17 +25,17 @@ class ReportController extends Controller
         ]);
     }
 
-    public function tot(Request $request): JsonResponse
+    public function tot(ReportTotRequest $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->reportService->totReport($request->only(['year'])),
+            'data' => $this->reportService->totReport($request->safe()->only(['year'])),
         ]);
     }
 
-    public function metrics(Request $request): JsonResponse
+    public function metrics(ReportMetricsRequest $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->reportService->propertyMetrics($request->only(['year', 'region_id'])),
+            'data' => $this->reportService->propertyMetrics($request->safe()->only(['year', 'region_id'])),
         ]);
     }
 }

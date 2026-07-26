@@ -2,14 +2,18 @@
 
 namespace App\Http\Requests\Admin\Properties;
 
-use App\Models\Booking;
+use App\Models\Property;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePropertyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Booking::class) ?? false;
+        $property = $this->route('property');
+
+        return $property instanceof Property
+            ? ($this->user()?->can('update', $property) ?? false)
+            : false;
     }
 
     /**

@@ -16,10 +16,12 @@ use App\Http\Controllers\Admin\ZohoSignController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChronologyMailOpenController;
 use App\Http\Controllers\Webhooks\HostawayWebhookController;
-use App\Models\Booking;
 use App\Models\BookingPayment;
 use App\Models\Chronology;
+use App\Models\Dashboard;
+use App\Models\ImportedEmail;
 use App\Models\PropertyPayment;
+use App\Models\Report;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -51,17 +53,17 @@ Route::middleware(['auth'])
     ->name('admin.')
     ->group(function (): void {
         Route::get('dashboard', DashboardController::class)
-            ->middleware('can:viewAny,'.Booking::class)
+            ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard');
         Route::get('dashboard/stats', [DashboardController::class, 'stats'])
-            ->middleware('can:viewAny,'.Booking::class)
+            ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard.stats');
         Route::get('dashboard/revenue-chart', [DashboardController::class, 'revenueChart'])
-            ->middleware('can:viewAny,'.Booking::class)
+            ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard.revenue-chart');
         Route::get('dashboard/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
         Route::get('dashboard/owners/{owner}/statement', [DashboardController::class, 'ownerStatement'])
-            ->middleware('can:viewAny,'.Booking::class)
+            ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard.owner-statement');
 
         Route::middleware('can:accessSuperAdminArea,'.User::class)->group(function (): void {
@@ -71,7 +73,7 @@ Route::middleware(['auth'])
             Route::delete('failed-jobs/{uuid}', [FailedJobController::class, 'destroy'])->name('failed-jobs.destroy');
         });
 
-        Route::middleware('can:viewAny,'.Booking::class)->group(function (): void {
+        Route::middleware('can:viewAny,'.Report::class)->group(function (): void {
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
             Route::get('reports/tot', [ReportController::class, 'tot'])->name('reports.tot');
             Route::get('reports/metrics', [ReportController::class, 'metrics'])->name('reports.metrics');
@@ -102,20 +104,19 @@ Route::middleware(['auth'])
             ->middleware('can:delete,propertyPayment')
             ->name('property-payments.destroy');
 
-        Route::middleware('can:viewAny,'.Booking::class)->group(function (): void {
-            Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
-            Route::delete('properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
-            Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
-            Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
-            Route::get('imports/emails', [ImportController::class, 'importedEmails'])->name('imports.emails.index');
-        });
-
+        Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
         Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');
         Route::put('properties/{property}', [PropertyController::class, 'update'])->name('properties.update');
+        Route::delete('properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
 
+        Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
         Route::put('documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
+        Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
+        Route::middleware('can:viewAny,'.ImportedEmail::class)->group(function (): void {
+            Route::get('imports/emails', [ImportController::class, 'importedEmails'])->name('imports.emails.index');
+        });
         Route::post('imports/owners', [ImportController::class, 'importOwners'])->name('imports.owners');
         Route::post('imports/properties', [ImportController::class, 'importProperties'])->name('imports.properties');
         Route::post('imports/emails', [ImportController::class, 'storeImportedEmail'])->name('imports.emails.store');

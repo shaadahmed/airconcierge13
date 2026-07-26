@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Dashboard\DashboardRevenueChartRequest;
 use App\Models\Owner;
 use App\Services\Dashboard\DashboardService;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +25,7 @@ class DashboardController extends Controller
         return response()->json(['data' => $this->dashboardService->summaryStats()]);
     }
 
-    public function revenueChart(Request $request): JsonResponse
+    public function revenueChart(DashboardRevenueChartRequest $request): JsonResponse
     {
         return response()->json([
             'data' => $this->dashboardService->revenueChart((int) $request->integer('months', 6)),

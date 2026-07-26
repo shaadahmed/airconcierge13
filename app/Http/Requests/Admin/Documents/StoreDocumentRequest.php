@@ -2,14 +2,14 @@
 
 namespace App\Http\Requests\Admin\Documents;
 
-use App\Models\Booking;
+use App\Models\DocumentUpload;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDocumentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Booking::class) ?? false;
+        return $this->user()?->can('create', DocumentUpload::class) ?? false;
     }
 
     /**

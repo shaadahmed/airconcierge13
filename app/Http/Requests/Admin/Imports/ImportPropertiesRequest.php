@@ -2,14 +2,14 @@
 
 namespace App\Http\Requests\Admin\Imports;
 
-use App\Models\Booking;
+use App\Models\ImportedEmail;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ImportPropertiesRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('viewAny', Booking::class) ?? false;
+        return $this->user()?->can('create', ImportedEmail::class) ?? false;
     }
 
     /**

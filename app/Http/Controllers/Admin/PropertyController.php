@@ -12,7 +12,10 @@ use Illuminate\Http\Request;
 
 class PropertyController extends Controller
 {
-    public function __construct(private PropertyService $propertyService) {}
+    public function __construct(private PropertyService $propertyService)
+    {
+        $this->authorizeResource(Property::class, 'property');
+    }
 
     public function index(Request $request): JsonResponse
     {

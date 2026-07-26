@@ -9,7 +9,8 @@ use RuntimeException;
 /**
  * Weekly data backup upload workflow (Phase 4).
  *
- * Uses the `gdrive` disk when configured; otherwise stores locally and logs.
+ * Uses the `gdrive` disk when the Google Drive adapter is installed and credentials
+ * are present; otherwise stores locally and logs (ADR-014).
  */
 class CloudBackupService
 {
@@ -33,7 +34,6 @@ class CloudBackupService
             return $remotePath;
         }
 
-        // Follow-up: configure GOOGLE_DRIVE_* credentials for remote upload (ADR-014 / Phase 4).
         Log::warning('Cloud backup stored locally only — Google Drive disk not configured.', [
             'local_path' => $path,
         ]);
@@ -51,8 +51,18 @@ class CloudBackupService
 
     private function googleDriveConfigured(): bool
     {
-        // Real Google Drive driver is deferred until masbug adapter installs cleanly (ADR-014).
-        // Credentials alone are not enough while the disk still uses the local fallback driver.
-        return false;
+        if (! class_exists('Masbug\\Flysystem\\GoogleDriveAdapter')) {
+            return false;
+        }
+
+        $disk = config('filesystems.disks.gdrive', []);
+
+        if (($disk['driver'] ?? null) !== 'google') {
+            return false;
+        }
+
+        return filled($disk['clientId'] ?? null)
+            && filled($disk['clientSecret'] ?? null)
+            && filled($disk['refreshToken'] ?? null);
     }
 }

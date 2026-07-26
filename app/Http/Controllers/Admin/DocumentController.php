@@ -11,7 +11,10 @@ use Illuminate\Http\JsonResponse;
 
 class DocumentController extends Controller
 {
-    public function __construct(private DocumentService $documentService) {}
+    public function __construct(private DocumentService $documentService)
+    {
+        $this->authorizeResource(DocumentUpload::class, 'document');
+    }
 
     public function index(): JsonResponse
     {
