@@ -144,4 +144,5 @@ export default defineNuxtConfig({
   },
 
   modules: ['@vueuse/nuxt', '@nuxtjs/device', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
+  compatibilityDate: '2026-07-26',
 })

@@ -224,7 +224,7 @@ npm run dev
 | **Admin UI (preferred)** | http://localhost:3000 |
 | Laravel API (direct) | http://localhost:8080 |
 | Mailpit (outbound mail UI) | http://localhost:8026 |
-| Adminer (optional; only while container is running) | http://localhost:8081 |
+| Adminer (optional; only while container is running) | http://localhost:8082 |
 
 1. Open http://localhost:3000  
 2. Sign in with `test@example.com` / `password`  
@@ -264,10 +264,10 @@ Throwaway container â€” does **not** edit `compose.yaml` or project files. Sailâ
 **Start:**
 
 ```powershell
-docker run --rm -d --name airconcierge-adminer -p 8081:8080 --network airconcierge13_sail adminer
+docker run --rm -d --name airconcierge-adminer -p 8082:8080 --network airconcierge13_sail adminer
 ```
 
-**Open:** [http://localhost:8081](http://localhost:8081)
+**Open:** [http://localhost:8082](http://localhost:8082)
 
 | Field | Value |
 |-------|--------|
