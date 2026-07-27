@@ -1,13 +1,16 @@
-
-
 // https://router.vuejs.org/api/interfaces/routeroptions.html
-export default  {
+export default {
   routes: scannedRoutes => [
-    ...scannedRoutes,
+    ...scannedRoutes.filter(route => route.path !== '/' && route.name !== 'index'),
     {
       path: '/',
       name: 'index',
-      redirect: '/dashboard',
+      redirect: '/admin/dashboard',
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard-alias',
+      redirect: '/admin/dashboard',
     },
   ],
 }

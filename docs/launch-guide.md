@@ -345,6 +345,8 @@ docker compose exec -T laravel.test php artisan test --compact
 | Adminer “could not connect” | Use server name **`mysql`**, not `127.0.0.1`; ensure `--network` matches this project’s Sail network; container must be running. |
 | Docker / compose errors | Start Docker Desktop and wait until it is fully running. |
 | Vite / asset errors on Laravel-only pages | Usually irrelevant for Nuxt UI; for Blade/PDF assets: `sail npm run build` if needed. |
+| Nuxt 500: `[ERR_LOAD_URL] @/plugins/iconify/icons.css` | Generated file missing (gitignored). From `frontend/`: `npm run build:icons`, then restart `npm run dev`. |
+| Nuxt 500 / “Page not found: /dashboard” | Use `/admin/dashboard` (or open `/` — it redirects there). Auth required; guests go to `/login`. |
 
 ---
 
