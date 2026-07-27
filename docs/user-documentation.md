@@ -52,14 +52,16 @@ Use this **only** on local/dev.
 
 You land on the **Admin dashboard** with summary stats and a revenue chart.
 
-Available admin areas (nav):
+Available admin areas (nav) — six groups from `GET /admin/navigation` (ADR-020):
 
-- Bookings, properties, payments, property payments  
-- Documents, imports  
-- Chronologies, send email  
-- Reports, Zoho Sign status, failed jobs  
-- **Owner terms** — view agreement; Accept or Decline (decline ends the session)  
-- **Owner statements** — property + date-range profit/loss summary and CSV export  
+- **Dashboard** — Performance, Accounting, Calendar Blocks (Owners), Calendar View, Reservation | City Limit  
+- **Properties** — Homes, Guests, Owners, Audit Reports, Regions, Countries & States  
+- **Financials** — Bookings, Costs & Expenses, Revenue Settings, P&L Owner Statements, Month Closing History, Cash Flow  
+- **Staff** — Vendors, Regional Managers  
+- **Reporting** — Reporting, Nights & Pay Outs, Difference (Booking vs Stay), Regions Income, Total Income, Guest Location, Reservation | City Limit, Owner Block Abandonment  
+- **Administration** (admin/superadmin; some items superadmin-only) — Air BNB Emails, Hostaway Logs, Email Logs, Manage Content, Manage Users, Manage Roles, Management Types, Payment Types, System Resources, Platforms, Critical Actions, Export Guests, System Settings, Cron & database rules, My Profile  
+
+Off-menu routes that remain reachable by URL: documents, imports, chronologies, send email, Zoho, failed jobs, owner terms, owner statements.
 
 Owner terms and active-property middleware apply on owner terms/statements routes (not the whole admin shell).
 
@@ -69,6 +71,6 @@ Owner terms and active-property middleware apply on owner terms/statements route
 
 - Full legacy dashboard commission / headline filter suite  
 - Complete legacy P&amp;L line items that are not yet on the L13 bookings schema  
-- Staff CMS to edit/reset owner agreement content  
+- Deeper report chart parity for nights/payouts, booking-vs-stay, and regions income beyond summary JSON  
 
 For a technical overview, see [`technical-documentation.md`](technical-documentation.md).

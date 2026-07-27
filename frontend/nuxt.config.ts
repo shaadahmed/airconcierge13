@@ -1,12 +1,38 @@
-import svgLoader from 'vite-svg-loader'
+﻿import svgLoader from 'vite-svg-loader'
 import vuetify from 'vite-plugin-vuetify'
 import { fileURLToPath } from 'node:url'
 
 const laravelUrl = process.env.NUXT_LARAVEL_URL || 'http://localhost:8080'
 const proxyPaths = ['/sanctum', '/login', '/logout', '/admin']
 
+/**
+ * Browser document navigations must hit the Nuxt SPA. Only XHR/JSON
+ * (Accept: application/json from services/http.js) proxies to Laravel.
+ * Without this, GET /login and GET /admin/* loop: Nuxt -> Laravel -> FRONTEND_URL.
+ * Nitro's built-in devProxy does not honor bypass reliably - see server/middleware/laravel-proxy.ts.
+ */
+function laravelViteProxy() {
+  return {
+    target: laravelUrl,
+    changeOrigin: true,
+    bypass(req: { headers: { accept?: string }, method?: string, url?: string }) {
+      const accept = req.headers.accept ?? ''
+      const method = req.method ?? 'GET'
+
+      if (accept.includes('text/html'))
+        return req.url
+
+      if ((req.url === '/login' || req.url?.startsWith('/login?')) && method === 'GET')
+        return req.url
+    },
+  }
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // ADR-018: Nuxt SPA - avoid SSR document requests colliding with Laravel proxy.
+  ssr: false,
+
   runtimeConfig: {
     public: {
       apiBase: '',
@@ -78,7 +104,7 @@ export default defineNuxtConfig({
     },
   },
 
-  // ℹ️ Disable source maps until this is resolved: https://github.com/vuetifyjs/vuetify-loader/issues/290
+  // â„¹ï¸ Disable source maps until this is resolved: https://github.com/vuetifyjs/vuetify-loader/issues/290
   sourcemap: {
     server: false,
     client: false,
@@ -94,10 +120,7 @@ export default defineNuxtConfig({
     define: { 'process.env': {} },
 
     server: {
-      proxy: Object.fromEntries(proxyPaths.map(path => [path, {
-        target: laravelUrl,
-        changeOrigin: true,
-      }])),
+      proxy: Object.fromEntries(proxyPaths.map(path => [path, laravelViteProxy()])),
     },
 
     resolve: {
@@ -136,12 +159,7 @@ export default defineNuxtConfig({
     transpile: ['vuetify'],
   },
 
-  nitro: {
-    devProxy: Object.fromEntries(proxyPaths.map(path => [path, {
-      target: laravelUrl,
-      changeOrigin: true,
-    }])),
-  },
+  // Laravel JSON/API proxy: server/middleware/laravel-proxy.ts (devProxy bypass is unreliable)
 
   modules: ['@vueuse/nuxt', '@nuxtjs/device', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
   compatibilityDate: '2026-07-26',

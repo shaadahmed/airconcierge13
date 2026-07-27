@@ -2,16 +2,37 @@
 
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ChronologyController;
+use App\Http\Controllers\Admin\CmsController;
+use App\Http\Controllers\Admin\CockpitController;
+use App\Http\Controllers\Admin\CountryController;
+use App\Http\Controllers\Admin\CronSettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\FailedJobController;
+use App\Http\Controllers\Admin\GuestController;
+use App\Http\Controllers\Admin\HostawayLogController;
 use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\ManagerController;
+use App\Http\Controllers\Admin\ManagementTypeController;
+use App\Http\Controllers\Admin\NavigationController;
+use App\Http\Controllers\Admin\OutboundEmailLogController;
+use App\Http\Controllers\Admin\OwnerController;
 use App\Http\Controllers\Admin\OwnerStatementController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\PaymentTypeController;
+use App\Http\Controllers\Admin\PlatformController;
+use App\Http\Controllers\Admin\PropertyAuditController;
 use App\Http\Controllers\Admin\PropertyController;
+use App\Http\Controllers\Admin\RegionController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ResourceController;
+use App\Http\Controllers\Admin\RevenueSettingsController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TermsController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZohoSignController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChronologyMailOpenController;
@@ -52,6 +73,8 @@ Route::middleware(['auth'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        Route::get('navigation', NavigationController::class)->name('navigation');
+
         Route::get('dashboard', DashboardController::class)
             ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard');
@@ -62,6 +85,25 @@ Route::middleware(['auth'])
             ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard.revenue-chart');
         Route::get('dashboard/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
+        Route::put('dashboard/profile', [DashboardController::class, 'updateProfile'])->name('dashboard.profile.update');
+        Route::get('dashboard/accounting', [DashboardController::class, 'accounting'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.accounting');
+        Route::get('dashboard/ownerblock/all', [DashboardController::class, 'ownerBlocks'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.ownerblocks');
+        Route::get('dashboard/ownercalendarview', [DashboardController::class, 'ownerCalendarView'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.ownercalendarview');
+        Route::get('dashboard/threshold-properties', [DashboardController::class, 'thresholdProperties'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.threshold-properties');
+        Route::get('dashboard/cashflow', [DashboardController::class, 'cashflow'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.cashflow');
+        Route::get('dashboard/ownerstatements', [DashboardController::class, 'ownerStatements'])
+            ->middleware('can:viewAny,'.Dashboard::class)
+            ->name('dashboard.ownerstatements');
         Route::get('dashboard/owners/{owner}/statement', [DashboardController::class, 'ownerStatement'])
             ->middleware('can:viewAny,'.Dashboard::class)
             ->name('dashboard.owner-statement');
@@ -77,6 +119,15 @@ Route::middleware(['auth'])
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
             Route::get('reports/tot', [ReportController::class, 'tot'])->name('reports.tot');
             Route::get('reports/metrics', [ReportController::class, 'metrics'])->name('reports.metrics');
+            Route::get('reports/properties', [ReportController::class, 'propertiesReport'])->name('reports.properties');
+            Route::get('reports/nightspayouts', [ReportController::class, 'nightsPayouts'])->name('reports.nightspayouts');
+            Route::get('reports/bookingstay', [ReportController::class, 'bookingStay'])->name('reports.bookingstay');
+            Route::get('reports/regionsincome', [ReportController::class, 'regionsIncome'])->name('reports.regionsincome');
+            Route::get('reports/totalincome', [ReportController::class, 'totalIncome'])->name('reports.totalincome');
+            Route::get('reports/guestlocation', [ReportController::class, 'guestLocation'])->name('reports.guestlocation');
+            Route::get('reports/properties/threshold', [ReportController::class, 'threshold'])->name('reports.properties.threshold');
+            Route::get('reports/properties/closing-history', [ReportController::class, 'closingHistory'])->name('reports.properties.closing-history');
+            Route::get('reports/owner-block-abandonment', [ReportController::class, 'ownerBlockAbandonment'])->name('reports.owner-block-abandonment');
         });
 
         Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
@@ -108,6 +159,38 @@ Route::middleware(['auth'])
         Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');
         Route::put('properties/{property}', [PropertyController::class, 'update'])->name('properties.update');
         Route::delete('properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
+
+        Route::get('guests/export-emails', [GuestController::class, 'exportEmails'])->name('guests.export-emails');
+        Route::apiResource('guests', GuestController::class)->except('show');
+        Route::apiResource('owners', OwnerController::class)->except('show');
+        Route::get('regions/{region}/subregions', [RegionController::class, 'subregions'])->name('regions.subregions');
+        Route::apiResource('regions', RegionController::class)->except('show');
+        Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
+        Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
+        Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
+        Route::post('countries/{country}/states', [CountryController::class, 'storeState'])->name('countries.states.store');
+        Route::put('countries/{country}/states/{state}', [CountryController::class, 'updateState'])->name('countries.states.update');
+        Route::apiResource('managers', ManagerController::class)->except('show');
+        Route::apiResource('vendors', VendorController::class)->only(['index', 'store', 'update']);
+        Route::apiResource('platforms', PlatformController::class)->except('show');
+        Route::apiResource('payment_types', PaymentTypeController::class)->except('show');
+        Route::apiResource('management_types', ManagementTypeController::class)->except('show');
+        Route::apiResource('resources', ResourceController::class)->except('show');
+        Route::get('cms', [CmsController::class, 'index'])->name('cms.index');
+        Route::put('cms/{pageId}', [CmsController::class, 'update'])->name('cms.update');
+        Route::apiResource('users', UserController::class)->except('show');
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('hostawaylogs', [HostawayLogController::class, 'index'])->name('hostawaylogs.index');
+        Route::get('airbnbemails', [ImportController::class, 'importedEmails'])->name('airbnbemails.index');
+        Route::get('outbound-email-logs', [OutboundEmailLogController::class, 'index'])->name('outbound-email-logs.index');
+        Route::get('settings/cockpit', [CockpitController::class, 'index'])->name('settings.cockpit');
+        Route::get('settings/system', [SystemSettingsController::class, 'index'])->name('settings.system');
+        Route::get('settings/cron', [CronSettingsController::class, 'index'])->name('settings.cron');
+        Route::get('settings/revenue', [RevenueSettingsController::class, 'index'])->name('settings.revenue');
+        Route::post('settings/revenue', [RevenueSettingsController::class, 'store'])->name('settings.revenue.store');
+        Route::put('settings/revenue/{revenueSetting}', [RevenueSettingsController::class, 'update'])->name('settings.revenue.update');
+        Route::get('export/guestemailslist', [GuestController::class, 'exportEmails'])->name('export.guestemailslist');
+        Route::get('properties/audit/list', [PropertyAuditController::class, 'index'])->name('properties.audit.list');
 
         Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');

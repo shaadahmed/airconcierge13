@@ -60,7 +60,7 @@ definePageMeta({ middleware: 'auth', layout: 'default' })
 <template>
   <div>
     <PageHeader
-      title="Dashboard"
+      title="Performance"
       subtitle="Operational snapshot and trailing revenue"
     />
 

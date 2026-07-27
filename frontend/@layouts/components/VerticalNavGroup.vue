@@ -4,9 +4,18 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  defaultOpen: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const isOpen = ref(false)
+const isOpen = ref(props.defaultOpen)
+
+watch(() => props.defaultOpen, value => {
+  if (value)
+    isOpen.value = true
+})
 </script>
 
 <template>

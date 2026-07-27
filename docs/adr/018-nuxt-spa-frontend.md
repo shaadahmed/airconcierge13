@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-24  
-**Updated:** 2026-07-25
+**Updated:** 2026-07-27
 
 ## Context
 
@@ -19,6 +19,7 @@ UI was served as minimal Blade views. A free Sneat Nuxt theme exists at `nuxtjs-
 7. Foundational `components/ui` Base* controls (including `BaseLink`, default same-tab) are required for converted pages.
 8. Shared shells (`PageHeader`, `DataTableShell`, `EmptyState`, `ConfirmDialog`, `AppAlert`) are preferred when a pattern repeats.
 9. Interactive tables are **Nuxt/Vuetify** — Yajra is not installed (ADR-014).
+10. Admin sidebar navigation is runtime-driven via `GET /admin/navigation` (resources table + Administration append) — see [ADR-020](020-admin-sidebar-navigation.md).
 
 ## Standing UI/UX style rule
 
@@ -34,3 +35,4 @@ See also `frontend/docs/ui-ux.md`.
 - CORS/`SANCTUM_STATEFUL_DOMAINS`/`FRONTEND_URL` must be configured for local Nuxt (`:3000`) and production host.
 - Future UI work lands in `frontend/` only.
 - Production hosting guidance: `docs/deploy/spa-hosting.md`.
+- Sidebar groups/order come from `resources` + `config/admin_navigation.php`; do not hardcode a competing flat menu in `NavItems.vue`.

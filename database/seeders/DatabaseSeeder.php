@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        $this->call(OwnerAgreementContentSeeder::class);
+        $this->call([
+            OwnerAgreementContentSeeder::class,
+            ResourceSeeder::class,
+        ]);
     }
 }

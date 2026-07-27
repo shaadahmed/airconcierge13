@@ -44,6 +44,7 @@ There is **no production cutover**. Until cutover is approved, the legacy app re
 | Horizon | Not installed — plain `queue:work` (ADR-003 / ADR-017) |
 | Failed jobs | Superadmin UI at Nuxt `/admin/failed-jobs` (JSON API) + Slack on `failed()` |
 | Frontend UI | Nuxt 3 SPA in `frontend/` (ADR-018); Sneat style reference `nuxtjs-theme/` (no runtime imports) |
+| Admin sidebar | Runtime `GET /admin/navigation` from `resources` + Administration append (ADR-020) |
 | Agent tooling | Laravel Boost (dev) |
 
 Default env drivers (see `.env.example`): `DB_CONNECTION=mysql`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, `SESSION_DRIVER=redis`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`. Hostaway: `HOSTAWAY_*`. Zoho Sign: `ZOHO_*`. Slack failures: `SLACK_BOT_USER_*`. Optional Google Drive: `GOOGLE_DRIVE_*`. Optional local SQL dumps: `storage/app/legacy-dumps/` (gitignored).

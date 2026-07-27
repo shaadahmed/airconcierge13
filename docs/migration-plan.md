@@ -864,6 +864,7 @@ Converted UI routes live under Nuxt (`/`, `/login`, `/admin/*`). PDF Blade retai
 - [x] Document production same-origin SPA hosting (`docs/deploy/spa-hosting.md`)
 - [x] PDF Blade retained; no silent business-logic fixes in PDF/Nuxt
 - [x] Confirm no wholesale L5.1 Blade template port
+- [x] Admin sidebar parity: six grouped sections from `resources` + Administration append (ADR-020); Nuxt pages for all listed nav items
 
 #### Deliverables
 
