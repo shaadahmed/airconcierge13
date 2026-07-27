@@ -63,8 +63,7 @@ class GuestController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request): array
     {
-        $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:255'],
+        return $request->validate([
             'guest_name' => ['nullable', 'string', 'max:255'],
             'first_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
@@ -76,12 +75,5 @@ class GuestController extends Controller
             'notes' => ['nullable', 'string'],
             'blacklisted' => ['sometimes', 'boolean'],
         ]);
-
-        if (array_key_exists('name', $validated)) {
-            $validated['guest_name'] = $validated['name'];
-            unset($validated['name']);
-        }
-
-        return $validated;
     }
 }

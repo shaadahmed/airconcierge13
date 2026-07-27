@@ -53,6 +53,10 @@ class OwnerController extends Controller
             'owner_email' => ['nullable', 'email', 'max:100'],
             'owner_phone' => ['nullable', 'string', 'max:50'],
             'region_id' => ['nullable', 'integer', 'exists:regions,id'],
+            'payment_method' => ['nullable', 'string', 'max:255'],
+            'owner_payout_information' => ['nullable', 'string'],
+            'w9_on_file' => ['sometimes', 'boolean'],
+            'emailstatus' => ['nullable', 'string', 'max:255'],
         ]);
     }
 }

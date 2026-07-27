@@ -168,8 +168,10 @@ Route::middleware(['auth'])
         Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
         Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
         Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
+        Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
         Route::post('countries/{country}/states', [CountryController::class, 'storeState'])->name('countries.states.store');
         Route::put('countries/{country}/states/{state}', [CountryController::class, 'updateState'])->name('countries.states.update');
+        Route::delete('countries/{country}/states/{state}', [CountryController::class, 'destroyState'])->name('countries.states.destroy');
         Route::apiResource('managers', ManagerController::class)->except('show');
         Route::apiResource('vendors', VendorController::class)->only(['index', 'store', 'update']);
         Route::apiResource('platforms', PlatformController::class)->except('show');

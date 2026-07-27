@@ -35,7 +35,7 @@ class VendorController extends Controller
     {
         $this->authorize('manageVendors', User::class);
         abort_unless($vendor->role === UserRole::Cleaner, 404);
-        $vendor->update($this->validated($request));
+        $vendor->update($this->validated($request, $vendor));
 
         return response()->json(['data' => $vendor->fresh()]);
     }
@@ -43,13 +43,19 @@ class VendorController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, ?User $existing = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->route('vendor'))],
-            'password' => ['required_without:_method', 'nullable', 'string', 'min:8'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($existing?->id)],
+            'password' => [$existing ? 'nullable' : 'required', 'string', 'min:8'],
             'active' => ['sometimes', 'boolean'],
         ]);
+
+        if ($existing && blank($validated['password'] ?? null)) {
+            unset($validated['password']);
+        }
+
+        return $validated;
     }
 }
