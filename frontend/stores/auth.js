@@ -19,10 +19,15 @@ export const useAuthStore = defineStore('auth', {
         return this.user
       }
       catch (error) {
-        if (error?.statusCode === 401 || error?.status === 401)
+        const status = error?.statusCode ?? error?.status ?? error?.response?.status
+
+        if (status === 401) {
           this.user = null
-        else
+          this.errors = {}
+        }
+        else {
           this.errors = error?.data?.errors || { general: [error?.data?.message || 'Unable to load profile.'] }
+        }
 
         return null
       }

@@ -30,5 +30,15 @@ export default defineEventHandler(async event => {
 
   target.search = incoming.search
 
-  return proxyRequest(event, target.toString())
+  // h3 strips `accept` from proxied headers by default, which makes Laravel
+  // treat SPA XHR as a browser form post (redirect → followed → 401, session lost).
+  // Re-attach Accept and never follow redirects so Set-Cookie from login survives.
+  return proxyRequest(event, target.toString(), {
+    headers: {
+      accept: accept || 'application/json',
+    },
+    fetchOptions: {
+      redirect: 'manual',
+    },
+  })
 })

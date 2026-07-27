@@ -16,7 +16,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): RedirectResponse|JsonResponse
     {
-        if ($request->wantsJson()) {
+        if ($request->expectsJson()) {
             return response()->json(['message' => 'Use the SPA login page.'], 404);
         }
 
@@ -29,7 +29,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->wantsJson()) {
+        if ($request->expectsJson()) {
             return response()->json([
                 'data' => [
                     'id' => $request->user()?->id,
@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if ($request->wantsJson()) {
+        if ($request->expectsJson()) {
             return response()->json(status: 204);
         }
 
