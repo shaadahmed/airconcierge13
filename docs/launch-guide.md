@@ -1,40 +1,18 @@
 # Air Concierge — Local launch guide
 
-Step-by-step instructions to run the Laravel 13 API + Nuxt 3 admin SPA locally and open it in a browser.
+Run the Laravel 13 API + Nuxt 3 admin SPA locally and open it in a browser.
 
-**Use this URL for day-to-day checking:** [http://localhost:3000](http://localhost:3000)
+| Piece | Role | Default URL |
+|-------|------|-------------|
+| **Nuxt** (`frontend/`) | Interactive admin UI — use this every day | [http://localhost:3000](http://localhost:3000) |
+| **Laravel** (Sail) | API, auth, domain logic | [http://localhost:8080](http://localhost:8080) |
+| **Mailpit** | Outbound mail UI | [http://localhost:8025](http://localhost:8025) (or your `FORWARD_MAILPIT_DASHBOARD_PORT`) |
 
-Laravel is the API/auth backend. Nuxt is the interactive UI.
+```text
+Browser  →  Nuxt :3000  →  (proxy)  →  Laravel :8080  →  MySQL + Redis
+```
 
-**Status key (this machine, as of last update):**
-
-- ✅ = already done
-- ⬜ = still needs to be done
-
----
-
-## Your current checklist
-
-| Step | Status | Notes |
-|------|--------|--------|
-| Prerequisites (Docker / Node / Git) | ✅ | Assumed available — Docker is running |
-| Laravel `.env` exists | ✅ | Copied / present at project root |
-| `APP_URL=http://localhost:8080` | ✅ | Set in `.env` |
-| `APP_PORT=8080` | ✅ | Set in `.env` |
-| `FRONTEND_URL=http://localhost:3000` | ✅ | Set in `.env` |
-| `SANCTUM_STATEFUL_DOMAINS` (incl. `:3000` / `:8080`) | ✅ | Set in `.env` |
-| Forwarded host ports (DB/Redis/Mailpit) | ✅ | `3307` / `6380` / `8026` — avoids local conflicts |
-| `APP_KEY` generated | ✅ | Present in `.env` |
-| `vendor/` + Sail installed | ✅ | `vendor/bin/sail` present |
-| Sail stack running | ✅ | App, MySQL, Redis, scheduler, Mailpit up; Laravel on **8080** |
-| Migrations run | ✅ | All live migrations Ran |
-| Database seeded (`test@example.com`) | ✅ | Superadmin + owner agreement content seeded via Sail |
-| Browse DB (HeidiSQL / desktop client) | ✅ | HeidiSQL available; see [Browse the database](#browse-the-database) |
-| Temporary Adminer (browser UI) | ✅ | Optional; instructions documented — run when needed |
-| `frontend/.env` | ✅ | Copied from `.env.example` (`NUXT_LARAVEL_URL=http://localhost:8080`) |
-| `frontend/node_modules` | ✅ | Already installed |
-| Nuxt `npm run dev` | ⬜ | Start with `npm run dev` in `frontend/` |
-| Open UI + log in | ⬜ | After Nuxt is running |
+You do **not** need PHP or Composer on the host — Sail runs them inside Docker.
 
 ---
 
@@ -42,52 +20,46 @@ Laravel is the API/auth backend. Nuxt is the interactive UI.
 
 | Tool | Notes |
 |------|--------|
-| **Docker Desktop** | Must be running. On Windows, WSL2 backend is recommended. |
+| **Docker Desktop** | Must be running before any Sail/compose command. On Windows, WSL2 backend is recommended. |
 | **Node.js** | 18+ on the host (for Nuxt). |
 | **Git** | Project clone. Git Bash or WSL helps if Sail scripts fail in PowerShell. |
-
-You do **not** need PHP or Composer on the host — Sail runs them inside Docker.
 
 ---
 
 ## First-time setup
 
-Do this once after cloning (or after deleting `vendor/` / wiping the DB).
+Do this once after cloning (or after deleting `vendor/` / wiping the database).
 
-### 1. Open a terminal at the project root — ✅
+Commands below use **PowerShell** at the project root. On bash / Git Bash, use `cp` instead of `Copy-Item` and `./vendor/bin/sail` instead of `.\vendor\bin\sail`.
+
+### Step 1 — Open a terminal at the project root
 
 ```text
 E:\airconcierge13
 ```
 
-### 2. Create Laravel `.env` — ✅
+(Use your actual clone path.)
 
-Already present. (For a fresh clone only:)
-
-**PowerShell:**
+### Step 2 — Create Laravel `.env`
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-**bash / Git Bash:**
+Skip if `.env` already exists.
 
-```bash
-cp .env.example .env
-```
+### Step 3 — Set ports and CORS-related env
 
-### 3. Set the app port and related env — ✅
-
-Already set in your `.env`:
+`.env.example` already points Laravel at **8080** and the SPA at **3000**. Confirm these values in the root `.env` (add `APP_PORT` if missing — Sail defaults to port 80 without it):
 
 ```env
 APP_URL=http://localhost:8080
-FRONTEND_URL=http://localhost:3000
 APP_PORT=8080
+FRONTEND_URL=http://localhost:3000
 SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,localhost:8080,127.0.0.1,127.0.0.1:3000,127.0.0.1:8080
 ```
 
-Your forwarded ports (also ✅):
+If host ports clash (common on Windows), set forwarded ports in the same `.env`:
 
 ```env
 FORWARD_DB_PORT=3307
@@ -98,27 +70,27 @@ FORWARD_MAILPIT_DASHBOARD_PORT=8026
 
 Leave Hostaway / Zoho / Slack / Google Drive keys empty unless you are testing those integrations.
 
-### 4. Install PHP dependencies — ✅
-
-`vendor/` is present. (Only if missing:)
+### Step 4 — Install PHP dependencies
 
 ```powershell
 docker compose run --rm laravel.test composer install
 ```
 
-### 5. Start Sail — ✅ (currently running)
+This creates `vendor/` (including `vendor/bin/sail`).
 
-Already up. To start again later:
+### Step 5 — Start Sail
 
 ```powershell
 .\vendor\bin\sail up -d
 ```
 
-If that fails on Windows PowerShell, try one of:
+If that fails on Windows PowerShell, try:
 
 ```powershell
 bash vendor/bin/sail up -d
 ```
+
+or:
 
 ```powershell
 docker compose up -d
@@ -126,34 +98,23 @@ docker compose up -d
 
 Sail starts:
 
-- App (`laravel.test`) → host **8080**
+- App (`laravel.test`) → host **8080** (when `APP_PORT=8080`)
 - MySQL (`airconcierge`)
 - Redis (session, cache, queue)
-- Queue worker (`queue:work`) — if defined in compose
-- Scheduler (`schedule:work`)
-- Mailpit → dashboard **http://localhost:8026** (your forwarded port)
+- Queue worker / scheduler (if defined in compose)
+- Mailpit → dashboard on **8025** by default, or your `FORWARD_MAILPIT_DASHBOARD_PORT`
 
-### 6. Generate app key, migrate, and seed — ✅
+### Step 6 — Generate app key, migrate, and seed
 
-| Sub-step | Status |
-|----------|--------|
-| `key:generate` | ✅ |
-| `migrate` | ✅ |
-| `db:seed` | ✅ |
-
-Already seeded on this machine. To re-seed (or after a DB wipe), use **Sail** — not host `php` (host PHP may be below 8.4 and will fail Composer’s platform check):
+Always use **Sail** for Artisan — not host `php` (this project needs PHP ≥ 8.4.1 inside the container):
 
 ```powershell
+.\vendor\bin\sail artisan key:generate
+.\vendor\bin\sail artisan migrate
 .\vendor\bin\sail artisan db:seed
 ```
 
-Or:
-
-```powershell
-docker compose exec -T laravel.test php artisan db:seed
-```
-
-### 7. Seed login (local QA only) — ✅ ready
+### Step 7 — Note the local login
 
 | Field | Value |
 |-------|--------|
@@ -161,137 +122,70 @@ docker compose exec -T laravel.test php artisan db:seed
 | Password | `password` |
 | Role | `superadmin` |
 
-Use only on local/dev.
+Local/dev only.
 
-### 8. Start the Nuxt frontend — ⬜ partly done
-
-| Sub-step | Status |
-|----------|--------|
-| `frontend/.env` | ✅ |
-| `npm install` | ✅ |
-| `npm run dev` | ⬜ |
+### Step 8 — Set up the Nuxt frontend
 
 In a **second** terminal:
 
 ```powershell
 cd frontend
-npm run dev
+Copy-Item .env.example .env
+npm install
 ```
 
-(`frontend/.env` and `npm install` already done; re-copy `.env` or re-run install only if missing.)
-
-Frontend `.env` must be:
+Confirm `frontend/.env` contains:
 
 ```env
 NUXT_LARAVEL_URL=http://localhost:8080
 ```
 
+(`npm install` also runs icon generation via `postinstall`.)
+
+### Step 9 — Start Nuxt
+
+Still in `frontend/`:
+
+```powershell
+npm run dev
+```
+
 Nuxt proxies `/sanctum`, `/login`, `/logout`, and `/admin` to Laravel.
 
----
+### Step 10 — Open the app and log in
 
-## What you still need to do (short path)
-
-1. ⬜ Start Nuxt:
-   ```powershell
-   cd frontend
-   npm run dev
-   ```
-2. ⬜ Open http://localhost:3000 and log in with `test@example.com` / `password`
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Sign in with `test@example.com` / `password`
+3. You should land on the admin dashboard (`/admin/dashboard`)
 
 ---
 
 ## Daily launch (after first setup)
 
-### Terminal 1 — Laravel / Sail — ✅ right now
+### Terminal 1 — Laravel / Sail
 
 ```powershell
 cd E:\airconcierge13
 .\vendor\bin\sail up -d
 ```
 
-### Terminal 2 — Nuxt — ⬜
+### Terminal 2 — Nuxt
 
 ```powershell
 cd E:\airconcierge13\frontend
 npm run dev
 ```
 
-### Open in the browser — ⬜
+### Browser
 
 | What | URL |
 |------|-----|
 | **Admin UI (preferred)** | http://localhost:3000 |
 | Laravel API (direct) | http://localhost:8080 |
-| Mailpit (outbound mail UI) | http://localhost:8026 |
-| Adminer (optional; only while container is running) | http://localhost:8082 |
+| Mailpit | http://localhost:8025 (or your forwarded dashboard port) |
+| Adminer (optional; only while its container is running) | http://localhost:8082 |
 
-1. Open http://localhost:3000  
-2. Sign in with `test@example.com` / `password`  
-3. You should land on the admin dashboard  
-
----
-
-## Browse the database
-
-There is no built-in phpMyAdmin in this Sail setup. Use a **desktop client** (recommended) or a **temporary Adminer** container (browser UI, closest to XAMPP’s phpMyAdmin). Neither requires changing the repo.
-
-Sail must be running (`mysql` healthy).
-
-### Connection settings (desktop client → host)
-
-| Field | Value |
-|-------|--------|
-| Host / hostname | `127.0.0.1` |
-| Port | `3307` (`FORWARD_DB_PORT` in `.env`) |
-| Database | `airconcierge` |
-| Username | `sail` |
-| Password | `password` |
-
-Use the values from your root `.env` if you changed `DB_*` or `FORWARD_DB_PORT`.
-
-### HeidiSQL (Windows example) — ✅ available on this machine
-
-1. Install HeidiSQL if needed: `winget install --id HeidiSQL.HeidiSQL -e`
-2. New session → **MySQL (TCP/IP)**.
-3. Enter the desktop-client settings above → **Open**.
-4. Select the `airconcierge` database in the left pane.
-
-### Temporary Adminer (browser UI, no repo changes)
-
-Throwaway container — does **not** edit `compose.yaml` or project files. Sail’s MySQL must already be up.
-
-**Start:**
-
-```powershell
-docker run --rm -d --name airconcierge-adminer -p 8082:8080 --network airconcierge13_sail adminer
-```
-
-**Open:** [http://localhost:8082](http://localhost:8082)
-
-| Field | Value |
-|-------|--------|
-| System | **MySQL** |
-| Server | **mysql** (Docker service name on the Sail network — not `127.0.0.1`) |
-| Username | `sail` |
-| Password | `password` |
-| Database | `airconcierge` |
-
-**Stop** (when finished):
-
-```powershell
-docker stop airconcierge-adminer
-```
-
-If the network name differs on your machine, list networks with `docker network ls` and look for a `*sail*` network for this project.
-
-### CLI alternative (no GUI)
-
-```powershell
-docker compose exec -T mysql mysql -usail -ppassword airconcierge
-```
-
-If the `users` table is empty, re-run seed via Sail: `.\vendor\bin\sail artisan db:seed` so `test@example.com` exists.
+Login: `test@example.com` / `password`
 
 ---
 
@@ -313,20 +207,81 @@ docker compose stop
 
 ---
 
+## Browse the database
+
+There is no built-in phpMyAdmin. Use a desktop client (recommended) or a temporary Adminer container. Sail must be running (`mysql` healthy).
+
+### Connection settings (desktop client → host)
+
+| Field | Value |
+|-------|--------|
+| Host / hostname | `127.0.0.1` |
+| Port | `3306` by default, or your `FORWARD_DB_PORT` (e.g. `3307`) |
+| Database | `airconcierge` |
+| Username | `sail` |
+| Password | `password` |
+
+Use the values from your root `.env` if you changed `DB_*` or `FORWARD_DB_PORT`.
+
+### HeidiSQL (Windows example)
+
+1. Install if needed: `winget install --id HeidiSQL.HeidiSQL -e`
+2. New session → **MySQL (TCP/IP)**
+3. Enter the settings above → **Open**
+4. Select the `airconcierge` database
+
+### Temporary Adminer (browser UI, no repo changes)
+
+Throwaway container — does **not** edit compose or project files.
+
+**Start:**
+
+```powershell
+docker run --rm -d --name airconcierge-adminer -p 8082:8080 --network airconcierge13_sail adminer
+```
+
+**Open:** [http://localhost:8082](http://localhost:8082)
+
+| Field | Value |
+|-------|--------|
+| System | **MySQL** |
+| Server | **mysql** (Docker service name on the Sail network — not `127.0.0.1`) |
+| Username | `sail` |
+| Password | `password` |
+| Database | `airconcierge` |
+
+**Stop:**
+
+```powershell
+docker stop airconcierge-adminer
+```
+
+If the network name differs, run `docker network ls` and look for a `*sail*` network for this project.
+
+### CLI alternative
+
+```powershell
+docker compose exec -T mysql mysql -usail -ppassword airconcierge
+```
+
+If the `users` table is empty, re-seed via Sail: `.\vendor\bin\sail artisan db:seed`.
+
+---
+
 ## Optional checks
 
 ```powershell
-docker compose exec -T laravel.test php artisan about
-docker compose exec -T laravel.test php artisan route:list --path=login
-docker compose exec -T laravel.test php artisan test --compact
+.\vendor\bin\sail artisan about
+.\vendor\bin\sail artisan route:list --path=login
+.\vendor\bin\sail artisan test --compact
 ```
 
 Quality gates (also used in CI):
 
 ```powershell
-docker compose exec -T laravel.test ./vendor/bin/pint --test
-docker compose exec -T laravel.test ./vendor/bin/phpstan analyse --memory-limit=1G
-docker compose exec -T laravel.test php artisan test --compact
+.\vendor\bin\sail bin pint --test
+.\vendor\bin\sail bin phpstan analyse --memory-limit=1G
+.\vendor\bin\sail artisan test --compact
 ```
 
 ---
@@ -336,28 +291,24 @@ docker compose exec -T laravel.test php artisan test --compact
 | Symptom | What to do |
 |---------|------------|
 | Redis / session 500s | Sail is down or Redis not ready — run `sail up -d` and wait. |
-| Login or CSRF fails from `:3000` | Laravel must be on **8080**. Set `APP_PORT=8080`, keep `APP_URL` / `NUXT_LARAVEL_URL` in sync, restart Sail and Nuxt. |
+| Login or CSRF fails from `:3000` | Laravel must match Nuxt’s proxy target. Keep `APP_PORT`, `APP_URL`, and `NUXT_LARAVEL_URL` in sync (default **8080**), then restart Sail and Nuxt. |
 | Port 80, 8080, or 3306 already in use | Change `APP_PORT` and/or `FORWARD_DB_PORT` in `.env`; update `APP_URL` and `NUXT_LARAVEL_URL` to match. |
 | `vendor/bin/sail` missing | Run `docker compose run --rm laravel.test composer install`. |
-| Cannot log in / no users | Re-run `.\vendor\bin\sail artisan db:seed`. Do **not** use host `php artisan` — this project needs PHP ≥ 8.4.1 inside Sail. |
+| Cannot log in / no users | Re-run `.\vendor\bin\sail artisan db:seed`. Do **not** use host `php artisan`. |
 | `PHP version ">= 8.4.1"` / platform_check | You ran Artisan on the host. Use Sail: `.\vendor\bin\sail artisan …` |
-| Cannot connect HeidiSQL / desktop client | Sail MySQL must be up; use port **3307** (not 3306) and host `127.0.0.1`. |
-| Adminer “could not connect” | Use server name **`mysql`**, not `127.0.0.1`; ensure `--network` matches this project’s Sail network; container must be running. |
+| Cannot connect HeidiSQL / desktop client | Sail MySQL must be up; use `FORWARD_DB_PORT` (often **3307**), host `127.0.0.1`. |
+| Adminer “could not connect” | Use server name **`mysql`**, not `127.0.0.1`; ensure `--network` matches this project’s Sail network. |
 | Docker / compose errors | Start Docker Desktop and wait until it is fully running. |
-| Vite / asset errors on Laravel-only pages | Usually irrelevant for Nuxt UI; for Blade/PDF assets: `sail npm run build` if needed. |
-| Nuxt 500: `[ERR_LOAD_URL] @/plugins/iconify/icons.css` | Generated file missing (gitignored). From `frontend/`: `npm run build:icons`, then restart `npm run dev`. |
-| Nuxt 500 / “Page not found: /dashboard” | Use `/admin/dashboard` (or open `/` — it redirects there). Auth required; guests go to `/login`. |
+| Vite / asset errors on Laravel-only pages | Usually irrelevant for Nuxt UI; for Blade/PDF assets: `.\vendor\bin\sail npm run build` if needed. |
+| Nuxt 500: `[ERR_LOAD_URL] @/plugins/iconify/icons.css` | Generated file missing. From `frontend/`: `npm run build:icons`, then restart `npm run dev`. |
+| Nuxt 500 / “Page not found: /dashboard” | Use `/admin/dashboard` (or open `/` — it redirects). Guests go to `/login`. |
 
 ---
 
-## Architecture reminder (local)
+## Architecture reminder
 
-```text
-Browser  →  Nuxt :3000  →  (proxy)  →  Laravel :8080  →  MySQL + Redis
-```
-
-- Controllers / auth / domain logic: Laravel  
-- Interactive admin screens: Nuxt under `frontend/`  
-- Remaining Blade under `resources/views`: email / PDF templates only  
+- Controllers / auth / domain logic: Laravel
+- Interactive admin screens: Nuxt under `frontend/`
+- Remaining Blade under `resources/views`: email / PDF templates only
 
 More detail: [`technical-documentation.md`](technical-documentation.md), [`user-documentation.md`](user-documentation.md), root [`README.md`](../README.md).
