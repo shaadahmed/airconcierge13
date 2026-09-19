@@ -1,4 +1,6 @@
 <script setup>
+import { APP_BRAND_NAME } from '@/constants/brand.js'
+
 const auth = useAuthStore()
 
 onMounted(() => {
@@ -16,7 +18,7 @@ definePageMeta({ layout: 'blank' })
       max-width="560"
     >
       <VCardTitle class="text-h3">
-        Air Concierge
+        {{ APP_BRAND_NAME }}
       </VCardTitle>
       <VCardText>Property operations, bookings, payments, and owner communications.</VCardText>
       <BaseLink

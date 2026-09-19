@@ -1,4 +1,5 @@
 <script setup>
+import { APP_BRAND_NAME } from '@/constants/brand.js'
 import NavItems from '@/layouts/components/NavItems.vue'
 import logo from '@images/logo.svg?raw'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
@@ -69,7 +70,7 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
         <!-- eslint-enable -->
 
         <h1 class="app-logo-title">
-          sneat
+          {{ APP_BRAND_NAME }}
         </h1>
       </NuxtLink>
 
@@ -112,9 +113,8 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
 
   .app-logo-title {
     font-size: 1.25rem;
-    font-weight: 500;
-    line-height: 1.75rem;
-    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 1.35rem;
   }
 }
 </style>

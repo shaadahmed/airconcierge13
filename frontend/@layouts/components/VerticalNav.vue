@@ -1,6 +1,7 @@
 <script setup>
 import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
 import { useDisplay } from 'vuetify'
+import { APP_BRAND_NAME } from '@/constants/brand.js'
 import logo from '@images/logo.svg?raw'
 
 const props = defineProps({
@@ -65,8 +66,8 @@ const handleNavScroll = evt => {
             v-html="logo"
           />
 
-          <h1 class="leading-normal">
-            sneat
+          <h1 class="app-logo-title leading-normal">
+            {{ APP_BRAND_NAME }}
           </h1>
         </NuxtLink>
       </slot>

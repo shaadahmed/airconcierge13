@@ -11,6 +11,8 @@ pnpm install           # or npm install
 pnpm dev               # http://localhost:3000
 ```
 
+Use the **`frontend/`** app (not `nuxtjs-theme/`). Open **http://localhost:3000** after `dev` starts; Laravel Sail alone does not serve the Nuxt UI.
+
 Ensure Sail Laravel is up on port **8080**. Dev proxy forwards `/sanctum`, `/login`, `/logout`, `/admin` to Laravel.
 
 ## Architecture

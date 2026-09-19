@@ -1,4 +1,6 @@
 <script setup>
+import { APP_BRAND_NAME } from '@/constants/brand.js'
+
 const auth = useAuthStore()
 
 const form = ref({
@@ -36,7 +38,7 @@ definePageMeta({ layout: 'blank', middleware: 'guest' })
             class="app-logo"
           >
             <h1 class="app-logo-title">
-              Air Concierge
+              {{ APP_BRAND_NAME }}
             </h1>
           </BaseLink>
         </VCardItem>
@@ -46,7 +48,7 @@ definePageMeta({ layout: 'blank', middleware: 'guest' })
             Welcome back
           </h4>
           <p class="mb-0">
-            Sign in to manage Air Concierge.
+            Sign in to manage {{ APP_BRAND_NAME }}.
           </p>
         </VCardText>
 

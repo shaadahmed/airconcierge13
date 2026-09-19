@@ -1,6 +1,7 @@
 ﻿import svgLoader from 'vite-svg-loader'
 import vuetify from 'vite-plugin-vuetify'
 import { fileURLToPath } from 'node:url'
+import { APP_BRAND_NAME } from './constants/brand.js'
 
 const laravelUrl = process.env.NUXT_LARAVEL_URL || 'http://localhost:8080'
 const proxyPaths = ['/sanctum', '/login', '/logout', '/admin']
@@ -36,13 +37,14 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: '',
+      appName: process.env.NUXT_PUBLIC_APP_NAME || APP_BRAND_NAME,
     },
   },
 
   app: {
     head: {
-      titleTemplate: '%s - Air Concierge',
-      title: 'Air Concierge',
+      titleTemplate: `%s - ${APP_BRAND_NAME}`,
+      title: APP_BRAND_NAME,
 
       link: [{
         rel: 'icon',
