@@ -14,11 +14,23 @@ export const useBookingsStore = defineStore('bookings', {
         this.current = (await bookingService.get(id)).data
       })
     },
+    async create(data) {
+      return this.run(async () => {
+        this.current = (await bookingService.create(data)).data
+
+        return this.current
+      })
+    },
     async save(id, data) {
       return this.run(async () => {
         this.current = (await bookingService.update(id, data)).data
 
         return this.current
+      })
+    },
+    async remove(id) {
+      return this.run(async () => {
+        await bookingService.remove(id)
       })
     },
     async run(callback) {

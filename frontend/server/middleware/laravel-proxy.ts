@@ -11,15 +11,11 @@ function isDocumentNavigation(accept: string, secFetchDest: string, secFetchMode
 }
 
 /**
- * Only treat as API when the SPA client signals it (http.js sets both).
- * Do not match application/json alone — browsers may list it in Accept
- * during document navigations and that used to yield {"data":[]}.
+ * SPA http.js always sets X-Requested-With. Require that signal so bare
+ * Accept: application/json (or browser quirks) cannot hard-refresh into Laravel JSON.
  */
-function isApiRequest(accept: string, requestedWith: string): boolean {
-  if (requestedWith.toLowerCase() === 'xmlhttprequest')
-    return true
-
-  return accept.includes('application/json') && !accept.includes('text/html')
+function isApiRequest(requestedWith: string): boolean {
+  return requestedWith.toLowerCase() === 'xmlhttprequest'
 }
 
 /**
@@ -42,12 +38,11 @@ export default defineEventHandler(async event => {
   if (isDocumentNavigation(accept, secFetchDest, secFetchMode))
     return
 
-  // SPA owns the login page; Laravel only handles POST /login (and JSON).
+  // SPA owns the login page; Laravel only handles POST /login (and JSON XHR).
   if ((path === '/login' || path.startsWith('/login?')) && method === 'GET')
     return
 
-  // Without an explicit SPA API signal, keep the request on Nuxt.
-  if (!isApiRequest(accept, requestedWith))
+  if (!isApiRequest(requestedWith))
     return
 
   const target = new URL(path, laravelUrl)

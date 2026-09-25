@@ -42,10 +42,8 @@ function laravelViteProxy() {
       if ((req.url === '/login' || req.url?.startsWith('/login?')) && method === 'GET')
         return req.url
 
-      const isApi = requestedWith.toLowerCase() === 'xmlhttprequest'
-        || (accept.includes('application/json') && !accept.includes('text/html'))
-
-      if (!isApi)
+      // Only SPA ofetch (X-Requested-With) reaches Laravel.
+      if (requestedWith.toLowerCase() !== 'xmlhttprequest')
         return req.url
     },
   }

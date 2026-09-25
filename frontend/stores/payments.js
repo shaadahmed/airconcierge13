@@ -17,8 +17,14 @@ export const usePaymentsStore = defineStore('payments', {
     async create(data) {
       return this.run(() => paymentService.create(data))
     },
+    async remove(id) {
+      return this.run(() => paymentService.remove(id))
+    },
     async createPropertyPayment(data) {
       return this.run(() => paymentService.createPropertyPayment(data))
+    },
+    async removePropertyPayment(id) {
+      return this.run(() => paymentService.removePropertyPayment(id))
     },
     async run(callback) {
       this.loading = true
