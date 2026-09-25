@@ -193,6 +193,7 @@ Route::middleware(['auth'])
         Route::put('settings/revenue/{revenueSetting}', [RevenueSettingsController::class, 'update'])->name('settings.revenue.update');
         Route::get('export/guestemailslist', [GuestController::class, 'exportEmails'])->name('export.guestemailslist');
         Route::get('properties/audit/list', [PropertyAuditController::class, 'index'])->name('properties.audit.list');
+        Route::post('properties/audit', [PropertyAuditController::class, 'store'])->name('properties.audit.store');
 
         Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');

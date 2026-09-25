@@ -4,12 +4,27 @@ const laravelUrl = process.env.NUXT_LARAVEL_URL || 'http://localhost:8080'
 
 const proxyPrefixes = ['/sanctum', '/login', '/logout', '/admin']
 
+function isDocumentNavigation(accept: string, secFetchDest: string, secFetchMode: string): boolean {
+  return secFetchDest === 'document'
+    || secFetchMode === 'navigate'
+    || accept.includes('text/html')
+}
+
+/**
+ * Only treat as API when the SPA client signals it (http.js sets both).
+ * Do not match application/json alone — browsers may list it in Accept
+ * during document navigations and that used to yield {"data":[]}.
+ */
+function isApiRequest(accept: string, requestedWith: string): boolean {
+  if (requestedWith.toLowerCase() === 'xmlhttprequest')
+    return true
+
+  return accept.includes('application/json') && !accept.includes('text/html')
+}
+
 /**
  * Proxy XHR/JSON to Laravel. Leave browser document navigations to the Nuxt SPA
- * so GET /login and GET /admin/* pages are not redirected in a loop.
- *
- * Prefer Sec-Fetch-* + explicit JSON Accept over "has text/html", because some
- * hard refreshes omit text/html and were incorrectly proxied to Laravel JSON.
+ * so GET /login and GET /admin/* hard refreshes are not forwarded as API calls.
  */
 export default defineEventHandler(async event => {
   const path = event.path || ''
@@ -24,19 +39,15 @@ export default defineEventHandler(async event => {
   const secFetchMode = getHeader(event, 'sec-fetch-mode') ?? ''
   const requestedWith = getHeader(event, 'x-requested-with') ?? ''
 
-  // Browser top-level navigations must always hit the SPA shell.
-  if (secFetchDest === 'document' || secFetchMode === 'navigate' || accept.includes('text/html'))
+  if (isDocumentNavigation(accept, secFetchDest, secFetchMode))
     return
 
   // SPA owns the login page; Laravel only handles POST /login (and JSON).
   if ((path === '/login' || path.startsWith('/login?')) && method === 'GET')
     return
 
-  const wantsJson = accept.includes('application/json')
-    || requestedWith.toLowerCase() === 'xmlhttprequest'
-
-  // GETs without an explicit API signal stay on Nuxt (fixes hard-refresh → {"data":[]}).
-  if (method === 'GET' && !wantsJson)
+  // Without an explicit SPA API signal, keep the request on Nuxt.
+  if (!isApiRequest(accept, requestedWith))
     return
 
   const target = new URL(path, laravelUrl)
