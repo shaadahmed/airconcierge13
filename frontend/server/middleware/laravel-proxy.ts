@@ -7,6 +7,9 @@ const proxyPrefixes = ['/sanctum', '/login', '/logout', '/admin']
 /**
  * Proxy XHR/JSON to Laravel. Leave browser document navigations to the Nuxt SPA
  * so GET /login and GET /admin/* pages are not redirected in a loop.
+ *
+ * Prefer Sec-Fetch-* + explicit JSON Accept over "has text/html", because some
+ * hard refreshes omit text/html and were incorrectly proxied to Laravel JSON.
  */
 export default defineEventHandler(async event => {
   const path = event.path || ''
@@ -17,12 +20,23 @@ export default defineEventHandler(async event => {
 
   const accept = getHeader(event, 'accept') ?? ''
   const method = event.method || 'GET'
+  const secFetchDest = getHeader(event, 'sec-fetch-dest') ?? ''
+  const secFetchMode = getHeader(event, 'sec-fetch-mode') ?? ''
+  const requestedWith = getHeader(event, 'x-requested-with') ?? ''
 
-  if (accept.includes('text/html'))
+  // Browser top-level navigations must always hit the SPA shell.
+  if (secFetchDest === 'document' || secFetchMode === 'navigate' || accept.includes('text/html'))
     return
 
   // SPA owns the login page; Laravel only handles POST /login (and JSON).
   if ((path === '/login' || path.startsWith('/login?')) && method === 'GET')
+    return
+
+  const wantsJson = accept.includes('application/json')
+    || requestedWith.toLowerCase() === 'xmlhttprequest'
+
+  // GETs without an explicit API signal stay on Nuxt (fixes hard-refresh → {"data":[]}).
+  if (method === 'GET' && !wantsJson)
     return
 
   const target = new URL(path, laravelUrl)

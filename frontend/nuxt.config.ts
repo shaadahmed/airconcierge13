@@ -16,14 +16,32 @@ function laravelViteProxy() {
   return {
     target: laravelUrl,
     changeOrigin: true,
-    bypass(req: { headers: { accept?: string }, method?: string, url?: string }) {
+    bypass(req: {
+      headers: {
+        accept?: string
+        'sec-fetch-dest'?: string
+        'sec-fetch-mode'?: string
+        'x-requested-with'?: string
+      }
+      method?: string
+      url?: string
+    }) {
       const accept = req.headers.accept ?? ''
       const method = req.method ?? 'GET'
+      const secFetchDest = req.headers['sec-fetch-dest'] ?? ''
+      const secFetchMode = req.headers['sec-fetch-mode'] ?? ''
+      const requestedWith = req.headers['x-requested-with'] ?? ''
 
-      if (accept.includes('text/html'))
+      if (secFetchDest === 'document' || secFetchMode === 'navigate' || accept.includes('text/html'))
         return req.url
 
       if ((req.url === '/login' || req.url?.startsWith('/login?')) && method === 'GET')
+        return req.url
+
+      const wantsJson = accept.includes('application/json')
+        || requestedWith.toLowerCase() === 'xmlhttprequest'
+
+      if (method === 'GET' && !wantsJson)
         return req.url
     },
   }
