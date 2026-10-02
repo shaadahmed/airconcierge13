@@ -1,7 +1,7 @@
 <script setup>
 const properties = usePropertiesStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create' | 'detail'>} */
 const panelMode = ref('dashboard')
 
 const form = reactive({
@@ -24,6 +24,7 @@ const filters = reactive({
 })
 
 const editingId = ref(null)
+const selectedId = ref(null)
 const confirmDelete = reactive({ open: false, id: null })
 
 const allRows = computed(() => {
@@ -235,18 +236,33 @@ const activityChartOptions = computed(() => ({
   },
 }))
 
+const selectedProperty = computed(() => {
+  if (selectedId.value == null)
+    return null
+
+  return allRows.value.find(property => property.id === selectedId.value) || null
+})
+
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter properties'
   if (panelMode.value === 'create')
     return editingId.value ? 'Edit property' : 'Create property'
+  if (panelMode.value === 'detail')
+    return selectedProperty.value?.property_title || 'Property details'
 
   return 'Property overview'
 })
 
+const propertyLocation = property => {
+  const parts = [property?.city, property?.state].filter(Boolean)
+
+  return parts.length ? parts.join(', ') : (property?.street_address || '—')
+}
+
 const openPanel = mode => {
   if (panelMode.value === mode) {
-    panelMode.value = 'dashboard'
+    panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
 
     return
   }
@@ -254,7 +270,20 @@ const openPanel = mode => {
   if (mode === 'create' && panelMode.value !== 'create')
     resetForm()
 
+  if (mode === 'create')
+    selectedId.value = null
+
   panelMode.value = mode
+}
+
+const selectProperty = property => {
+  selectedId.value = property.id
+  panelMode.value = 'detail'
+}
+
+const closeDetail = () => {
+  selectedId.value = null
+  panelMode.value = 'dashboard'
 }
 
 const clearFilters = () => {
@@ -285,6 +314,7 @@ const resetForm = () => {
 
 const edit = property => {
   editingId.value = property.id
+  selectedId.value = property.id
   Object.assign(form, {
     property_title: property.property_title || '',
     region_id: property.region_id || '',
@@ -301,7 +331,7 @@ const edit = property => {
 
 const cancelCreate = () => {
   resetForm()
-  panelMode.value = 'dashboard'
+  panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
 }
 
 const submit = async () => {
@@ -318,8 +348,10 @@ const submit = async () => {
     else
       await properties.create(payload)
 
+    const keepSelectedId = editingId.value
     resetForm()
-    panelMode.value = 'dashboard'
+    selectedId.value = keepSelectedId
+    panelMode.value = keepSelectedId != null ? 'detail' : 'dashboard'
     await properties.load()
   }
   catch {
@@ -334,8 +366,11 @@ const askDelete = id => {
 
 const onDelete = async () => {
   try {
-    await properties.remove(confirmDelete.id)
+    const deletedId = confirmDelete.id
+    await properties.remove(deletedId)
     confirmDelete.open = false
+    if (selectedId.value === deletedId)
+      closeDetail()
     await properties.load()
   }
   catch {
@@ -356,65 +391,96 @@ definePageMeta({ middleware: 'auth' })
     <VRow>
       <VCol
         cols="12"
-        md="8"
+        md="4"
       >
-        <DataTableShell
-          title="All properties"
-          :loading="properties.loading"
-          :empty="rows.length === 0"
-          :empty-colspan="5"
-          empty-title="No properties found"
-          :empty-description="allRows.length && rows.length === 0 ? 'No properties match the current filters.' : ''"
-        >
-          <template #head>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>City</th>
-                <th>Status</th>
-                <th>Region</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-          </template>
+        <VCard class="property-list-card">
+          <VCardItem>
+            <VCardTitle>All properties</VCardTitle>
+          </VCardItem>
 
-          <tr
-            v-for="property in rows"
-            :key="property.id"
-          >
-            <td>{{ property.property_title }}</td>
-            <td>{{ property.city || '—' }}</td>
-            <td>{{ property.status ? 'Live' : 'Inactive' }}</td>
-            <td>{{ property.region?.name || property.region_id || '—' }}</td>
-            <td class="text-no-wrap">
-              <BaseButton
-                size="small"
+          <VCardText class="pb-2">
+            <BaseInput
+              v-model="filters.title"
+              placeholder="Search properties..."
+              size="small"
+              hide-details
+              prepend-inner-icon="bx-search"
+            />
+          </VCardText>
+
+          <VProgressLinear
+            v-if="properties.loading"
+            indeterminate
+          />
+
+          <div class="property-list">
+            <button
+              v-for="property in rows"
+              :key="property.id"
+              type="button"
+              class="property-list-item"
+              :class="{ 'property-list-item--selected': selectedId === property.id }"
+              @click="selectProperty(property)"
+            >
+              <VAvatar
+                size="44"
+                rounded="lg"
+                class="property-list-item__thumb"
+                color="primary"
                 variant="tonal"
-                label="Edit"
-                class="me-2"
-                @click="edit(property)"
+              >
+                <VImg
+                  v-if="property.property_image_url"
+                  :src="property.property_image_url"
+                  cover
+                />
+                <VIcon
+                  v-else
+                  icon="bx-home-alt"
+                  size="22"
+                />
+              </VAvatar>
+
+              <div class="property-list-item__body">
+                <div class="property-list-item__title text-truncate">
+                  {{ property.property_title }}
+                </div>
+                <VChip
+                  size="x-small"
+                  :color="property.status ? 'success' : 'secondary'"
+                  label
+                  class="mt-1"
+                >
+                  {{ property.status ? 'Active' : 'Inactive' }}
+                </VChip>
+              </div>
+
+              <VIcon
+                v-if="selectedId === property.id"
+                icon="bx-chevron-right"
+                size="20"
+                class="property-list-item__chevron"
               />
-              <BaseButton
-                size="small"
-                variant="tonal"
-                color="error"
-                label="Delete"
-                @click="askDelete(property.id)"
-              />
-            </td>
-          </tr>
-        </DataTableShell>
+            </button>
+
+            <EmptyState
+              v-if="!properties.loading && rows.length === 0"
+              title="No properties found"
+              :description="allRows.length && rows.length === 0 ? 'No properties match the current filters.' : ''"
+            />
+          </div>
+        </VCard>
       </VCol>
 
       <VCol
         cols="12"
-        md="4"
+        md="8"
       >
         <VCard>
           <VCardItem>
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
-              <div class="d-flex flex-wrap gap-2">
+              <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   size="small"
                   :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
@@ -425,19 +491,128 @@ definePageMeta({ middleware: 'auth' })
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  :variant="panelMode === 'create' && !editingId ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' && !editingId ? 'primary' : undefined"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
                 />
+                <template v-if="panelMode === 'detail' && selectedProperty">
+                  <BaseButton
+                    size="small"
+                    color="primary"
+                    label="Edit"
+                    prepend-icon="bx-edit"
+                    @click="edit(selectedProperty)"
+                  />
+                  <VBtn
+                    icon
+                    variant="text"
+                    size="small"
+                    aria-label="Close property details"
+                    @click="closeDetail"
+                  >
+                    <VIcon icon="bx-x" />
+                  </VBtn>
+                </template>
               </div>
             </template>
           </VCardItem>
 
           <VCardText>
+            <!-- Selected property detail -->
+            <div v-if="panelMode === 'detail' && selectedProperty">
+              <VImg
+                v-if="selectedProperty.property_image_url"
+                :src="selectedProperty.property_image_url"
+                height="220"
+                cover
+                class="rounded-lg mb-4"
+              />
+              <div
+                v-else
+                class="property-detail-placeholder rounded-lg mb-4 d-flex align-center justify-center"
+              >
+                <VIcon
+                  icon="bx-home-alt"
+                  size="48"
+                  class="text-medium-emphasis"
+                />
+              </div>
+
+              <div class="d-flex align-center flex-wrap gap-2 mb-1">
+                <h2 class="text-h5 mb-0">
+                  {{ selectedProperty.property_title }}
+                </h2>
+                <VChip
+                  size="small"
+                  :color="selectedProperty.status ? 'success' : 'secondary'"
+                  label
+                >
+                  {{ selectedProperty.status ? 'Active' : 'Inactive' }}
+                </VChip>
+              </div>
+
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                {{ propertyLocation(selectedProperty) }}
+              </p>
+
+              <div class="d-flex flex-column gap-2 mb-4">
+                <div class="d-flex align-center gap-2 text-body-2">
+                  <VIcon
+                    icon="bx-bed"
+                    size="18"
+                    class="text-medium-emphasis"
+                  />
+                  <span>{{ selectedProperty.bedrooms ?? 0 }} beds</span>
+                </div>
+                <div class="d-flex align-center gap-2 text-body-2">
+                  <VIcon
+                    icon="bx-droplet"
+                    size="18"
+                    class="text-medium-emphasis"
+                  />
+                  <span>{{ selectedProperty.bathrooms ?? 0 }} baths</span>
+                </div>
+                <div class="d-flex align-center gap-2 text-body-2">
+                  <VIcon
+                    icon="bx-map"
+                    size="18"
+                    class="text-medium-emphasis"
+                  />
+                  <span>{{ selectedProperty.region?.name || selectedProperty.region_id || '—' }}</span>
+                </div>
+                <div
+                  v-if="selectedProperty.street_address"
+                  class="d-flex align-center gap-2 text-body-2"
+                >
+                  <VIcon
+                    icon="bx-buildings"
+                    size="18"
+                    class="text-medium-emphasis"
+                  />
+                  <span>{{ selectedProperty.street_address }}{{ selectedProperty.zipcode ? `, ${selectedProperty.zipcode}` : '' }}</span>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2">
+                <BaseButton
+                  color="primary"
+                  label="Edit property"
+                  prepend-icon="bx-edit"
+                  @click="edit(selectedProperty)"
+                />
+                <BaseButton
+                  variant="tonal"
+                  color="error"
+                  label="Delete"
+                  @click="askDelete(selectedProperty.id)"
+                />
+              </div>
+            </div>
+
             <!-- Mini dashboard -->
-            <div v-if="panelMode === 'dashboard'">
+            <div v-else-if="panelMode === 'dashboard'">
               <p class="text-body-2 text-medium-emphasis mb-4">
                 Snapshot for {{ monthBounds.label }}
               </p>
@@ -592,7 +767,7 @@ definePageMeta({ middleware: 'auth' })
             </div>
 
             <!-- Create / edit panel -->
-            <div v-else>
+            <div v-else-if="panelMode === 'create'">
               <AppAlert :errors="properties.errors" />
               <VForm @submit.prevent="submit">
                 <BaseInput
@@ -675,6 +850,69 @@ definePageMeta({ middleware: 'auth' })
 </template>
 
 <style scoped>
+.property-list-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 160px);
+}
+
+.property-list {
+  overflow-y: auto;
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.property-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.property-list-item:hover {
+  background: rgba(105, 108, 255, 0.04);
+}
+
+.property-list-item--selected {
+  background: rgba(105, 108, 255, 0.1);
+  border-color: rgba(105, 108, 255, 0.45);
+}
+
+.property-list-item__thumb {
+  flex-shrink: 0;
+}
+
+.property-list-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.property-list-item__title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.property-list-item__chevron {
+  flex-shrink: 0;
+  color: rgb(var(--v-theme-primary));
+}
+
+.property-detail-placeholder {
+  height: 180px;
+  background: rgba(75, 70, 92, 0.06);
+}
+
 .property-stat-tile {
   border: 1px solid rgba(75, 70, 92, 0.08);
   background: rgba(75, 70, 92, 0.03);

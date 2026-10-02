@@ -68,4 +68,19 @@ Or copy only the files you changed. Docker will then reload from `/home/pc/…`.
 
 ## Decision
 
-_Choose option 1, 2, or 3 when ready, then update this doc with what was implemented._
+**Implemented: option 1** (point Docker at the Windows tree).
+
+Nuxt container `airconcierge-nuxt` mounts:
+
+```text
+/mnt/e/airconcierge13/frontend              →  /app
+/home/pc/airconcierge13/frontend/node_modules →  /app/node_modules
+```
+
+- Source of truth for UI code: `E:\airconcierge13\frontend` (Cursor).
+- Linux `node_modules` stay on the WSL-native path (avoids Windows/Linux binary mismatch).
+- Env: `NUXT_LARAVEL_URL=http://laravel.test`, network `airconcierge13_sail`, port `3000`.
+
+Cursor edits on `E:` should hot-reload at http://localhost:3000 without rsync.
+
+If you recreate the container, use the same binds (and keep `node_modules` on `/home/pc/...`). If dependencies change, run `npm install` inside the container or on the WSL tree’s `frontend/`.
