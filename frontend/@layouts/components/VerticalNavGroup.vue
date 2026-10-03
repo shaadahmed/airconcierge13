@@ -4,28 +4,27 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  defaultOpen: {
+  open: {
     type: Boolean,
     default: false,
   },
 })
 
-const isOpen = ref(props.defaultOpen)
+const emit = defineEmits(['update:open'])
 
-watch(() => props.defaultOpen, value => {
-  if (value)
-    isOpen.value = true
-})
+const toggle = () => {
+  emit('update:open', !props.open)
+}
 </script>
 
 <template>
   <li
     class="nav-group"
-    :class="isOpen && 'open'"
+    :class="open && 'open'"
   >
     <div
       class="nav-group-label"
-      @click="isOpen = !isOpen"
+      @click="toggle"
     >
       <VIcon
         :icon="item.icon || 'bxs-circle'"

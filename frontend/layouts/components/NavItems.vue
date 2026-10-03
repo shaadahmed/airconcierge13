@@ -6,19 +6,37 @@ import { adminNavigationGroups } from '@/navigation/adminNavigation'
 const groups = adminNavigationGroups
 const route = useRoute()
 
-const isGroupOpen = group => {
-  const children = group.children || []
+const groupKey = group => group.id ?? group.title
 
-  return children.some(child => child.to && route.path.startsWith(child.to))
+const routeMatchedGroupKey = computed(() => {
+  const match = groups.find(group =>
+    (group.children || []).some(child => child.to && route.path.startsWith(child.to)),
+  )
+
+  return match ? groupKey(match) : null
+})
+
+const openGroupKey = ref(routeMatchedGroupKey.value)
+
+watch(routeMatchedGroupKey, key => {
+  if (key !== null)
+    openGroupKey.value = key
+})
+
+const setGroupOpen = (group, open) => {
+  const key = groupKey(group)
+
+  openGroupKey.value = open ? key : null
 }
 </script>
 
 <template>
   <VerticalNavGroup
     v-for="group in groups"
-    :key="group.id || group.title"
+    :key="groupKey(group)"
     :item="{ title: group.title, icon: group.icon }"
-    :default-open="isGroupOpen(group)"
+    :open="openGroupKey === groupKey(group)"
+    @update:open="setGroupOpen(group, $event)"
   >
     <VerticalNavLink
       v-for="child in group.children"
