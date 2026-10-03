@@ -7,11 +7,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * @property UserRole $role
+ * @property bool $active
+ */
 #[Fillable(['name', 'email', 'password', 'role', 'active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -21,56 +23,7 @@ class User extends Authenticatable
 
     public function isOwner(): bool
     {
-        $role = $this->getAttributes()['role'] ?? null;
-
-        return $role === UserRole::Owner->value;
-    }
-
-    /**
-     * Whether this owner has agreed to terms (ADR-009 / ADR-012).
-     */
-    public function hasAgreedToTerms(): bool
-    {
-        if (! $this->isOwner()) {
-            return true;
-        }
-
-        return $this->ownerTermsAgreement?->hasAgreed() ?? false;
-    }
-
-    /**
-     * Whether this owner has at least one qualifying live property (ADR-009 / ADR-012).
-     *
-     * Derived from properties.status — never from users.active or owners.status.
-     */
-    public function hasActiveAccess(): bool
-    {
-        if (! $this->isOwner()) {
-            return true;
-        }
-
-        return $this->owners()
-            ->whereHas('properties', function ($query): void {
-                $query->where(fn ($q) => $q->where('status', true)->orWhere('status', 1))
-                    ->where(fn ($q) => $q->where('deleted', false)->orWhereNull('deleted'));
-            })
-            ->exists();
-    }
-
-    /**
-     * @return HasOne<OwnerTermsAgreement, $this>
-     */
-    public function ownerTermsAgreement(): HasOne
-    {
-        return $this->hasOne(OwnerTermsAgreement::class);
-    }
-
-    /**
-     * @return BelongsToMany<Owner, $this>
-     */
-    public function owners(): BelongsToMany
-    {
-        return $this->belongsToMany(Owner::class, 'user_owners');
+        return $this->role === UserRole::Owner;
     }
 
     /**

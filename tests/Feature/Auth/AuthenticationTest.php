@@ -12,12 +12,14 @@ it('redirects browser guests to the SPA login URL', function (): void {
         ->assertRedirect('http://localhost:3000/login');
 });
 
-it('redirects guests away from the admin dashboard', function (): void {
-    $this->get(route('admin.dashboard'))
+it('redirects guests away from authenticated admin routes', function (): void {
+    $this->get(route('admin.dashboard.profile'))
         ->assertRedirect(route('login'));
 });
 
 it('authenticates users with valid credentials via HTML form', function (): void {
+    config(['app.frontend_url' => 'http://localhost:3000']);
+
     $user = User::factory()->admin()->create([
         'email' => 'admin@example.com',
         'password' => 'password',
@@ -26,7 +28,7 @@ it('authenticates users with valid credentials via HTML form', function (): void
     $this->post(route('login'), [
         'email' => 'admin@example.com',
         'password' => 'password',
-    ])->assertRedirect(route('admin.dashboard'));
+    ])->assertRedirect('http://localhost:3000/');
 
     $this->assertAuthenticatedAs($user);
 });

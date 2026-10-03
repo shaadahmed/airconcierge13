@@ -40,7 +40,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(rtrim((string) config('app.frontend_url'), '/').'/');
     }
 
     public function destroy(Request $request): RedirectResponse|JsonResponse

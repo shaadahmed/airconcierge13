@@ -6,6 +6,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use League\Flysystem\Filesystem;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,11 +27,19 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Storage::extend('google', function ($app, array $config) use ($adapterClass, $clientClass, $driveClass): FilesystemAdapter {
-            /** @var object{setClientId: callable, setClientSecret: callable, refreshToken: callable} $client */
             $client = new $clientClass;
-            $client->setClientId($config['clientId'] ?? '');
-            $client->setClientSecret($config['clientSecret'] ?? '');
-            $client->refreshToken($config['refreshToken'] ?? '');
+
+            if (
+                ! is_callable([$client, 'setClientId'])
+                || ! is_callable([$client, 'setClientSecret'])
+                || ! is_callable([$client, 'refreshToken'])
+            ) {
+                throw new RuntimeException('Google Client is missing required OAuth methods.');
+            }
+
+            call_user_func([$client, 'setClientId'], $config['clientId'] ?? '');
+            call_user_func([$client, 'setClientSecret'], $config['clientSecret'] ?? '');
+            call_user_func([$client, 'refreshToken'], $config['refreshToken'] ?? '');
 
             $service = new $driveClass($client);
             $adapter = new $adapterClass($service, $config['folder'] ?? null);
