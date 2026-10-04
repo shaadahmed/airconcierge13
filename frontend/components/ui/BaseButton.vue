@@ -10,9 +10,11 @@ defineProps({
   hint: { type: String, default: '' },
   size: { type: String, default: 'default' },
   variant: { type: String, default: 'elevated' },
+  to: { type: [String, Object], default: undefined },
+  href: { type: String, default: undefined },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['click', 'update:modelValue'])
 
 defineOptions({ inheritAttrs: false })
 </script>
@@ -20,9 +22,12 @@ defineOptions({ inheritAttrs: false })
 <template>
   <VBtn
     v-bind="$attrs"
+    :to="to"
+    :href="href"
     :disabled="disabled || readonly"
     :size="size"
     :variant="variant"
+    @click="emit('click', $event)"
   >
     <slot>{{ label }}</slot>
   </VBtn>

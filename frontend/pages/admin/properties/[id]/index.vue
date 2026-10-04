@@ -1,9 +1,4 @@
 <script setup>
-import {
-  propertyStatusColor,
-  propertyStatusLabel,
-} from '@/constants/properties'
-
 const route = useRoute()
 const properties = usePropertiesStore()
 const confirmDelete = reactive({ open: false })
@@ -30,6 +25,10 @@ const onDelete = async () => {
   }
 }
 
+const goBack = async () => {
+  await navigateTo('/admin/properties')
+}
+
 onMounted(load)
 
 definePageMeta({ middleware: 'auth' })
@@ -45,14 +44,14 @@ definePageMeta({ middleware: 'auth' })
         <BaseButton
           variant="tonal"
           label="Back to list"
-          to="/admin/properties"
+          @click="goBack"
         />
         <BaseButton
           v-if="property"
           color="primary"
           label="Edit"
           prepend-icon="bx-edit"
-          :to="`/admin/properties/${property.id}/edit`"
+          @click="navigateTo(`/admin/properties/${property.id}/edit`)"
         />
         <BaseButton
           v-if="property"
@@ -83,14 +82,7 @@ definePageMeta({ middleware: 'auth' })
     />
 
     <template v-if="property">
-      <div class="d-flex align-center flex-wrap gap-2 mb-4">
-        <VChip
-          size="small"
-          :color="propertyStatusColor(property.status)"
-          label
-        >
-          {{ propertyStatusLabel(property.status) }}
-        </VChip>
+      <div class="mb-4">
         <span class="text-body-2 text-medium-emphasis">
           ID #{{ property.id }}
         </span>
@@ -100,7 +92,7 @@ definePageMeta({ middleware: 'auth' })
 
       <div class="mt-6">
         <div class="text-h6 mb-3">
-          Related information
+          Related sections
         </div>
         <PropertyRelatedPanels :property="property" />
       </div>

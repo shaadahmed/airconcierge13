@@ -15,16 +15,20 @@ docker run --rm -u root -v "${ROOT}:/app" node:22-bookworm \
 echo "Starting ${CONTAINER}..."
 docker start "${CONTAINER}" >/dev/null
 
-echo "Waiting for single router plugin..."
+echo "Waiting for single router plugin (non-empty plugins.client.mjs)..."
 for i in $(seq 1 45); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ || echo 000)
-  plugins=$(curl -s "http://localhost:3000/_nuxt/@id/virtual:nuxt:/app/.nuxt/plugins.client.mjs" 2>/dev/null || true)
+  code=$(curl -s -m 8 -o /dev/null -w '%{http_code}' http://localhost:3000/ || echo 000)
+  plugins=$(curl -s -m 8 "http://localhost:3000/_nuxt/@id/virtual:nuxt:/app/.nuxt/plugins.client.mjs" 2>/dev/null || true)
   routers=$(printf '%s' "$plugins" | grep -c "pages/runtime/plugins/router" || true)
-  if [ "$code" = "200" ] && [ "${routers:-0}" = "1" ] && [ -n "$plugins" ]; then
+  empty=0
+  if [ -z "$plugins" ] || printf '%s' "$plugins" | grep -q '^export default \[\]'; then
+    empty=1
+  fi
+  if [ "$code" = "200" ] && [ "${routers:-0}" = "1" ] && [ "$empty" = "0" ]; then
     echo "Healthy after ${i}s (HTTP ${code}, routers=${routers})"
     exit 0
   fi
-  echo "t=${i}s code=${code} routers=${routers:-0}"
+  echo "t=${i}s code=${code} routers=${routers:-0} empty=${empty}"
   sleep 2
 done
 

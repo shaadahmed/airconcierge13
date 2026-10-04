@@ -61,12 +61,13 @@ definePageMeta({ middleware: 'auth' })
         <BaseButton
           variant="tonal"
           label="View property"
-          :to="`/admin/properties/${route.params.id}`"
+          prepend-icon="bx-show"
+          @click="navigateTo(`/admin/properties/${route.params.id}`)"
         />
         <BaseButton
           variant="tonal"
           label="Back to list"
-          to="/admin/properties"
+          @click="navigateTo('/admin/properties')"
         />
       </template>
     </PageHeader>

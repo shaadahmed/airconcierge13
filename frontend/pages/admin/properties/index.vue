@@ -251,7 +251,7 @@ const selectedProperty = computed(() => {
   if (selectedId.value == null)
     return null
 
-  return allRows.value.find(property => property.id === selectedId.value) || null
+  return allRows.value.find(property => String(property.id) === String(selectedId.value)) || null
 })
 
 const panelTitle = computed(() => {
@@ -263,11 +263,35 @@ const panelTitle = computed(() => {
   return 'Property overview'
 })
 
+const panelBodyRef = ref(null)
+
+const resetPanelScroll = () => {
+  nextTick(() => {
+    const el = panelBodyRef.value?.$el ?? panelBodyRef.value
+    if (el && typeof el.scrollTop === 'number')
+      el.scrollTop = 0
+  })
+}
+
 const propertyLocation = property => {
   const parts = [property?.city, property?.state].filter(Boolean)
 
   return parts.length ? parts.join(', ') : (property?.street_address || '—')
 }
+
+/** Placeholder average rating until booking/review metrics are wired. Stable per property id. */
+const propertyAverageRating = property => {
+  if (property?.average_rating != null && property.average_rating !== '')
+    return Number(property.average_rating).toFixed(1)
+
+  const seed = Number(property?.id) || 0
+  const tenths = (seed * 37 + 11) % 16 // 0..15 → 3.5..5.0
+
+  return (3.5 + tenths / 10).toFixed(1)
+}
+
+const goViewProperty = id => navigateTo(`/admin/properties/${id}`)
+const goEditProperty = id => navigateTo(`/admin/properties/${id}/edit`)
 
 const resetCreateForm = () => {
   Object.assign(form, createEmptyPropertyForm())
@@ -299,6 +323,7 @@ const openPanel = mode => {
 const selectProperty = property => {
   selectedId.value = property.id
   panelMode.value = 'detail'
+  resetPanelScroll()
 }
 
 const closeDetail = () => {
@@ -322,7 +347,9 @@ const submitCreate = async () => {
     resetCreateForm()
     selectedId.value = property.id
     panelMode.value = 'detail'
-    await properties.load()
+    resetPanelScroll()
+    if (!properties.usingMocks)
+      await properties.load()
   }
   catch {
     // Store exposes validation errors.
@@ -358,10 +385,7 @@ const onDelete = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    properties.load(),
-    loadLookups(),
-  ])
+  await loadLookups()
 
   if (route.query.create === '1' || route.query.create === 'true')
     openCreatePanel()
@@ -427,7 +451,7 @@ definePageMeta({ middleware: 'auth' })
               :key="property.id"
               type="button"
               class="property-list-item"
-              :class="{ 'property-list-item--selected': selectedId === property.id }"
+              :class="{ 'property-list-item--selected': String(selectedId) === String(property.id) }"
               @click="selectProperty(property)"
             >
               <VAvatar
@@ -450,8 +474,18 @@ definePageMeta({ middleware: 'auth' })
               </VAvatar>
 
               <div class="property-list-item__body">
-                <div class="property-list-item__title text-truncate">
-                  {{ property.property_title }}
+                <div class="property-list-item__title-row">
+                  <span class="property-list-item__title text-truncate">
+                    {{ property.property_title }}
+                  </span>
+                  <span class="property-list-item__rating">
+                    <VIcon
+                      icon="bx-bxs-star"
+                      size="14"
+                      color="warning"
+                    />
+                    {{ propertyAverageRating(property) }}
+                  </span>
                 </div>
                 <VChip
                   size="x-small"
@@ -464,7 +498,7 @@ definePageMeta({ middleware: 'auth' })
               </div>
 
               <VIcon
-                v-if="selectedId === property.id"
+                v-if="String(selectedId) === String(property.id)"
                 icon="bx-chevron-right"
                 size="20"
                 class="property-list-item__chevron"
@@ -511,14 +545,14 @@ definePageMeta({ middleware: 'auth' })
                     variant="tonal"
                     label="View"
                     prepend-icon="bx-show"
-                    :to="`/admin/properties/${selectedProperty.id}`"
+                    @click="goViewProperty(selectedProperty.id)"
                   />
                   <BaseButton
                     size="small"
                     color="primary"
                     label="Edit"
                     prepend-icon="bx-edit"
-                    :to="`/admin/properties/${selectedProperty.id}/edit`"
+                    @click="goEditProperty(selectedProperty.id)"
                   />
                   <VBtn
                     icon
@@ -544,93 +578,116 @@ definePageMeta({ middleware: 'auth' })
             </template>
           </VCardItem>
 
-          <VCardText class="property-panel-body">
+          <VCardText
+            ref="panelBodyRef"
+            class="property-panel-body"
+          >
             <div v-if="panelMode === 'detail' && selectedProperty">
-              <VImg
-                v-if="selectedProperty.property_image_url"
-                :src="selectedProperty.property_image_url"
-                height="220"
-                cover
-                class="rounded-lg mb-4"
-              />
-              <div
-                v-else
-                class="property-detail-placeholder rounded-lg mb-4 d-flex align-center justify-center"
-              >
-                <VIcon
-                  icon="bx-home-alt"
-                  size="48"
-                  class="text-medium-emphasis"
-                />
-              </div>
-
-              <div class="d-flex align-center flex-wrap gap-2 mb-1">
-                <h2 class="text-h5 mb-0">
-                  {{ selectedProperty.property_title }}
-                </h2>
-                <VChip
-                  size="small"
-                  :color="propertyStatusColor(selectedProperty.status)"
-                  label
+              <VRow dense class="mb-4">
+                <VCol
+                  cols="12"
+                  md="6"
                 >
-                  {{ propertyStatusLabel(selectedProperty.status) }}
-                </VChip>
-              </div>
+                  <div class="d-flex align-center flex-wrap gap-2 mb-1">
+                    <h2 class="text-h5 mb-0">
+                      {{ selectedProperty.property_title }}
+                    </h2>
+                    <span class="property-detail-rating">
+                      <VIcon
+                        icon="bx-bxs-star"
+                        size="16"
+                        color="warning"
+                      />
+                      {{ propertyAverageRating(selectedProperty) }}
+                    </span>
+                    <VChip
+                      size="small"
+                      :color="propertyStatusColor(selectedProperty.status)"
+                      label
+                    >
+                      {{ propertyStatusLabel(selectedProperty.status) }}
+                    </VChip>
+                  </div>
 
-              <p class="text-body-2 text-medium-emphasis mb-4">
-                {{ propertyLocation(selectedProperty) }}
-              </p>
+                  <p class="text-body-2 text-medium-emphasis mb-4">
+                    {{ propertyLocation(selectedProperty) }}
+                  </p>
 
-              <div class="d-flex flex-column gap-2 mb-4">
-                <div class="d-flex align-center gap-2 text-body-2">
-                  <VIcon
-                    icon="bx-bed"
-                    size="18"
-                    class="text-medium-emphasis"
-                  />
-                  <span>{{ selectedProperty.bedrooms ?? 0 }} beds</span>
-                </div>
-                <div class="d-flex align-center gap-2 text-body-2">
-                  <VIcon
-                    icon="bx-droplet"
-                    size="18"
-                    class="text-medium-emphasis"
-                  />
-                  <span>{{ selectedProperty.bathrooms ?? 0 }} baths</span>
-                </div>
-                <div class="d-flex align-center gap-2 text-body-2">
-                  <VIcon
-                    icon="bx-map"
-                    size="18"
-                    class="text-medium-emphasis"
-                  />
-                  <span>{{ selectedProperty.region?.name || selectedProperty.region?.region_name || selectedProperty.region_id || '—' }}</span>
-                </div>
-                <div
-                  v-if="selectedProperty.street_address"
-                  class="d-flex align-center gap-2 text-body-2"
+                  <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-center gap-2 text-body-2">
+                      <VIcon
+                        icon="bx-bed"
+                        size="18"
+                        class="text-medium-emphasis"
+                      />
+                      <span>{{ selectedProperty.bedrooms ?? 0 }} beds</span>
+                    </div>
+                    <div class="d-flex align-center gap-2 text-body-2">
+                      <VIcon
+                        icon="bx-droplet"
+                        size="18"
+                        class="text-medium-emphasis"
+                      />
+                      <span>{{ selectedProperty.bathrooms ?? 0 }} baths</span>
+                    </div>
+                    <div class="d-flex align-center gap-2 text-body-2">
+                      <VIcon
+                        icon="bx-map"
+                        size="18"
+                        class="text-medium-emphasis"
+                      />
+                      <span>{{ selectedProperty.region?.name || selectedProperty.region?.region_name || selectedProperty.region_id || '—' }}</span>
+                    </div>
+                    <div
+                      v-if="selectedProperty.street_address"
+                      class="d-flex align-center gap-2 text-body-2"
+                    >
+                      <VIcon
+                        icon="bx-buildings"
+                        size="18"
+                        class="text-medium-emphasis"
+                      />
+                      <span>{{ selectedProperty.street_address }}{{ selectedProperty.zipcode ? `, ${selectedProperty.zipcode}` : '' }}</span>
+                    </div>
+                  </div>
+                </VCol>
+
+                <VCol
+                  cols="12"
+                  md="6"
                 >
-                  <VIcon
-                    icon="bx-buildings"
-                    size="18"
-                    class="text-medium-emphasis"
+                  <VImg
+                    v-if="selectedProperty.property_image_url"
+                    :src="selectedProperty.property_image_url"
+                    height="220"
+                    cover
+                    class="rounded-lg property-detail-image"
                   />
-                  <span>{{ selectedProperty.street_address }}{{ selectedProperty.zipcode ? `, ${selectedProperty.zipcode}` : '' }}</span>
-                </div>
-              </div>
+                  <div
+                    v-else
+                    class="property-detail-placeholder rounded-lg d-flex align-center justify-center"
+                  >
+                    <VIcon
+                      icon="bx-home-alt"
+                      size="48"
+                      class="text-medium-emphasis"
+                    />
+                  </div>
+                </VCol>
+              </VRow>
 
               <div class="d-flex flex-wrap gap-2">
                 <BaseButton
                   color="primary"
                   label="View property"
                   prepend-icon="bx-show"
-                  :to="`/admin/properties/${selectedProperty.id}`"
+                  @click="goViewProperty(selectedProperty.id)"
                 />
                 <BaseButton
                   variant="tonal"
                   label="Edit property"
                   prepend-icon="bx-edit"
-                  :to="`/admin/properties/${selectedProperty.id}/edit`"
+                  @click="goEditProperty(selectedProperty.id)"
                 />
                 <BaseButton
                   variant="tonal"
@@ -898,10 +955,30 @@ definePageMeta({ middleware: 'auth' })
   min-width: 0;
 }
 
+.property-list-item__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .property-list-item__title {
+  flex: 0 1 auto;
+  min-width: 0;
   font-weight: 600;
   font-size: 0.9375rem;
   line-height: 1.3;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.property-list-item__rating {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
   color: rgb(var(--v-theme-on-surface));
 }
 
@@ -910,8 +987,21 @@ definePageMeta({ middleware: 'auth' })
   color: rgb(var(--v-theme-primary));
 }
 
+.property-detail-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.property-detail-image,
 .property-detail-placeholder {
-  height: 180px;
+  width: 100%;
+  min-height: 180px;
+  height: 100%;
   background: rgba(75, 70, 92, 0.06);
 }
 

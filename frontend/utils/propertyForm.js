@@ -22,6 +22,7 @@ export const createEmptyPropertyForm = () => ({
   supportemail: '',
   bedrooms: null,
   bathrooms: null,
+  other_facilities: '',
   ac_management_fee: 22,
   exit_cleaning_fee: '',
   cleaners: [],
@@ -36,7 +37,6 @@ export const createEmptyPropertyForm = () => ({
   parent_id: null,
   primary_residence: false,
   secondary_residence: false,
-  property_code: '',
   owners_montly_cost: '',
   apply_resort_fee: false,
   management_notes: '',
@@ -97,6 +97,7 @@ export const mapPropertyToForm = property => {
     supportemail: property?.supportemail || '',
     bedrooms: asNullableNumber(property?.bedrooms),
     bathrooms: asNullableNumber(property?.bathrooms),
+    other_facilities: property?.other_facilities || '',
     ac_management_fee: asNullableNumber(property?.ac_management_fee) ?? 22,
     exit_cleaning_fee: property?.exit_cleaning_fee ?? '',
     cleaners: Array.isArray(property?.cleaners)
@@ -113,7 +114,6 @@ export const mapPropertyToForm = property => {
     parent_id: asNullableNumber(property?.parent_id),
     primary_residence: Boolean(property?.primary_residence),
     secondary_residence: Boolean(property?.secondary_residence),
-    property_code: property?.property_code || '',
     owners_montly_cost: property?.owners_montly_cost ?? '',
     apply_resort_fee: Boolean(property?.apply_resort_fee),
     management_notes: property?.management_notes || '',
@@ -145,6 +145,7 @@ export const serializePropertyForm = form => {
     supportemail: form.supportemail || null,
     bedrooms: form.bedrooms === '' || form.bedrooms === null ? null : Number(form.bedrooms),
     bathrooms: form.bathrooms === '' || form.bathrooms === null ? null : Number(form.bathrooms),
+    other_facilities: form.other_facilities || null,
     ac_management_fee: form.ac_management_fee === '' || form.ac_management_fee === null
       ? null
       : Number(form.ac_management_fee),
@@ -169,7 +170,6 @@ export const serializePropertyForm = form => {
     parent_id: form.parent_id || null,
     primary_residence: Boolean(form.primary_residence),
     secondary_residence: Boolean(form.secondary_residence),
-    property_code: form.property_code || null,
     owners_montly_cost: form.owners_montly_cost === '' || form.owners_montly_cost === null
       ? null
       : Number(form.owners_montly_cost),

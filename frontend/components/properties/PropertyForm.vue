@@ -1,6 +1,8 @@
 <script setup>
 import {
+  AIRBNB_TO_VRBO_TOT_MODE,
   AIRBNB_TOT_MODE_OPTIONS,
+  airbnbTotModeRequiresMethod,
   CONTRACT_END_REASON_OPTIONS,
   MANAGEMENT_TYPE_OPTIONS,
   PAYMENT_METHOD_OPTIONS,
@@ -8,7 +10,9 @@ import {
   PROPERTY_STATUS_OPTIONS,
   TOT_METHOD_OPTIONS,
   US_STATE_OPTIONS,
+  VRBO_TO_AIRBNB_TOT_MODE,
   VRBO_TOT_MODE_OPTIONS,
+  vrboTotModeRequiresMethod,
   YES_NO_OPTIONS,
 } from '@/constants/properties'
 
@@ -16,6 +20,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   errors: { type: Object, default: () => ({}) },
   loading: Boolean,
+  readonly: Boolean,
   mode: { type: String, default: 'create' },
   submitLabel: { type: String, default: 'Save property' },
   ownerOptions: { type: Array, default: () => [] },
@@ -37,10 +42,41 @@ const statusOptions = computed(() =>
   props.mode === 'edit' ? PROPERTY_STATUS_OPTIONS : PROPERTY_STATUS_CREATE_OPTIONS,
 )
 
+const showAirbnbTotMethod = computed(() => airbnbTotModeRequiresMethod(form.value.tot_mode))
+const showVrboTotMethod = computed(() => vrboTotModeRequiresMethod(form.value.vrbo_tot_mode))
+
 const updateField = (field, value) => {
   emit('update:modelValue', {
     ...props.modelValue,
     [field]: value,
+  })
+}
+
+const onAirbnbTotModeChange = value => {
+  const vrboMode = value == null || value === ''
+    ? null
+    : (AIRBNB_TO_VRBO_TOT_MODE[value] ?? null)
+
+  emit('update:modelValue', {
+    ...props.modelValue,
+    tot_mode: value,
+    vrbo_tot_mode: vrboMode,
+    tot_method: airbnbTotModeRequiresMethod(value) ? props.modelValue.tot_method : null,
+    vrbo_tot_method: vrboTotModeRequiresMethod(vrboMode) ? props.modelValue.vrbo_tot_method : null,
+  })
+}
+
+const onVrboTotModeChange = value => {
+  const airbnbMode = value == null || value === ''
+    ? null
+    : (VRBO_TO_AIRBNB_TOT_MODE[String(value)] ?? null)
+
+  emit('update:modelValue', {
+    ...props.modelValue,
+    vrbo_tot_mode: value,
+    tot_mode: airbnbMode,
+    tot_method: airbnbTotModeRequiresMethod(airbnbMode) ? props.modelValue.tot_method : null,
+    vrbo_tot_method: vrboTotModeRequiresMethod(value) ? props.modelValue.vrbo_tot_method : null,
   })
 }
 
@@ -76,7 +112,10 @@ const fieldError = key => props.errors?.[key]
 </script>
 
 <template>
-  <VForm @submit.prevent="$emit('submit')">
+  <VForm
+    :disabled="readonly"
+    @submit.prevent="!readonly && $emit('submit')"
+  >
     <VRow>
       <!-- Identity / location -->
       <VCol cols="12">
@@ -162,19 +201,6 @@ const fieldError = key => props.errors?.[key]
           lg="4"
         >
           <BaseInput
-            :model-value="form.hostaway_listing_id"
-            label="Hostaway listing ID"
-            :error="fieldError('hostaway_listing_id')"
-            @update:model-value="updateField('hostaway_listing_id', $event)"
-          />
-        </VCol>
-
-        <VCol
-          cols="12"
-          md="6"
-          lg="4"
-        >
-          <BaseInput
             :model-value="form.property_image_url"
             label="Property image URL"
             :error="fieldError('property_image_url')"
@@ -190,7 +216,7 @@ const fieldError = key => props.errors?.[key]
       >
         <VDivider class="mb-4" />
         <div class="text-subtitle-1 font-weight-medium mb-1">
-          Address & titles
+          Address
         </div>
       </VCol>
 
@@ -212,56 +238,14 @@ const fieldError = key => props.errors?.[key]
         md="4"
       >
         <BaseInput
-          :model-value="form.property_code"
-          label="Property code"
-          :error="fieldError('property_code')"
-          @update:model-value="updateField('property_code', $event)"
+          :model-value="form.hostaway_listing_id"
+          label="Hostaway listing ID"
+          :error="fieldError('hostaway_listing_id')"
+          @update:model-value="updateField('hostaway_listing_id', $event)"
         />
       </VCol>
 
-      <VCol
-        v-for="(title, index) in form.email_titles"
-        :key="`email-title-${index}`"
-        cols="12"
-        md="6"
-      >
-        <div class="d-flex align-end gap-2">
-          <BaseInput
-            class="flex-grow-1"
-            :model-value="title"
-            :label="index === 0 ? 'Airbnb email title' : `Airbnb email title ${index + 1}`"
-            :error="index === 0 ? fieldError('email_title') || fieldError('email_titles') : false"
-            @update:model-value="updateEmailTitle(index, $event)"
-          />
-          <VBtn
-            v-if="index === 0"
-            type="button"
-            icon
-            variant="tonal"
-            color="primary"
-            aria-label="Add email title"
-            @click="addEmailTitle"
-          >
-            <VIcon icon="bx-plus" />
-          </VBtn>
-          <VBtn
-            v-else
-            type="button"
-            icon
-            variant="tonal"
-            color="error"
-            aria-label="Remove email title"
-            @click="removeEmailTitle(index)"
-          >
-            <VIcon icon="bx-minus" />
-          </VBtn>
-        </div>
-      </VCol>
-
-      <VCol
-        cols="12"
-        md="6"
-      >
+      <VCol cols="12">
         <BaseInput
           :model-value="form.street_address"
           label="Street address"
@@ -272,7 +256,7 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="6"
+        md="4"
       >
         <BaseInput
           :model-value="form.city"
@@ -284,7 +268,7 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="6"
+        md="4"
       >
         <BaseSelect
           :model-value="form.state"
@@ -298,7 +282,7 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="6"
+        md="4"
       >
         <BaseInput
           :model-value="form.zipcode"
@@ -306,6 +290,45 @@ const fieldError = key => props.errors?.[key]
           :error="fieldError('zipcode')"
           @update:model-value="updateField('zipcode', $event)"
         />
+      </VCol>
+
+      <VCol
+        v-for="(title, index) in form.email_titles"
+        :key="`email-title-${index}`"
+        cols="12"
+        md="4"
+      >
+        <div class="d-flex align-end gap-2">
+          <BaseInput
+            class="flex-grow-1"
+            :model-value="title"
+            :label="index === 0 ? 'Email title' : `Email title ${index + 1}`"
+            :error="index === 0 ? fieldError('email_title') || fieldError('email_titles') : false"
+            @update:model-value="updateEmailTitle(index, $event)"
+          />
+          <VBtn
+            v-if="!readonly && index === 0"
+            type="button"
+            icon
+            variant="tonal"
+            color="primary"
+            aria-label="Add email title"
+            @click="addEmailTitle"
+          >
+            <VIcon icon="bx-plus" />
+          </VBtn>
+          <VBtn
+            v-else-if="!readonly"
+            type="button"
+            icon
+            variant="tonal"
+            color="error"
+            aria-label="Remove email title"
+            @click="removeEmailTitle(index)"
+          >
+            <VIcon icon="bx-minus" />
+          </VBtn>
+        </div>
       </VCol>
 
       <!-- Contract / support -->
@@ -373,20 +396,20 @@ const fieldError = key => props.errors?.[key]
         />
       </VCol>
 
-      <!-- Physical / fees -->
+      <!-- Rooms -->
       <VCol
         cols="12"
         class="mt-2"
       >
         <VDivider class="mb-4" />
         <div class="text-subtitle-1 font-weight-medium mb-1">
-          Rooms & fees
+          Rooms
         </div>
       </VCol>
 
       <VCol
         cols="12"
-        md="3"
+        md="4"
       >
         <BaseInput
           :model-value="form.bedrooms"
@@ -399,7 +422,7 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="3"
+        md="4"
       >
         <BaseInput
           :model-value="form.bathrooms"
@@ -412,7 +435,32 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="3"
+        md="4"
+      >
+        <BaseInput
+          :model-value="form.other_facilities"
+          label="Other facilities"
+          hint="e.g. pool, lawn, BBQ area"
+          persistent-hint
+          :error="fieldError('other_facilities')"
+          @update:model-value="updateField('other_facilities', $event)"
+        />
+      </VCol>
+
+      <!-- Fees -->
+      <VCol
+        cols="12"
+        class="mt-2"
+      >
+        <VDivider class="mb-4" />
+        <div class="text-subtitle-1 font-weight-medium mb-1">
+          Fees
+        </div>
+      </VCol>
+
+      <VCol
+        cols="12"
+        md="4"
       >
         <BaseInput
           :model-value="form.ac_management_fee"
@@ -425,7 +473,7 @@ const fieldError = key => props.errors?.[key]
 
       <VCol
         cols="12"
-        md="3"
+        md="4"
       >
         <BaseInput
           :model-value="form.exit_cleaning_fee"
@@ -434,6 +482,21 @@ const fieldError = key => props.errors?.[key]
           required
           :error="fieldError('exit_cleaning_fee')"
           @update:model-value="updateField('exit_cleaning_fee', $event)"
+        />
+      </VCol>
+
+      <VCol
+        cols="12"
+        md="4"
+      >
+        <BaseInput
+          :model-value="form.owners_montly_cost"
+          label="Owners monthly costs"
+          hint="Mortgage, taxes, insurance, utilities"
+          persistent-hint
+          type="number"
+          :error="fieldError('owners_montly_cost')"
+          @update:model-value="updateField('owners_montly_cost', $event)"
         />
       </VCol>
 
@@ -452,19 +515,6 @@ const fieldError = key => props.errors?.[key]
           clearable
           :error="fieldError('cleaners')"
           @update:model-value="updateField('cleaners', $event)"
-        />
-      </VCol>
-
-      <VCol
-        cols="12"
-        md="6"
-      >
-        <BaseInput
-          :model-value="form.owners_montly_cost"
-          label="Owners monthly costs (mortgage, taxes, insurance, utilities)"
-          type="number"
-          :error="fieldError('owners_montly_cost')"
-          @update:model-value="updateField('owners_montly_cost', $event)"
         />
       </VCol>
 
@@ -489,11 +539,12 @@ const fieldError = key => props.errors?.[key]
           :items="AIRBNB_TOT_MODE_OPTIONS"
           required
           :error="fieldError('tot_mode')"
-          @update:model-value="updateField('tot_mode', $event)"
+          @update:model-value="onAirbnbTotModeChange"
         />
       </VCol>
 
       <VCol
+        v-if="showAirbnbTotMethod"
         cols="12"
         md="6"
       >
@@ -517,11 +568,12 @@ const fieldError = key => props.errors?.[key]
           :items="VRBO_TOT_MODE_OPTIONS"
           required
           :error="fieldError('vrbo_tot_mode')"
-          @update:model-value="updateField('vrbo_tot_mode', $event)"
+          @update:model-value="onVrboTotModeChange"
         />
       </VCol>
 
       <VCol
+        v-if="showVrboTotMethod"
         cols="12"
         md="6"
       >
@@ -657,6 +709,7 @@ const fieldError = key => props.errors?.[key]
 
     <div class="d-flex flex-wrap gap-2 mt-4">
       <BaseButton
+        v-if="!readonly"
         type="submit"
         :label="submitLabel"
         :loading="loading"
@@ -664,7 +717,7 @@ const fieldError = key => props.errors?.[key]
       <BaseButton
         type="button"
         variant="tonal"
-        label="Cancel"
+        :label="readonly ? 'Back' : 'Cancel'"
         @click="$emit('cancel')"
       />
     </div>

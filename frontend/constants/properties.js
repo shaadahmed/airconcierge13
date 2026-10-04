@@ -31,6 +31,24 @@ export const VRBO_TOT_MODE_OPTIONS = [
   { title: 'Not Charged/Calculated (Min Stay Is Not "Short Term")', value: 4 },
 ]
 
+/** Airbnb string mode ↔ VRBO integer mode (legacy parity). */
+export const AIRBNB_TO_VRBO_TOT_MODE = {
+  paid_by_airconcierge_to_city: 1,
+  paid_at_owners_election: 2,
+  charged_to_guest_paid_to_city_by_airbnb: 3,
+  none: 4,
+}
+
+export const VRBO_TO_AIRBNB_TOT_MODE = Object.fromEntries(
+  Object.entries(AIRBNB_TO_VRBO_TOT_MODE).map(([airbnb, vrbo]) => [String(vrbo), airbnb]),
+)
+
+export const AIRBNB_TOT_MODE_REQUIRES_METHOD = 'paid_by_airconcierge_to_city'
+export const VRBO_TOT_MODE_REQUIRES_METHOD = 1
+
+export const airbnbTotModeRequiresMethod = mode => mode === AIRBNB_TOT_MODE_REQUIRES_METHOD
+export const vrboTotModeRequiresMethod = mode => Number(mode) === VRBO_TOT_MODE_REQUIRES_METHOD
+
 export const PAYMENT_METHOD_OPTIONS = [
   { title: 'Direct Deposit', value: 'Direct Deposit' },
   { title: 'Co Host - Direct Deposit', value: 'Direct Deposit (Co Host)' },
