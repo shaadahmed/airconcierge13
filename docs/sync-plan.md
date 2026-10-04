@@ -1,16 +1,16 @@
 # Frontend sync plan (Windows vs WSL / Docker Nuxt)
 
-Local Nuxt does **not** read the Cursor workspace on `E:` directly. The `airconcierge-nuxt` container bind-mounts a **separate** WSL tree. Edits in one place do not appear in the other unless you sync or remount.
+Day-to-day work uses the **WSL-native** tree. Docker Nuxt bind-mounts that path. The copy on `E:` is a **periodic local backup** (git fetch/pull), not the active edit surface.
 
 ## Two project trees
 
 | Role | Path |
 |------|------|
-| Windows (Cursor) | `E:\airconcierge13` |
-| Same files via WSL | `/mnt/e/airconcierge13` |
-| WSL copy (Docker Nuxt mount) | `/home/pc/airconcierge13` |
+| Active workspace (Cursor + Docker) | `/home/pc/airconcierge13` |
+| Open in Cursor (Windows UNC) | `\\wsl$\Ubuntu\home\pc\airconcierge13` (same as `\\wsl.localhost\Ubuntu\…`) |
+| Windows backup checkout | `E:\airconcierge13` (also visible in WSL as `/mnt/e/airconcierge13`) |
 
-Nuxt container mount (as of this note):
+Nuxt container mount:
 
 ```text
 /home/pc/airconcierge13/frontend  →  /app  (in airconcierge-nuxt)
@@ -24,7 +24,7 @@ Docker **does** hot-reload when files change under the **mounted** path. It does
 - Browser at `http://localhost:3000` still shows an older page (or vice versa).
 - Hard-refresh of `/admin/*` may return Laravel JSON (`{"data":[]}`) because Nuxt proxies `/admin` API calls; prefer SPA navigation (e.g. sidebar **Homes**) instead of hard-refreshing admin URLs.
 
-## Options (pick one later)
+## Options (reference)
 
 ### 1. Point Docker at the Windows tree
 
@@ -44,13 +44,13 @@ Also keep Docker Nuxt’s Laravel proxy URL correct for in-container networking,
 Open the project in Cursor via the WSL path, e.g.:
 
 ```text
-\\wsl$\<distro>\home\pc\airconcierge13
+\\wsl$\Ubuntu\home\pc\airconcierge13
 ```
 
-(Distro name may differ; check in WSL.)
+(or `\\wsl.localhost\Ubuntu\home\pc\airconcierge13` — same filesystem)
 
-- **Pros:** You edit the same tree Docker already mounts; no sync step.
-- **Cons:** Workflow lives in WSL rather than `E:\`.
+- **Pros:** You edit the same tree Docker already mounts; no sync step; native WSL I/O.
+- **Cons:** Workflow lives in WSL rather than `E:\`; WSL distro wipe can remove uncommitted work under `/home/pc` unless it is pushed or backed up.
 
 ### 3. Keep both copies and sync manually
 
@@ -68,19 +68,12 @@ Or copy only the files you changed. Docker will then reload from `/home/pc/…`.
 
 ## Decision
 
-**Implemented: option 1** (point Docker at the Windows tree).
+**Chosen: option 2** (develop against the WSL copy).
 
-Nuxt container `airconcierge-nuxt` mounts:
+- **Active source of truth:** `/home/pc/airconcierge13` — open in Cursor via `\\wsl$\Ubuntu\home\pc\airconcierge13` (or `cursor .` from that directory in WSL).
+- **Docker Nuxt** mounts `/home/pc/airconcierge13/frontend` → `/app`. Recreate/remount the container to that path if it still points at `/mnt/e/...`.
+- **Env:** `NUXT_LARAVEL_URL=http://laravel.test`, network `airconcierge13_sail`, port `3000`.
+- **Windows `E:\airconcierge13`:** keep as a local backup only. From time to time, in that checkout, `git fetch` / `git pull` so `E:` stays roughly in sync with the remote (and thus with work that was pushed from WSL). Do **not** edit day-to-day on `E:` while using this workflow, or the trees will drift again.
+- **Durability:** push regularly from the WSL tree. A WSL distro unregister/wipe removes `/home/pc/...`; regenerable deps (`node_modules`) are fine to reinstall; unpushed commits/work are not.
 
-```text
-/mnt/e/airconcierge13/frontend              →  /app
-/home/pc/airconcierge13/frontend/node_modules →  /app/node_modules
-```
-
-- Source of truth for UI code: `E:\airconcierge13\frontend` (Cursor).
-- Linux `node_modules` stay on the WSL-native path (avoids Windows/Linux binary mismatch).
-- Env: `NUXT_LARAVEL_URL=http://laravel.test`, network `airconcierge13_sail`, port `3000`.
-
-Cursor edits on `E:` should hot-reload at http://localhost:3000 without rsync.
-
-If you recreate the container, use the same binds (and keep `node_modules` on `/home/pc/...`). If dependencies change, run `npm install` inside the container or on the WSL tree’s `frontend/`.
+Cursor edits under the WSL path should hot-reload at http://localhost:3000 without rsync.
