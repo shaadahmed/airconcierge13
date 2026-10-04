@@ -80,102 +80,6 @@ const stats = computed(() => {
   }
 })
 
-const statusChartSeries = computed(() => [stats.value.withSubregions, stats.value.withoutSubregions])
-
-const statusChartOptions = computed(() => ({
-  chart: {
-    type: 'donut',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  labels: ['With subregions', 'Without'],
-  colors: ['#28c76f', '#a8aaae'],
-  legend: {
-    position: 'bottom',
-    fontSize: '13px',
-  },
-  dataLabels: { enabled: false },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '68%',
-        labels: {
-          show: true,
-          name: { show: true, fontSize: '13px' },
-          value: {
-            show: true,
-            fontSize: '22px',
-            fontWeight: 600,
-            formatter: value => String(value),
-          },
-          total: {
-            show: true,
-            label: 'Total',
-            fontSize: '13px',
-            formatter: () => String(stats.value.total),
-          },
-        },
-      },
-    },
-  },
-  stroke: { width: 0 },
-  tooltip: {
-    y: { formatter: value => `${value} regions` },
-  },
-}))
-
-const activityChartSeries = computed(() => ([
-  {
-    name: 'Regions',
-    data: [
-      stats.value.withShortcode,
-      stats.value.withColor,
-      stats.value.totalSubregions,
-    ],
-  },
-]))
-
-const activityChartOptions = computed(() => ({
-  chart: {
-    type: 'bar',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 6,
-      columnWidth: '48%',
-      distributed: true,
-    },
-  },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
-  dataLabels: { enabled: false },
-  legend: { show: false },
-  grid: {
-    strokeDashArray: 6,
-    borderColor: 'rgba(75, 70, 92, 0.12)',
-    yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } },
-  },
-  xaxis: {
-    categories: ['Shortcode', 'Color', 'Subregions'],
-    labels: { style: { colors: '#a5a3ae', fontSize: '12px' } },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    labels: {
-      style: { colors: '#a5a3ae' },
-      formatter: value => Math.round(value),
-    },
-    min: 0,
-    forceNiceScale: true,
-  },
-  tooltip: {
-    y: { formatter: value => String(value) },
-  },
-}))
-
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter regions'
@@ -247,7 +151,8 @@ const submit = async () => {
 
     resetForm()
     panelMode.value = 'dashboard'
-    await regions.load()
+    if (!regions.usingMocks)
+      await regions.load()
   }
   catch {
     // Store exposes validation errors.
@@ -263,7 +168,8 @@ const onDelete = async () => {
   try {
     await regions.remove(confirmDelete.id)
     confirmDelete.open = false
-    await regions.load()
+    if (!regions.usingMocks)
+      await regions.load()
   }
   catch {
     // Store exposes errors.
@@ -279,6 +185,16 @@ definePageMeta({ middleware: 'auth' })
       title="Regions"
       subtitle="Manage property regions"
     />
+
+    <VAlert
+      v-if="regions.usingMocks"
+      type="info"
+      variant="tonal"
+      class="mb-4"
+      density="compact"
+    >
+      Showing UI preview data until the regions API is connected.
+    </VAlert>
 
     <VRow>
       <VCol
@@ -328,6 +244,13 @@ definePageMeta({ middleware: 'auth' })
             </td>
             <td>{{ subregionCount(region) }}</td>
             <td class="text-no-wrap">
+              <BaseButton
+                size="small"
+                variant="tonal"
+                label="Subregions"
+                class="me-2"
+                :to="`/admin/subregions?region_id=${region.id}`"
+              />
               <BaseButton
                 size="small"
                 variant="tonal"
@@ -443,39 +366,6 @@ definePageMeta({ middleware: 'auth' })
                   </div>
                 </VCol>
               </VRow>
-
-              <ClientOnly>
-                <div class="mt-4">
-                  <div class="text-subtitle-2 mb-2">
-                    Subregion coverage
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="donut"
-                    height="220"
-                    :options="statusChartOptions"
-                    :series="statusChartSeries"
-                  />
-                  <EmptyState
-                    v-else-if="!regions.loading"
-                    title="No regions yet"
-                    description="Counts and charts will appear once regions are loaded."
-                  />
-                </div>
-
-                <div class="mt-6">
-                  <div class="text-subtitle-2 mb-2">
-                    Metadata
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="bar"
-                    height="200"
-                    :options="activityChartOptions"
-                    :series="activityChartSeries"
-                  />
-                </div>
-              </ClientOnly>
             </div>
 
             <div v-else-if="panelMode === 'filter'">

@@ -93,102 +93,6 @@ const stats = computed(() => {
   }
 })
 
-const statusChartSeries = computed(() => [stats.value.withStates, stats.value.withoutStates])
-
-const statusChartOptions = computed(() => ({
-  chart: {
-    type: 'donut',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  labels: ['With states', 'Without'],
-  colors: ['#28c76f', '#a8aaae'],
-  legend: {
-    position: 'bottom',
-    fontSize: '13px',
-  },
-  dataLabels: { enabled: false },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '68%',
-        labels: {
-          show: true,
-          name: { show: true, fontSize: '13px' },
-          value: {
-            show: true,
-            fontSize: '22px',
-            fontWeight: 600,
-            formatter: value => String(value),
-          },
-          total: {
-            show: true,
-            label: 'Total',
-            fontSize: '13px',
-            formatter: () => String(stats.value.total),
-          },
-        },
-      },
-    },
-  },
-  stroke: { width: 0 },
-  tooltip: {
-    y: { formatter: value => `${value} countries` },
-  },
-}))
-
-const activityChartSeries = computed(() => ([
-  {
-    name: 'Counts',
-    data: [
-      stats.value.total,
-      stats.value.totalStates,
-      stats.value.withCoords,
-    ],
-  },
-]))
-
-const activityChartOptions = computed(() => ({
-  chart: {
-    type: 'bar',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 6,
-      columnWidth: '48%',
-      distributed: true,
-    },
-  },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
-  dataLabels: { enabled: false },
-  legend: { show: false },
-  grid: {
-    strokeDashArray: 6,
-    borderColor: 'rgba(75, 70, 92, 0.12)',
-    yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } },
-  },
-  xaxis: {
-    categories: ['Countries', 'States', 'Coords'],
-    labels: { style: { colors: '#a5a3ae', fontSize: '12px' } },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    labels: {
-      style: { colors: '#a5a3ae' },
-      formatter: value => Math.round(value),
-    },
-    min: 0,
-    forceNiceScale: true,
-  },
-  tooltip: {
-    y: { formatter: value => String(value) },
-  },
-}))
-
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter countries'
@@ -281,7 +185,8 @@ const submit = async () => {
 
     resetForm()
     panelMode.value = 'dashboard'
-    await countries.load()
+    if (!countries.usingMocks)
+      await countries.load()
   }
   catch {
     // Store exposes validation errors.
@@ -299,7 +204,8 @@ const onDelete = async () => {
     if (selectedCountryId.value === confirmDelete.id)
       selectedCountryId.value = null
     confirmDelete.open = false
-    await countries.load()
+    if (!countries.usingMocks)
+      await countries.load()
   }
   catch {
     // Store exposes errors.
@@ -334,7 +240,8 @@ const submitState = async () => {
       await countries.createState(selectedCountryId.value, payload)
 
     resetStateForm()
-    await countries.load()
+    if (!countries.usingMocks)
+      await countries.load()
   }
   catch {
     // Store exposes stateErrors.
@@ -347,7 +254,8 @@ const removeState = async stateId => {
 
   try {
     await countries.removeState(selectedCountryId.value, stateId)
-    await countries.load()
+    if (!countries.usingMocks)
+      await countries.load()
   }
   catch {
     // Store exposes stateErrors.
@@ -363,6 +271,16 @@ definePageMeta({ middleware: 'auth' })
       title="Countries & States"
       subtitle="Manage countries and their states"
     />
+
+    <VAlert
+      v-if="countries.usingMocks"
+      type="info"
+      variant="tonal"
+      class="mb-4"
+      density="compact"
+    >
+      Showing UI preview data until the countries API is connected.
+    </VAlert>
 
     <VRow>
       <VCol
@@ -521,39 +439,6 @@ definePageMeta({ middleware: 'auth' })
                   </div>
                 </VCol>
               </VRow>
-
-              <ClientOnly>
-                <div class="mt-4">
-                  <div class="text-subtitle-2 mb-2">
-                    State coverage
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="donut"
-                    height="220"
-                    :options="statusChartOptions"
-                    :series="statusChartSeries"
-                  />
-                  <EmptyState
-                    v-else-if="!countries.loading"
-                    title="No countries yet"
-                    description="Counts and charts will appear once countries are loaded."
-                  />
-                </div>
-
-                <div class="mt-6">
-                  <div class="text-subtitle-2 mb-2">
-                    Totals
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="bar"
-                    height="200"
-                    :options="activityChartOptions"
-                    :series="activityChartSeries"
-                  />
-                </div>
-              </ClientOnly>
             </div>
 
             <div v-else-if="panelMode === 'filter'">

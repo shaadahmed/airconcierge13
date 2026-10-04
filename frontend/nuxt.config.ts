@@ -74,8 +74,10 @@ export default defineNuxtConfig({
     },
   },
 
+  // Devtools/vue-inspector adds heavy /_nuxt traffic and can destabilize
+  // Docker+WSL HMR under memory pressure (blank page / ERR_NETWORK_CHANGED).
   devtools: {
-    enabled: true,
+    enabled: false,
   },
 
   css: [
@@ -143,6 +145,19 @@ export default defineNuxtConfig({
 
     server: {
       proxy: Object.fromEntries(proxyPaths.map(path => [path, laravelViteProxy()])),
+      // HMR under Docker+WSL routinely leaves zombie nuxi processes and an empty
+      // #__nuxt root (persistent blank page). Prefer full reload on file changes.
+      hmr: false,
+      watch: {
+        usePolling: true,
+        interval: 2000,
+        ignored: [
+          '**/.nuxt/**',
+          '**/.output/**',
+          '**/node_modules/**',
+          '**/dist/**',
+        ],
+      },
     },
 
     resolve: {
@@ -161,10 +176,9 @@ export default defineNuxtConfig({
     },
 
     optimizeDeps: {
+      // Do not prebundle every .vue file — that balloons memory under Docker/WSL
+      // and often leaves plugins.client.mjs with duplicate routers (blank SPA).
       exclude: ['vuetify'],
-      entries: [
-        './**/*.vue',
-      ],
     },
 
     plugins: [

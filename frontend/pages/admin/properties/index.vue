@@ -1,20 +1,15 @@
 <script setup>
+import {
+  propertyStatusColor,
+  propertyStatusLabel,
+} from '@/constants/properties'
+import { createEmptyPropertyForm, serializePropertyForm } from '@/utils/propertyForm'
+
+const route = useRoute()
 const properties = usePropertiesStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create' | 'detail'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'detail' | 'create'>} */
 const panelMode = ref('dashboard')
-
-const form = reactive({
-  property_title: '',
-  region_id: '',
-  subregion_id: '',
-  hostaway_listing_id: '',
-  street_address: '',
-  city: '',
-  state: '',
-  zipcode: '',
-  status: true,
-})
 
 const filters = reactive({
   title: '',
@@ -23,9 +18,20 @@ const filters = reactive({
   city: '',
 })
 
-const editingId = ref(null)
 const selectedId = ref(null)
 const confirmDelete = reactive({ open: false, id: null })
+const form = reactive(createEmptyPropertyForm())
+const formSource = computed(() => form)
+
+const {
+  usingMocks,
+  loadLookups,
+  ownerOptions,
+  regionOptions: formRegionOptions,
+  subregionOptions,
+  cleanerOptions,
+  parentPropertyOptions,
+} = usePropertyFormOptions(formSource)
 
 const allRows = computed(() => {
   const data = properties.data?.data || properties.data || []
@@ -48,10 +54,8 @@ const rows = computed(() => {
     }
 
     if (filters.status !== null && filters.status !== undefined && filters.status !== '') {
-      const isActive = Boolean(property.status)
-      if (filters.status === 'active' && !isActive)
-        return false
-      if (filters.status === 'inactive' && isActive)
+      const status = Number(property.status === true ? 1 : property.status)
+      if (Number(filters.status) !== status)
         return false
     }
 
@@ -76,7 +80,7 @@ const regionOptions = computed(() => {
     if (id == null)
       continue
 
-    const name = property.region?.name || `Region ${id}`
+    const name = property.region?.name || property.region?.region_name || `Region ${id}`
     if (!map.has(id))
       map.set(id, { title: name, value: id })
   }
@@ -86,8 +90,9 @@ const regionOptions = computed(() => {
 
 const statusFilterItems = [
   { title: 'All statuses', value: null },
-  { title: 'Active / live', value: 'active' },
-  { title: 'Inactive', value: 'inactive' },
+  { title: 'Active / live', value: 1 },
+  { title: 'Inactive', value: 0 },
+  { title: 'Snoozed', value: 2 },
 ]
 
 const monthBounds = computed(() => {
@@ -117,16 +122,21 @@ const isInCurrentMonth = value => {
   return date >= start && date <= end
 }
 
+const isActiveStatus = property => {
+  const status = property?.status
+
+  return status === true || status === 1 || status === '1'
+}
+
 const stats = computed(() => {
   const list = allRows.value
-  const active = list.filter(property => Boolean(property.status))
-  const inactive = list.filter(property => !property.status)
+  const active = list.filter(isActiveStatus)
+  const inactive = list.filter(property => !isActiveStatus(property) && Number(property.status) !== 2)
+  const snoozed = list.filter(property => Number(property.status) === 2)
   const newThisMonth = list.filter(property =>
     isInCurrentMonth(property.created_date || property.created_at),
   )
 
-  // UI preview until reservation metrics are available from the API.
-  // Deterministic split of active properties so charts stay stable across reloads.
   const withReservations = active.filter(property => Number(property.id) % 3 !== 0)
   const idleThisMonth = active.filter(property => Number(property.id) % 3 === 0)
 
@@ -134,13 +144,14 @@ const stats = computed(() => {
     total: list.length,
     active: active.length,
     inactive: inactive.length,
+    snoozed: snoozed.length,
     newThisMonth: newThisMonth.length,
     withReservations: withReservations.length,
     idleThisMonth: idleThisMonth.length,
   }
 })
 
-const statusChartSeries = computed(() => [stats.value.active, stats.value.inactive])
+const statusChartSeries = computed(() => [stats.value.active, stats.value.inactive, stats.value.snoozed])
 
 const statusChartOptions = computed(() => ({
   chart: {
@@ -148,8 +159,8 @@ const statusChartOptions = computed(() => ({
     parentHeightOffset: 0,
     toolbar: { show: false },
   },
-  labels: ['Active', 'Inactive'],
-  colors: ['#28c76f', '#a8aaae'],
+  labels: ['Active', 'Inactive', 'Snoozed'],
+  colors: ['#28c76f', '#a8aaae', '#ff9f43'],
   legend: {
     position: 'bottom',
     fontSize: '13px',
@@ -247,9 +258,7 @@ const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter properties'
   if (panelMode.value === 'create')
-    return editingId.value ? 'Edit property' : 'Create property'
-  if (panelMode.value === 'detail')
-    return selectedProperty.value?.property_title || 'Property details'
+    return 'Create property'
 
   return 'Property overview'
 })
@@ -260,6 +269,17 @@ const propertyLocation = property => {
   return parts.length ? parts.join(', ') : (property?.street_address || '—')
 }
 
+const resetCreateForm = () => {
+  Object.assign(form, createEmptyPropertyForm())
+  properties.errors = {}
+}
+
+const openCreatePanel = () => {
+  resetCreateForm()
+  selectedId.value = null
+  panelMode.value = 'create'
+}
+
 const openPanel = mode => {
   if (panelMode.value === mode) {
     panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
@@ -267,11 +287,11 @@ const openPanel = mode => {
     return
   }
 
-  if (mode === 'create' && panelMode.value !== 'create')
-    resetForm()
+  if (mode === 'create') {
+    openCreatePanel()
 
-  if (mode === 'create')
-    selectedId.value = null
+    return
+  }
 
   panelMode.value = mode
 }
@@ -286,6 +306,29 @@ const closeDetail = () => {
   panelMode.value = 'dashboard'
 }
 
+const cancelCreate = () => {
+  resetCreateForm()
+  panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
+}
+
+const onFormUpdate = value => {
+  Object.assign(form, value)
+}
+
+const submitCreate = async () => {
+  try {
+    const property = await properties.create(serializePropertyForm(form))
+
+    resetCreateForm()
+    selectedId.value = property.id
+    panelMode.value = 'detail'
+    await properties.load()
+  }
+  catch {
+    // Store exposes validation errors.
+  }
+}
+
 const clearFilters = () => {
   Object.assign(filters, {
     title: '',
@@ -293,70 +336,6 @@ const clearFilters = () => {
     region_id: '',
     city: '',
   })
-}
-
-onMounted(() => properties.load())
-
-const resetForm = () => {
-  editingId.value = null
-  Object.assign(form, {
-    property_title: '',
-    region_id: '',
-    subregion_id: '',
-    hostaway_listing_id: '',
-    street_address: '',
-    city: '',
-    state: '',
-    zipcode: '',
-    status: true,
-  })
-}
-
-const edit = property => {
-  editingId.value = property.id
-  selectedId.value = property.id
-  Object.assign(form, {
-    property_title: property.property_title || '',
-    region_id: property.region_id || '',
-    subregion_id: property.subregion_id || '',
-    hostaway_listing_id: property.hostaway_listing_id || '',
-    street_address: property.street_address || '',
-    city: property.city || '',
-    state: property.state || '',
-    zipcode: property.zipcode || '',
-    status: property.status ?? true,
-  })
-  panelMode.value = 'create'
-}
-
-const cancelCreate = () => {
-  resetForm()
-  panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
-}
-
-const submit = async () => {
-  try {
-    const payload = {
-      ...form,
-      region_id: form.region_id || null,
-      subregion_id: form.subregion_id || null,
-      hostaway_listing_id: form.hostaway_listing_id || null,
-    }
-
-    if (editingId.value)
-      await properties.update(editingId.value, payload)
-    else
-      await properties.create(payload)
-
-    const keepSelectedId = editingId.value
-    resetForm()
-    selectedId.value = keepSelectedId
-    panelMode.value = keepSelectedId != null ? 'detail' : 'dashboard'
-    await properties.load()
-  }
-  catch {
-    // Store exposes validation errors.
-  }
 }
 
 const askDelete = id => {
@@ -378,6 +357,16 @@ const onDelete = async () => {
   }
 }
 
+onMounted(async () => {
+  await Promise.all([
+    properties.load(),
+    loadLookups(),
+  ])
+
+  if (route.query.create === '1' || route.query.create === 'true')
+    openCreatePanel()
+})
+
 definePageMeta({ middleware: 'auth' })
 </script>
 
@@ -386,7 +375,26 @@ definePageMeta({ middleware: 'auth' })
     <PageHeader
       title="Properties"
       subtitle="Manage listings and owner links"
-    />
+    >
+      <template #actions>
+        <BaseButton
+          color="primary"
+          label="Create property"
+          prepend-icon="bx-plus"
+          @click="openCreatePanel"
+        />
+      </template>
+    </PageHeader>
+
+    <VAlert
+      v-if="properties.usingMocks || usingMocks"
+      type="info"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+    >
+      Showing UI preview data until the properties API is connected.
+    </VAlert>
 
     <VRow>
       <VCol
@@ -447,11 +455,11 @@ definePageMeta({ middleware: 'auth' })
                 </div>
                 <VChip
                   size="x-small"
-                  :color="property.status ? 'success' : 'secondary'"
+                  :color="propertyStatusColor(property.status)"
                   label
                   class="mt-1"
                 >
-                  {{ property.status ? 'Active' : 'Inactive' }}
+                  {{ propertyStatusLabel(property.status) }}
                 </VChip>
               </div>
 
@@ -476,7 +484,7 @@ definePageMeta({ middleware: 'auth' })
         cols="12"
         md="8"
       >
-        <VCard>
+        <VCard class="property-panel-card">
           <VCardItem>
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
@@ -491,8 +499,8 @@ definePageMeta({ middleware: 'auth' })
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' && !editingId ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' && !editingId ? 'primary' : undefined"
+                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' ? 'primary' : undefined"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
@@ -500,10 +508,17 @@ definePageMeta({ middleware: 'auth' })
                 <template v-if="panelMode === 'detail' && selectedProperty">
                   <BaseButton
                     size="small"
+                    variant="tonal"
+                    label="View"
+                    prepend-icon="bx-show"
+                    :to="`/admin/properties/${selectedProperty.id}`"
+                  />
+                  <BaseButton
+                    size="small"
                     color="primary"
                     label="Edit"
                     prepend-icon="bx-edit"
-                    @click="edit(selectedProperty)"
+                    :to="`/admin/properties/${selectedProperty.id}/edit`"
                   />
                   <VBtn
                     icon
@@ -515,12 +530,21 @@ definePageMeta({ middleware: 'auth' })
                     <VIcon icon="bx-x" />
                   </VBtn>
                 </template>
+                <VBtn
+                  v-else-if="panelMode === 'create'"
+                  icon
+                  variant="text"
+                  size="small"
+                  aria-label="Close create property"
+                  @click="cancelCreate"
+                >
+                  <VIcon icon="bx-x" />
+                </VBtn>
               </div>
             </template>
           </VCardItem>
 
-          <VCardText>
-            <!-- Selected property detail -->
+          <VCardText class="property-panel-body">
             <div v-if="panelMode === 'detail' && selectedProperty">
               <VImg
                 v-if="selectedProperty.property_image_url"
@@ -546,10 +570,10 @@ definePageMeta({ middleware: 'auth' })
                 </h2>
                 <VChip
                   size="small"
-                  :color="selectedProperty.status ? 'success' : 'secondary'"
+                  :color="propertyStatusColor(selectedProperty.status)"
                   label
                 >
-                  {{ selectedProperty.status ? 'Active' : 'Inactive' }}
+                  {{ propertyStatusLabel(selectedProperty.status) }}
                 </VChip>
               </div>
 
@@ -580,7 +604,7 @@ definePageMeta({ middleware: 'auth' })
                     size="18"
                     class="text-medium-emphasis"
                   />
-                  <span>{{ selectedProperty.region?.name || selectedProperty.region_id || '—' }}</span>
+                  <span>{{ selectedProperty.region?.name || selectedProperty.region?.region_name || selectedProperty.region_id || '—' }}</span>
                 </div>
                 <div
                   v-if="selectedProperty.street_address"
@@ -598,9 +622,15 @@ definePageMeta({ middleware: 'auth' })
               <div class="d-flex flex-wrap gap-2">
                 <BaseButton
                   color="primary"
+                  label="View property"
+                  prepend-icon="bx-show"
+                  :to="`/admin/properties/${selectedProperty.id}`"
+                />
+                <BaseButton
+                  variant="tonal"
                   label="Edit property"
                   prepend-icon="bx-edit"
-                  @click="edit(selectedProperty)"
+                  :to="`/admin/properties/${selectedProperty.id}/edit`"
                 />
                 <BaseButton
                   variant="tonal"
@@ -611,93 +641,104 @@ definePageMeta({ middleware: 'auth' })
               </div>
             </div>
 
-            <!-- Mini dashboard -->
             <div v-else-if="panelMode === 'dashboard'">
               <p class="text-body-2 text-medium-emphasis mb-4">
                 Snapshot for {{ monthBounds.label }}
               </p>
 
               <VRow dense class="mb-2">
-                <VCol cols="6">
-                  <div class="property-stat-tile property-stat-tile--success pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      Active
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.active }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="property-stat-tile property-stat-tile--muted pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      Inactive
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.inactive }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="property-stat-tile property-stat-tile--primary pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      New this month
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.newThisMonth }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="property-stat-tile property-stat-tile--info pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      With reservations
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.withReservations }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="12">
-                  <div class="property-stat-tile property-stat-tile--warning pa-3 rounded">
-                    <div class="d-flex align-center justify-space-between">
-                      <div>
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <VRow dense>
+                    <VCol cols="6">
+                      <div class="property-stat-tile property-stat-tile--success pa-3 rounded">
                         <div class="text-caption text-medium-emphasis">
-                          Idle this month
+                          Active
                         </div>
                         <div class="text-h5">
-                          {{ stats.idleThisMonth }}
+                          {{ stats.active }}
                         </div>
                       </div>
-                      <VIcon
-                        icon="bx-time-five"
-                        size="28"
-                        class="text-medium-emphasis"
-                      />
+                    </VCol>
+                    <VCol cols="6">
+                      <div class="property-stat-tile property-stat-tile--muted pa-3 rounded">
+                        <div class="text-caption text-medium-emphasis">
+                          Inactive
+                        </div>
+                        <div class="text-h5">
+                          {{ stats.inactive }}
+                        </div>
+                      </div>
+                    </VCol>
+                    <VCol cols="6">
+                      <div class="property-stat-tile property-stat-tile--primary pa-3 rounded">
+                        <div class="text-caption text-medium-emphasis">
+                          New this month
+                        </div>
+                        <div class="text-h5">
+                          {{ stats.newThisMonth }}
+                        </div>
+                      </div>
+                    </VCol>
+                    <VCol cols="6">
+                      <div class="property-stat-tile property-stat-tile--info pa-3 rounded">
+                        <div class="text-caption text-medium-emphasis">
+                          With reservations
+                        </div>
+                        <div class="text-h5">
+                          {{ stats.withReservations }}
+                        </div>
+                      </div>
+                    </VCol>
+                    <VCol cols="12">
+                      <div class="property-stat-tile property-stat-tile--warning pa-3 rounded">
+                        <div class="d-flex align-center justify-space-between">
+                          <div>
+                            <div class="text-caption text-medium-emphasis">
+                              Idle this month
+                            </div>
+                            <div class="text-h5">
+                              {{ stats.idleThisMonth }}
+                            </div>
+                          </div>
+                          <VIcon
+                            icon="bx-time-five"
+                            size="28"
+                            class="text-medium-emphasis"
+                          />
+                        </div>
+                      </div>
+                    </VCol>
+                  </VRow>
+                </VCol>
+
+                <VCol
+                  cols="12"
+                  md="6"
+                >
+                  <ClientOnly>
+                    <div class="text-subtitle-2 mb-2">
+                      Status mix
                     </div>
-                  </div>
+                    <VueApexCharts
+                      v-if="stats.total > 0"
+                      type="donut"
+                      height="220"
+                      :options="statusChartOptions"
+                      :series="statusChartSeries"
+                    />
+                    <EmptyState
+                      v-else-if="!properties.loading"
+                      title="No properties yet"
+                      description="Counts and charts will appear once listings are loaded."
+                    />
+                  </ClientOnly>
                 </VCol>
               </VRow>
 
               <ClientOnly>
-                <div class="mt-4">
-                  <div class="text-subtitle-2 mb-2">
-                    Active vs inactive
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="donut"
-                    height="220"
-                    :options="statusChartOptions"
-                    :series="statusChartSeries"
-                  />
-                  <EmptyState
-                    v-else-if="!properties.loading"
-                    title="No properties yet"
-                    description="Counts and charts will appear once listings are loaded."
-                  />
-                </div>
-
                 <div class="mt-6">
                   <div class="text-subtitle-2 mb-2">
                     This month
@@ -722,7 +763,6 @@ definePageMeta({ middleware: 'auth' })
               </VAlert>
             </div>
 
-            <!-- Filter panel -->
             <div v-else-if="panelMode === 'filter'">
               <VForm @submit.prevent>
                 <BaseInput
@@ -766,71 +806,23 @@ definePageMeta({ middleware: 'auth' })
               </VForm>
             </div>
 
-            <!-- Create / edit panel -->
             <div v-else-if="panelMode === 'create'">
               <AppAlert :errors="properties.errors" />
-              <VForm @submit.prevent="submit">
-                <BaseInput
-                  v-model="form.property_title"
-                  label="Title"
-                  :error="properties.errors.property_title"
-                />
-                <BaseInput
-                  v-model="form.region_id"
-                  label="Region ID"
-                  type="number"
-                  :error="properties.errors.region_id"
-                />
-                <BaseInput
-                  v-model="form.subregion_id"
-                  label="Subregion ID"
-                  type="number"
-                  :error="properties.errors.subregion_id"
-                />
-                <BaseInput
-                  v-model="form.hostaway_listing_id"
-                  label="Hostaway listing ID"
-                  type="number"
-                  :error="properties.errors.hostaway_listing_id"
-                />
-                <BaseInput
-                  v-model="form.street_address"
-                  label="Street address"
-                  :error="properties.errors.street_address"
-                />
-                <BaseInput
-                  v-model="form.city"
-                  label="City"
-                  :error="properties.errors.city"
-                />
-                <BaseInput
-                  v-model="form.state"
-                  label="State"
-                  :error="properties.errors.state"
-                />
-                <BaseInput
-                  v-model="form.zipcode"
-                  label="Zipcode"
-                  :error="properties.errors.zipcode"
-                />
-                <BaseCheckbox
-                  v-model="form.status"
-                  label="Active / live"
-                />
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <BaseButton
-                    type="submit"
-                    :label="editingId ? 'Update property' : 'Create property'"
-                    :loading="properties.loading"
-                  />
-                  <BaseButton
-                    type="button"
-                    variant="tonal"
-                    label="Cancel"
-                    @click="cancelCreate"
-                  />
-                </div>
-              </VForm>
+              <PropertyForm
+                :model-value="form"
+                mode="create"
+                :errors="properties.errors"
+                :loading="properties.loading"
+                submit-label="Create property"
+                :owner-options="ownerOptions"
+                :region-options="formRegionOptions"
+                :subregion-options="subregionOptions"
+                :parent-property-options="parentPropertyOptions"
+                :cleaner-options="cleanerOptions"
+                @update:model-value="onFormUpdate"
+                @submit="submitCreate"
+                @cancel="cancelCreate"
+              />
             </div>
           </VCardText>
         </VCard>
@@ -840,7 +832,7 @@ definePageMeta({ middleware: 'auth' })
     <ConfirmDialog
       v-model="confirmDelete.open"
       title="Delete property?"
-      message="This soft-deletes the property (deleted flag)."
+      message="This soft-deletes the property."
       confirm-label="Delete"
       confirm-color="error"
       :loading="properties.loading"
@@ -854,6 +846,16 @@ definePageMeta({ middleware: 'auth' })
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 160px);
+}
+
+.property-panel-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 160px);
+}
+
+.property-panel-body {
+  overflow-y: auto;
 }
 
 .property-list {

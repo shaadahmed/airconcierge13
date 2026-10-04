@@ -1,0 +1,51 @@
+/**
+ * UI-preview fixtures for owners until the API is wired.
+ */
+
+export const MOCK_OWNERS = [
+  {
+    id: 1,
+    first_name: 'Jordan',
+    last_name: 'Lee',
+    full_name: 'Jordan Lee',
+    owner_email: 'jordan@example.com',
+    owner_phone: '555-0101',
+    region_id: 1,
+    region: { id: 1, region_name: 'Lake Tahoe' },
+    payment_method: 'Direct Deposit',
+    owner_payout_information: 'Chase ****1234',
+    w9_on_file: true,
+    properties_count: 2,
+    avatar_url: null,
+  },
+  {
+    id: 2,
+    first_name: 'Sam',
+    last_name: 'Patel',
+    full_name: 'Sam Patel',
+    owner_email: 'sam@example.com',
+    owner_phone: '555-0102',
+    region_id: 2,
+    region: { id: 2, region_name: 'Napa Valley' },
+    payment_method: 'Paypal',
+    owner_payout_information: 'sam@paypal.com',
+    w9_on_file: false,
+    properties_count: 0,
+    avatar_url: null,
+  },
+  {
+    id: 3,
+    first_name: 'Alex',
+    last_name: 'Nguyen',
+    full_name: 'Alex Nguyen',
+    owner_email: 'alex@example.com',
+    owner_phone: '',
+    region_id: 1,
+    region: { id: 1, region_name: 'Lake Tahoe' },
+    payment_method: 'Airbnb Co Host',
+    owner_payout_information: '',
+    w9_on_file: true,
+    properties_count: 1,
+    avatar_url: null,
+  },
+]

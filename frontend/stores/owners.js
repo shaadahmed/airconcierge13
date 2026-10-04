@@ -1,51 +1,71 @@
 import { defineStore } from 'pinia'
+import { MOCK_OWNERS } from '@/mocks/owners'
 import { ownerService } from '@/services/ownerService'
+import { mockAwareLoad, mockCreate, mockRemove, mockUpdate, runStoreAction } from '@/stores/mockHelpers'
 
 export const useOwnersStore = defineStore('owners', {
-  state: () => ({ data: [], current: null, loading: false, errors: {} }),
+  state: () => ({
+    data: [],
+    current: null,
+    loading: false,
+    errors: {},
+    usingMocks: false,
+  }),
   actions: {
     async load(params = {}) {
-      await this.run(async () => {
-        this.data = (await ownerService.list(params)).data
-      })
+      await runStoreAction(this, () => mockAwareLoad(this, {
+        list: () => ownerService.list(params),
+        mocks: MOCK_OWNERS,
+      }), 'errors', 'Unable to process owners.')
     },
     async create(payload) {
-      return this.run(async () => {
-        const owner = (await ownerService.create(payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks) {
+          return mockCreate(this, {
+            id: Date.now(),
+            ...payload,
+            region: payload.region || (payload.region_id
+              ? { id: payload.region_id, region_name: `Region #${payload.region_id}` }
+              : null),
+          })
+        }
 
+        const owner = (await ownerService.create(payload)).data
         this.current = owner
 
         return owner
-      })
+      }, 'errors', 'Unable to process owners.')
     },
     async update(id, payload) {
-      return this.run(async () => {
-        const owner = (await ownerService.update(id, payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks) {
+          const next = { ...payload }
+          if (payload.region || payload.region_id) {
+            next.region = payload.region || {
+              id: payload.region_id,
+              region_name: `Region #${payload.region_id}`,
+            }
+          }
 
+          return mockUpdate(this, id, next)
+        }
+
+        const owner = (await ownerService.update(id, payload)).data
         this.current = owner
 
         return owner
-      })
+      }, 'errors', 'Unable to process owners.')
     },
     async remove(id) {
-      return this.run(async () => {
-        await ownerService.remove(id)
-      })
-    },
-    async run(callback) {
-      this.loading = true
-      this.errors = {}
+      return runStoreAction(this, async () => {
+        if (this.usingMocks) {
+          mockRemove(this, id)
 
-      try {
-        return await callback()
-      }
-      catch (error) {
-        this.errors = error?.data?.errors || { general: [error?.data?.message || 'Unable to process owners.'] }
-        throw error
-      }
-      finally {
-        this.loading = false
-      }
+          return
+        }
+
+        await ownerService.remove(id)
+      }, 'errors', 'Unable to process owners.')
     },
   },
 })

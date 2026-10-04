@@ -1,8 +1,18 @@
 <script setup>
 const owners = useOwnersStore()
+const regions = useRegionsStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'detail' | 'create'>} */
 const panelMode = ref('dashboard')
+
+const paymentMethodItems = [
+  { title: 'Airbnb Co Host', value: 'Airbnb Co Host' },
+  { title: 'Direct Deposit', value: 'Direct Deposit' },
+  { title: 'Paypal', value: 'Paypal' },
+  { title: 'Another owner is receiving under an above method', value: 'Another owner is receiving under an above method' },
+  { title: 'Credit Card (Co Host)', value: 'Credit Card (Co Host)' },
+  { title: 'Direct Deposit (Co Host)', value: 'Direct Deposit (Co Host)' },
+]
 
 const form = reactive({
   first_name: '',
@@ -17,12 +27,14 @@ const form = reactive({
 })
 
 const filters = reactive({
+  search: '',
   name: '',
   email: '',
   region_id: '',
   w9_on_file: null,
 })
 
+const selectedId = ref(null)
 const editingId = ref(null)
 const confirmDelete = reactive({ open: false, id: null })
 
@@ -32,7 +44,42 @@ const allRows = computed(() => {
   return Array.isArray(data) ? data : []
 })
 
+const displayName = owner => {
+  if (owner?.full_name)
+    return owner.full_name
+
+  const combined = [owner?.first_name, owner?.last_name].filter(Boolean).join(' ')
+
+  return combined || '—'
+}
+
+const propertiesCount = owner => {
+  if (owner?.properties_count != null)
+    return Number(owner.properties_count)
+
+  if (Array.isArray(owner?.properties))
+    return owner.properties.length
+
+  return 0
+}
+
+const ownerRegion = owner => owner?.region?.region_name || owner?.region?.name || (owner?.region_id ? `Region #${owner.region_id}` : 'No region')
+
+const ownerInitials = owner => {
+  const name = displayName(owner)
+  if (!name || name === '—')
+    return '?'
+
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('')
+}
+
 const rows = computed(() => {
+  const searchQuery = filters.search.trim().toLowerCase()
   const nameQuery = filters.name.trim().toLowerCase()
   const emailQuery = filters.email.trim().toLowerCase()
   const regionId = filters.region_id === '' || filters.region_id === null
@@ -40,8 +87,21 @@ const rows = computed(() => {
     : Number(filters.region_id)
 
   return allRows.value.filter(owner => {
+    if (searchQuery) {
+      const haystack = [
+        displayName(owner),
+        owner.owner_email,
+        owner.owner_phone,
+        ownerRegion(owner),
+        owner.payment_method,
+      ].join(' ').toLowerCase()
+
+      if (!haystack.includes(searchQuery))
+        return false
+    }
+
     if (nameQuery) {
-      const name = String(owner.full_name || `${owner.first_name || ''} ${owner.last_name || ''}`).toLowerCase()
+      const name = displayName(owner).toLowerCase()
       if (!name.includes(nameQuery))
         return false
     }
@@ -67,17 +127,31 @@ const rows = computed(() => {
   })
 })
 
+const selectedOwner = computed(() => allRows.value.find(owner => String(owner.id) === String(selectedId.value)) || null)
+
+const regionList = computed(() => {
+  const data = regions.data?.data || regions.data || []
+
+  return Array.isArray(data) ? data : []
+})
+
 const regionOptions = computed(() => {
   const map = new Map()
 
+  for (const region of regionList.value) {
+    map.set(region.id, {
+      title: region.region_name || `Region ${region.id}`,
+      value: region.id,
+    })
+  }
+
   for (const owner of allRows.value) {
     const id = owner.region_id
-    if (id == null)
+    if (id == null || map.has(id))
       continue
 
     const name = owner.region?.region_name || owner.region?.name || `Region ${id}`
-    if (!map.has(id))
-      map.set(id, { title: name, value: id })
+    map.set(id, { title: name, value: id })
   }
 
   return [...map.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)))
@@ -89,15 +163,6 @@ const w9FilterItems = [
   { title: 'W9 missing', value: 'no' },
 ]
 
-const displayName = owner => {
-  if (owner.full_name)
-    return owner.full_name
-
-  const combined = [owner.first_name, owner.last_name].filter(Boolean).join(' ')
-
-  return combined || '—'
-}
-
 const stats = computed(() => {
   const list = allRows.value
   const withW9 = list.filter(owner => Boolean(owner.w9_on_file))
@@ -105,6 +170,7 @@ const stats = computed(() => {
   const withEmail = list.filter(owner => Boolean(owner.owner_email))
   const withPhone = list.filter(owner => Boolean(owner.owner_phone))
   const withRegion = list.filter(owner => owner.region_id != null)
+  const totalProperties = list.reduce((sum, owner) => sum + propertiesCount(owner), 0)
 
   return {
     total: list.length,
@@ -113,117 +179,24 @@ const stats = computed(() => {
     withEmail: withEmail.length,
     withPhone: withPhone.length,
     withRegion: withRegion.length,
+    totalProperties,
   }
 })
-
-const statusChartSeries = computed(() => [stats.value.withW9, stats.value.withoutW9])
-
-const statusChartOptions = computed(() => ({
-  chart: {
-    type: 'donut',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  labels: ['W9 on file', 'W9 missing'],
-  colors: ['#28c76f', '#a8aaae'],
-  legend: {
-    position: 'bottom',
-    fontSize: '13px',
-  },
-  dataLabels: { enabled: false },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '68%',
-        labels: {
-          show: true,
-          name: { show: true, fontSize: '13px' },
-          value: {
-            show: true,
-            fontSize: '22px',
-            fontWeight: 600,
-            formatter: value => String(value),
-          },
-          total: {
-            show: true,
-            label: 'Total',
-            fontSize: '13px',
-            formatter: () => String(stats.value.total),
-          },
-        },
-      },
-    },
-  },
-  stroke: { width: 0 },
-  tooltip: {
-    y: { formatter: value => `${value} owners` },
-  },
-}))
-
-const activityChartSeries = computed(() => ([
-  {
-    name: 'Owners',
-    data: [
-      stats.value.withEmail,
-      stats.value.withPhone,
-      stats.value.withRegion,
-    ],
-  },
-]))
-
-const activityChartOptions = computed(() => ({
-  chart: {
-    type: 'bar',
-    parentHeightOffset: 0,
-    toolbar: { show: false },
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 6,
-      columnWidth: '48%',
-      distributed: true,
-    },
-  },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
-  dataLabels: { enabled: false },
-  legend: { show: false },
-  grid: {
-    strokeDashArray: 6,
-    borderColor: 'rgba(75, 70, 92, 0.12)',
-    yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } },
-  },
-  xaxis: {
-    categories: ['Email', 'Phone', 'Region'],
-    labels: { style: { colors: '#a5a3ae', fontSize: '12px' } },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    labels: {
-      style: { colors: '#a5a3ae' },
-      formatter: value => Math.round(value),
-    },
-    min: 0,
-    forceNiceScale: true,
-  },
-  tooltip: {
-    y: { formatter: value => `${value} owners` },
-  },
-}))
 
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter owners'
   if (panelMode.value === 'create')
     return editingId.value ? 'Edit owner' : 'Create owner'
+  if (panelMode.value === 'detail' && selectedOwner.value)
+    return displayName(selectedOwner.value)
 
   return 'Owner overview'
 })
 
 const openPanel = mode => {
   if (panelMode.value === mode) {
-    panelMode.value = 'dashboard'
+    panelMode.value = selectedOwner.value ? 'detail' : 'dashboard'
 
     return
   }
@@ -234,8 +207,14 @@ const openPanel = mode => {
   panelMode.value = mode
 }
 
+const selectOwner = owner => {
+  selectedId.value = owner.id
+  panelMode.value = 'detail'
+}
+
 const clearFilters = () => {
   Object.assign(filters, {
+    search: '',
     name: '',
     email: '',
     region_id: '',
@@ -243,7 +222,12 @@ const clearFilters = () => {
   })
 }
 
-onMounted(() => owners.load())
+onMounted(async () => {
+  await Promise.all([
+    owners.load(),
+    regions.load().catch(() => null),
+  ])
+})
 
 const resetForm = () => {
   editingId.value = null
@@ -261,6 +245,7 @@ const resetForm = () => {
 }
 
 const edit = owner => {
+  selectedId.value = owner.id
   editingId.value = owner.id
   Object.assign(form, {
     first_name: owner.first_name || '',
@@ -278,7 +263,7 @@ const edit = owner => {
 
 const cancelCreate = () => {
   resetForm()
-  panelMode.value = 'dashboard'
+  panelMode.value = selectedOwner.value ? 'detail' : 'dashboard'
 }
 
 const submit = async () => {
@@ -291,14 +276,22 @@ const submit = async () => {
       owner_payout_information: form.owner_payout_information || null,
     }
 
+    const region = regionList.value.find(item => Number(item.id) === Number(payload.region_id))
+    if (region)
+      payload.region = { id: region.id, region_name: region.region_name }
+
     if (editingId.value)
       await owners.update(editingId.value, payload)
     else
       await owners.create(payload)
 
+    const savedId = editingId.value || owners.current?.id
     resetForm()
-    panelMode.value = 'dashboard'
-    await owners.load()
+    if (savedId)
+      selectedId.value = savedId
+    panelMode.value = selectedId.value ? 'detail' : 'dashboard'
+    if (!owners.usingMocks)
+      await owners.load()
   }
   catch {
     // Store exposes validation errors.
@@ -312,9 +305,15 @@ const askDelete = id => {
 
 const onDelete = async () => {
   try {
-    await owners.remove(confirmDelete.id)
+    const deletedId = confirmDelete.id
+    await owners.remove(deletedId)
     confirmDelete.open = false
-    await owners.load()
+    if (String(selectedId.value) === String(deletedId)) {
+      selectedId.value = null
+      panelMode.value = 'dashboard'
+    }
+    if (!owners.usingMocks)
+      await owners.load()
   }
   catch {
     // Store exposes errors.
@@ -331,70 +330,142 @@ definePageMeta({ middleware: 'auth' })
       subtitle="Manage property owners"
     />
 
+    <VAlert
+      v-if="owners.usingMocks"
+      type="info"
+      variant="tonal"
+      class="mb-4"
+      density="compact"
+    >
+      Showing UI preview data until the owners API is connected.
+    </VAlert>
+
     <VRow>
       <VCol
         cols="12"
         md="8"
       >
-        <DataTableShell
-          title="All owners"
-          :loading="owners.loading"
-          :empty="rows.length === 0"
-          :empty-colspan="6"
-          empty-title="No owners found"
-          :empty-description="allRows.length && rows.length === 0 ? 'No owners match the current filters.' : ''"
-        >
-          <template #head>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Region</th>
-                <th>W9</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-          </template>
+        <VCard class="owner-list-card">
+          <VCardItem>
+            <VCardTitle>All owners</VCardTitle>
+          </VCardItem>
 
-          <tr
-            v-for="owner in rows"
-            :key="owner.id"
-          >
-            <td>{{ displayName(owner) }}</td>
-            <td>{{ owner.owner_email || '—' }}</td>
-            <td>{{ owner.owner_phone || '—' }}</td>
-            <td>{{ owner.region?.region_name || owner.region_id || '—' }}</td>
-            <td>{{ owner.w9_on_file ? 'Yes' : 'No' }}</td>
-            <td class="text-no-wrap">
-              <BaseButton
-                size="small"
-                variant="tonal"
-                label="Edit"
-                class="me-2"
-                @click="edit(owner)"
-              />
-              <BaseButton
-                size="small"
-                variant="tonal"
-                color="error"
-                label="Delete"
-                @click="askDelete(owner.id)"
-              />
-            </td>
-          </tr>
-        </DataTableShell>
+          <VCardText class="pb-2">
+            <BaseInput
+              v-model="filters.search"
+              placeholder="Search owners..."
+              size="small"
+              hide-details
+              prepend-inner-icon="bx-search"
+            />
+          </VCardText>
+
+          <VProgressLinear
+            v-if="owners.loading"
+            indeterminate
+          />
+
+          <div class="owner-list">
+            <VRow dense>
+              <VCol
+                v-for="owner in rows"
+                :key="owner.id"
+                cols="12"
+                lg="6"
+              >
+                <button
+                  type="button"
+                  class="owner-list-item"
+                  :class="{ 'owner-list-item--selected': selectedId === owner.id }"
+                  @click="selectOwner(owner)"
+                >
+                  <VAvatar
+                    size="52"
+                    rounded="lg"
+                    class="owner-list-item__thumb"
+                    color="primary"
+                    variant="tonal"
+                  >
+                    <VImg
+                      v-if="owner.avatar_url"
+                      :src="owner.avatar_url"
+                      cover
+                    />
+                    <span
+                      v-else
+                      class="owner-list-item__initials"
+                    >{{ ownerInitials(owner) }}</span>
+                  </VAvatar>
+
+                  <div class="owner-list-item__body">
+                    <div class="owner-list-item__title text-truncate">
+                      {{ displayName(owner) }}
+                    </div>
+                    <div class="owner-list-item__subtitle text-truncate">
+                      {{ ownerRegion(owner) }}
+                      <template v-if="owner.owner_email">
+                        · {{ owner.owner_email }}
+                      </template>
+                    </div>
+
+                    <div class="owner-list-item__meta">
+                      <span class="owner-list-item__meta-item">
+                        <VIcon
+                          icon="bx-building-house"
+                          size="16"
+                        />
+                        {{ propertiesCount(owner) }}
+                        {{ propertiesCount(owner) === 1 ? 'property' : 'properties' }}
+                      </span>
+                      <span
+                        v-if="owner.payment_method"
+                        class="owner-list-item__meta-item"
+                      >
+                        <VIcon
+                          icon="bx-credit-card"
+                          size="16"
+                        />
+                        <span class="text-truncate">{{ owner.payment_method }}</span>
+                      </span>
+                    </div>
+
+                    <VChip
+                      size="x-small"
+                      :color="owner.w9_on_file ? 'success' : 'warning'"
+                      label
+                      class="mt-2"
+                    >
+                      {{ owner.w9_on_file ? 'W9 on file' : 'W9 missing' }}
+                    </VChip>
+                  </div>
+
+                  <VIcon
+                    icon="bx-chevron-right"
+                    size="22"
+                    class="owner-list-item__chevron"
+                  />
+                </button>
+              </VCol>
+            </VRow>
+
+            <EmptyState
+              v-if="!owners.loading && rows.length === 0"
+              title="No owners found"
+              :description="allRows.length && rows.length === 0 ? 'No owners match the current filters.' : ''"
+            />
+          </div>
+        </VCard>
       </VCol>
 
       <VCol
         cols="12"
         md="4"
       >
-        <VCard>
+        <VCard class="owner-panel-card">
           <VCardItem>
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
-              <div class="d-flex flex-wrap gap-2">
+              <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   size="small"
                   :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
@@ -405,17 +476,34 @@ definePageMeta({ middleware: 'auth' })
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  :variant="panelMode === 'create' && !editingId ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' && !editingId ? 'primary' : undefined"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
                 />
+                <template v-if="panelMode === 'detail' && selectedOwner">
+                  <BaseButton
+                    size="small"
+                    color="primary"
+                    label="Edit"
+                    prepend-icon="bx-edit"
+                    @click="edit(selectedOwner)"
+                  />
+                  <BaseButton
+                    size="small"
+                    variant="tonal"
+                    color="error"
+                    label="Delete"
+                    prepend-icon="bx-trash"
+                    @click="askDelete(selectedOwner.id)"
+                  />
+                </template>
               </div>
             </template>
           </VCardItem>
 
-          <VCardText>
+          <VCardText class="owner-panel-body">
             <div v-if="panelMode === 'dashboard'">
               <p class="text-body-2 text-medium-emphasis mb-4">
                 Snapshot of owner records and W9 coverage
@@ -467,14 +555,14 @@ definePageMeta({ middleware: 'auth' })
                     <div class="d-flex align-center justify-space-between">
                       <div>
                         <div class="text-caption text-medium-emphasis">
-                          Linked to a region
+                          Properties linked
                         </div>
                         <div class="text-h5">
-                          {{ stats.withRegion }}
+                          {{ stats.totalProperties }}
                         </div>
                       </div>
                       <VIcon
-                        icon="bx-map"
+                        icon="bx-building-house"
                         size="28"
                         class="text-medium-emphasis"
                       />
@@ -482,39 +570,69 @@ definePageMeta({ middleware: 'auth' })
                   </div>
                 </VCol>
               </VRow>
+            </div>
 
-              <ClientOnly>
-                <div class="mt-4">
-                  <div class="text-subtitle-2 mb-2">
-                    W9 coverage
+            <div v-else-if="panelMode === 'detail' && selectedOwner">
+              <div class="d-flex align-center gap-3 mb-4">
+                <VAvatar
+                  size="64"
+                  rounded="lg"
+                  color="primary"
+                  variant="tonal"
+                >
+                  <VImg
+                    v-if="selectedOwner.avatar_url"
+                    :src="selectedOwner.avatar_url"
+                    cover
+                  />
+                  <span
+                    v-else
+                    class="text-h6"
+                  >{{ ownerInitials(selectedOwner) }}</span>
+                </VAvatar>
+                <div class="min-w-0">
+                  <div class="text-h6 text-truncate">
+                    {{ displayName(selectedOwner) }}
                   </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="donut"
-                    height="220"
-                    :options="statusChartOptions"
-                    :series="statusChartSeries"
-                  />
-                  <EmptyState
-                    v-else-if="!owners.loading"
-                    title="No owners yet"
-                    description="Counts and charts will appear once owners are loaded."
-                  />
+                  <div class="text-body-2 text-medium-emphasis text-truncate">
+                    {{ ownerRegion(selectedOwner) }}
+                  </div>
+                  <VChip
+                    size="small"
+                    :color="selectedOwner.w9_on_file ? 'success' : 'warning'"
+                    label
+                    class="mt-1"
+                  >
+                    {{ selectedOwner.w9_on_file ? 'W9 on file' : 'W9 missing' }}
+                  </VChip>
                 </div>
+              </div>
 
-                <div class="mt-6">
-                  <div class="text-subtitle-2 mb-2">
-                    Contact & region
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="bar"
-                    height="200"
-                    :options="activityChartOptions"
-                    :series="activityChartSeries"
-                  />
-                </div>
-              </ClientOnly>
+              <ul class="owner-detail-list">
+                <li>
+                  <span class="owner-detail-list__label">Email</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.owner_email || '—' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Phone</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.owner_phone || '—' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Properties</span>
+                  <span class="owner-detail-list__value">
+                    {{ propertiesCount(selectedOwner) }}
+                    {{ propertiesCount(selectedOwner) === 1 ? 'property' : 'properties' }}
+                  </span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Payment method</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.payment_method || '—' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Payout information</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.owner_payout_information || '—' }}</span>
+                </li>
+              </ul>
             </div>
 
             <div v-else-if="panelMode === 'filter'">
@@ -553,16 +671,19 @@ definePageMeta({ middleware: 'auth' })
                   <BaseButton
                     type="button"
                     variant="text"
-                    label="Back to overview"
-                    @click="panelMode = 'dashboard'"
+                    label="Back"
+                    @click="panelMode = selectedOwner ? 'detail' : 'dashboard'"
                   />
                 </div>
               </VForm>
             </div>
 
-            <div v-else>
+            <div v-else-if="panelMode === 'create'">
               <AppAlert :errors="owners.errors" />
-              <VForm @submit.prevent="submit">
+              <VForm
+                class="owner-form"
+                @submit.prevent="submit"
+              >
                 <BaseInput
                   v-model="form.full_name"
                   label="Full name"
@@ -589,15 +710,18 @@ definePageMeta({ middleware: 'auth' })
                   label="Phone"
                   :error="owners.errors.owner_phone"
                 />
-                <BaseInput
+                <BaseSelect
                   v-model="form.region_id"
-                  label="Region ID"
-                  type="number"
+                  label="Region"
+                  :items="regionOptions"
+                  clearable
                   :error="owners.errors.region_id"
                 />
-                <BaseInput
+                <BaseSelect
                   v-model="form.payment_method"
                   label="Payment method"
+                  :items="paymentMethodItems"
+                  clearable
                   :error="owners.errors.payment_method"
                 />
                 <BaseTextarea
@@ -609,7 +733,7 @@ definePageMeta({ middleware: 'auth' })
                   v-model="form.w9_on_file"
                   label="W9 on file"
                 />
-                <div class="d-flex flex-wrap gap-2 mt-2">
+                <div class="d-flex flex-wrap gap-2 owner-form__actions">
                   <BaseButton
                     type="submit"
                     :label="editingId ? 'Update owner' : 'Create owner'"
@@ -642,6 +766,145 @@ definePageMeta({ middleware: 'auth' })
 </template>
 
 <style scoped>
+.owner-list-card,
+.owner-panel-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 160px);
+}
+
+.owner-panel-body {
+  overflow-y: auto;
+}
+
+.owner-list {
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+
+.owner-list :deep(.v-col) {
+  display: flex;
+}
+
+.owner-list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 112px;
+  padding: 14px 16px;
+  border: 1px solid rgba(75, 70, 92, 0.1);
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  box-shadow: 0 1px 2px rgba(75, 70, 92, 0.06);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.owner-list-item:hover {
+  background: rgba(105, 108, 255, 0.04);
+  border-color: rgba(105, 108, 255, 0.28);
+}
+
+.owner-list-item--selected {
+  background: rgba(105, 108, 255, 0.1);
+  border-color: rgba(105, 108, 255, 0.45);
+  box-shadow: 0 2px 8px rgba(105, 108, 255, 0.12);
+}
+
+.owner-list-item__thumb {
+  flex-shrink: 0;
+}
+
+.owner-list-item__initials {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.owner-list-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.owner-list-item__title {
+  font-weight: 600;
+  font-size: 0.975rem;
+  line-height: 1.3;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.owner-list-item__subtitle {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.owner-list-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 8px;
+}
+
+.owner-list-item__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  font-size: 0.78rem;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+.owner-list-item__chevron {
+  flex-shrink: 0;
+  color: rgba(var(--v-theme-on-surface), 0.35);
+}
+
+.owner-list-item--selected .owner-list-item__chevron {
+  color: rgb(var(--v-theme-primary));
+}
+
+.owner-form :deep(.v-input),
+.owner-form :deep(.v-selection-control) {
+  margin-bottom: 1rem;
+}
+
+.owner-form__actions {
+  margin-top: 0.25rem;
+}
+
+.owner-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.owner-detail-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(75, 70, 92, 0.08);
+}
+
+.owner-detail-list li:last-child {
+  border-bottom: 0;
+}
+
+.owner-detail-list__label {
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+
+.owner-detail-list__value {
+  font-size: 0.9375rem;
+  color: rgb(var(--v-theme-on-surface));
+  word-break: break-word;
+}
+
 .entity-stat-tile {
   border: 1px solid rgba(75, 70, 92, 0.08);
   background: rgba(75, 70, 92, 0.03);
