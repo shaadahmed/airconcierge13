@@ -1,0 +1,18 @@
+---
+description: ADR-021 SoftDeletes and timestamps on all domain tables/models
+globs: database/migrations/**/*.php,app/Models/**/*.php
+alwaysApply: false
+---
+
+# SoftDeletes and timestamps (ADR-021)
+
+Canonical detail: `docs/adr/021-soft-deletes-and-timestamps.md`.
+
+When creating or editing domain migrations and models:
+
+- End every new domain `Schema::create` with `$table->timestamps()` then `$table->softDeletes()` so the last three columns are `created_at`, `updated_at`, `deleted_at`.
+- Add `use SoftDeletes` on the Eloquent model. Do not set `$timestamps = false`.
+- Soft-delete / restore with Eloquent `delete()` / `restore()` / `forceDelete()`. Use `withTrashed()` / `onlyTrashed()` when listing trashed rows.
+- Never add boolean `deleted` / `is_deleted` columns, and never use `created_date` / `modified_date` instead of Laravel timestamps on new tables.
+- Map legacy `deleted` + date columns only in dump-import logic.
+- Exempt: framework tables (`cache`, `jobs`, `sessions`, `password_reset_tokens`, etc.).

@@ -71,6 +71,7 @@ These are **different** concepts — do not merge them:
 - Copy specific files into `database/migrations/` when a domain phase needs those tables.
 - Schema tables are copied from `migrations_fresh` into live `database/migrations/` per domain (owners/properties, chronology/email, bookings/payments, reports/admin). Do not run wholesale `migrations_fresh`.
 - Local QA dumps: `storage/app/legacy-dumps/` (gitignored).
+- **SoftDeletes + timestamps (ADR-021):** every new domain table migration must end with `created_at`, `updated_at`, `deleted_at` via `$table->timestamps()` then `$table->softDeletes()`. Every corresponding Eloquent model uses the `SoftDeletes` trait. Do **not** port legacy boolean `deleted` columns or `created_date` / `modified_date` as substitutes. Map those on dump import only. Framework tables (`cache`, `jobs`, `sessions`, …) stay exempt.
 
 ## Local runtime
 

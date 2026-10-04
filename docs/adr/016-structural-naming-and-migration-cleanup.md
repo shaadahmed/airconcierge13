@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-23  
-**Relates to:** [ADR-006](006-rollback-separate-deploy.md), [ADR-010](010-user-role-enum-policies.md), Spec Phase 2 domain services
+**Relates to:** [ADR-006](006-rollback-separate-deploy.md), [ADR-010](010-user-role-enum-policies.md), [ADR-021](021-soft-deletes-and-timestamps.md), Spec Phase 2 domain services
 
 ## Context
 
@@ -21,7 +21,7 @@ Spatie Permission remains removed (ADR-010). `HelloSignDetail` / `ZohoCodeDetail
 2. **Dashboard:** Merge dashboard JSON actions into `DashboardController` (Blade page + JSON APIs). Delete `AjaxDashboardController`.
 3. **Email:** Rename `SendEmailController` → `EmailController` and `StoreSendEmailRequest` → `Admin\Email\StoreEmailRequest`. All outbound sends go through `EmailService`; do not add per-audience email controllers (owner/manager/admin are methods on `EmailController` when needed).
 4. **Payments:** Fold property-payment HTTP actions into `PaymentController` (`propertyIndex` / `propertyStore` / `propertyDestroy`). Delete `PropertyPaymentController`. Keep distinct URLs, Form Requests, and model binding.
-5. **Physical DB names** (`emailstatus`, `hellosigndetails`, etc.) stay unchanged for dump-import fidelity.
+5. **Physical DB names** (`emailstatus`, `hellosigndetails`, etc.) stay unchanged for dump-import fidelity, **except** soft-delete and timestamp columns, which follow [ADR-021](021-soft-deletes-and-timestamps.md) (`created_at`, `updated_at`, `deleted_at` + SoftDeletes) rather than legacy `created_date` / `modified_date` / boolean `deleted`.
 
 ## Alternatives considered
 

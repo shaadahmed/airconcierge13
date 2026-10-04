@@ -2,14 +2,14 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-22  
-**Relates to:** [ADR-002](002-auth-spatie-permission.md), [ADR-007](007-phase1-greenfield-routing-auth.md)
+**Relates to:** [ADR-002](002-auth-spatie-permission.md), [ADR-007](007-phase1-greenfield-routing-auth.md), [ADR-021](021-soft-deletes-and-timestamps.md)
 
 ## Decision
 
 1. **Owner terms and active-property access** are enforced on an **owner route (or equivalent authorization) boundary** — `owner.terms` / `owner.active` apply only to Property Owner–relevant routes, not the shared admin shell. Defensive role guards inside middleware are allowed; they are not the primary scoping mechanism.
 2. **Simple domain predicates live on the model** (e.g. `User::hasAgreedToTerms()`, `User::hasActiveAccess()`). Middleware/Policies call those predicates. **Services orchestrate multi-step workflows** (multiple models, transactions, side effects, events, notifications, external systems). Services must not wrap ordinary Eloquent lookups or boolean predicates.
 3. **Contracts/interfaces** exist only where they provide meaningful architectural value (multiple substantive implementations, external system boundaries, or testing seams with real benefit) — not merely to abstract model access.
-4. **Canonical account enable flag is `users.active` only.** Do not port `owners.status` as a second enable/disable toggle. **Active access** (may use the owner app surface) is **derived** from having ≥1 qualifying live property (`properties.status`), never stored as another owner-level “active” flag.
+4. **Canonical account enable flag is `users.active` only.** Do not port `owners.status` as a second enable/disable toggle. **Active access** (may use the owner app surface) is **derived** from having ≥1 qualifying live property (`properties.status` and not soft-deleted per [ADR-021](021-soft-deletes-and-timestamps.md)), never stored as another owner-level “active” flag.
 
 ## Context (why — senior review)
 

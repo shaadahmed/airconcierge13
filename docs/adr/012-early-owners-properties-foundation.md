@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-23  
-**Relates to:** [ADR-009](009-owner-access-predicates-and-active-flags.md), [ADR-010](010-user-role-enum-policies.md), [ADR-011](011-hostaway-phase21-minimal-sync.md)
+**Relates to:** [ADR-009](009-owner-access-predicates-and-active-flags.md), [ADR-010](010-user-role-enum-policies.md), [ADR-011](011-hostaway-phase21-minimal-sync.md), [ADR-021](021-soft-deletes-and-timestamps.md)
 
 ## Decision
 
@@ -21,7 +21,7 @@
 
 Legacy `owners.status` is a boolean defaulting to `1`, used as an owner-level enable dropdown overlapping `users.active`. That is **not** a distinct lifecycle field. Per ADR-009 it is **omitted** from the L13 `owners` table. Wave A SQL dumps that include `owners.status` must drop or ignore that column on import.
 
-Active property access remains **computed** from `properties.status` (+ not deleted) via `hasActiveAccess()`.
+Active property access remains **computed** from `properties.status` (+ not soft-deleted) via `hasActiveAccess()`. Soft-delete uses Laravel `SoftDeletes` / `deleted_at` ([ADR-021](021-soft-deletes-and-timestamps.md)), not a boolean `properties.deleted` column. Legacy dump import maps boolean `deleted` and `created_date` / `modified_date` into `deleted_at` / `created_at` / `updated_at`.
 
 ## Consequences
 

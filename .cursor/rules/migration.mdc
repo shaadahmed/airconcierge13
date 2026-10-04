@@ -21,3 +21,4 @@ alwaysApply: true
 - Phase 0–5 implemented (Nuxt SPA + Phase 5 closure); next is Phase 6 (deployment readiness) per the migration plan.
 - Local SQL dumps for QA: place under `storage/app/legacy-dumps/` (gitignored).
 - No new global helpers; no business logic in Blade; no `env()` outside config. Pure utilities: `App\Support\*` (ADR-015).
+- SoftDeletes + timestamps (ADR-021): new domain migrations end with `$table->timestamps()` then `$table->softDeletes()` (`created_at`, `updated_at`, `deleted_at`). Models use `SoftDeletes`. Never port boolean `deleted` / `created_date` / `modified_date` as the L13 soft-delete or timestamp mechanism.

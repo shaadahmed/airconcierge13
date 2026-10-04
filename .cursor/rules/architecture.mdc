@@ -36,3 +36,9 @@ Canonical detail: `docs/adr/009-owner-access-predicates-and-active-flags.md` and
 - **`users.active`** = sole account enable/disable flag (login eligibility).
 - **Do not** port or recreate `owners.status` as a second enable flag.
 - **`hasActiveAccess()`** = computed from active properties — never a stored owner-level “active” duplicate.
+- Live property rows are not soft-deleted (`deleted_at` null / not trashed) per ADR-021; do not use a boolean `deleted` column.
+
+## SoftDeletes and timestamps (ADR-021)
+
+- Domain tables: last columns are `created_at`, `updated_at`, `deleted_at` (`timestamps()` + `softDeletes()`).
+- Domain models: `SoftDeletes` trait; restore/trash via Eloquent, not custom boolean flags.
