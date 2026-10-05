@@ -483,23 +483,27 @@ definePageMeta({ middleware: 'auth' })
                 <BaseInput
                   v-model="form.name"
                   label="Name"
+                  class="mb-2"
                   :error="countries.errors.name"
                 />
                 <BaseInput
                   v-model="form.code"
                   label="Code"
+                  class="mb-2"
                   :error="countries.errors.code"
                 />
                 <BaseInput
                   v-model="form.lat"
                   label="Latitude"
                   type="number"
+                  class="mb-2"
                   :error="countries.errors.lat"
                 />
                 <BaseInput
                   v-model="form.lng"
                   label="Longitude"
                   type="number"
+                  class="mb-2"
                   :error="countries.errors.lng"
                 />
                 <div class="d-flex flex-wrap gap-2 mt-2">

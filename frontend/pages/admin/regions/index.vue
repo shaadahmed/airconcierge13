@@ -6,7 +6,7 @@ const subregions = useSubregionsStore()
 /** @type {import('vue').Ref<'region' | 'subregion'>} */
 const panelEntity = ref('region')
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create' | 'detail'>} */
 const panelMode = ref('dashboard')
 
 const form = reactive({
@@ -42,6 +42,7 @@ const filters = reactive({
 
 const editingId = ref(null)
 const editingSubregionId = ref(null)
+const selectedSubregionId = ref(null)
 const expandedRegionId = ref(null)
 const loadedRegionIds = ref(/** @type {Set<number>} */ (new Set()))
 const confirmDelete = reactive({ open: false, id: null, type: 'region' })
@@ -146,6 +147,15 @@ const activeSubregionRows = computed(() => {
   })
 })
 
+const selectedSubregion = computed(() => {
+  if (selectedSubregionId.value == null)
+    return null
+
+  return allSubregionRows.value.find(row => Number(row.id) === Number(selectedSubregionId.value))
+    || activeSubregionRows.value.find(row => Number(row.id) === Number(selectedSubregionId.value))
+    || null
+})
+
 const subregionStats = computed(() => {
   const list = subregionsForRegion(expandedRegionId.value)
   const source = list.length
@@ -222,9 +232,11 @@ const panelTitle = computed(() => {
   if (panelEntity.value === 'subregion') {
     if (panelMode.value === 'create')
       return editingSubregionId.value ? 'Edit subregion' : 'Create subregion'
+    if (panelMode.value === 'detail' && selectedSubregion.value)
+      return selectedSubregion.value.subregion_name || selectedSubregion.value.name || 'Subregion details'
 
     return selectedRegion.value
-      ? `Subregions · ${selectedRegion.value.region_name}`
+      ? `${selectedRegion.value.region_name} overview`
       : 'Subregion overview'
   }
 
@@ -346,6 +358,7 @@ const openRegion = region => {
 
   filters.name = ''
   expandedRegionId.value = nextId
+  selectedSubregionId.value = null
   panelEntity.value = 'subregion'
   if (panelMode.value !== 'create')
     panelMode.value = 'dashboard'
@@ -356,6 +369,7 @@ const openRegion = region => {
 const backToRegions = () => {
   filters.name = ''
   expandedRegionId.value = null
+  selectedSubregionId.value = null
   editingSubregionId.value = null
   panelEntity.value = 'region'
   resetSubregionForm()
@@ -364,23 +378,29 @@ const backToRegions = () => {
   panelMode.value = 'dashboard'
 }
 
+const selectSubregion = (row, region = null) => {
+  if (region)
+    expandedRegionId.value = region.id
+
+  selectedSubregionId.value = row.id
+  panelEntity.value = 'subregion'
+  panelMode.value = 'detail'
+}
+
+const closeSubregionDetail = () => {
+  selectedSubregionId.value = null
+  panelEntity.value = 'subregion'
+  panelMode.value = 'dashboard'
+}
+
 const openCreateSubregion = (region = null) => {
   if (region)
     expandedRegionId.value = region.id
 
+  selectedSubregionId.value = null
   panelEntity.value = 'subregion'
   resetSubregionForm()
   panelMode.value = 'create'
-}
-
-const openCreateFromPanel = () => {
-  if (isSubregionView.value) {
-    openCreateSubregion(selectedRegion.value)
-
-    return
-  }
-
-  openPanel('create')
 }
 
 const edit = region => {
@@ -398,6 +418,7 @@ const editSubregion = (row, region = null) => {
   if (region)
     expandedRegionId.value = region.id
 
+  selectedSubregionId.value = row.id
   editingSubregionId.value = row.id
   Object.assign(subregionForm, {
     region_id: row.region_id || expandedRegionId.value || '',
@@ -424,7 +445,7 @@ const editSubregion = (row, region = null) => {
 const cancelCreate = () => {
   if (panelEntity.value === 'subregion') {
     resetSubregionForm()
-    panelMode.value = 'dashboard'
+    panelMode.value = selectedSubregionId.value != null ? 'detail' : 'dashboard'
 
     return
   }
@@ -494,10 +515,17 @@ const submitSubregion = async () => {
     else
       await subregions.create(payload)
 
+    const savedId = editingSubregionId.value || subregions.current?.id || null
     resetSubregionForm()
-    panelMode.value = 'dashboard'
     if (regionId)
       expandedRegionId.value = regionId
+    if (savedId) {
+      selectedSubregionId.value = savedId
+      panelMode.value = 'detail'
+    }
+    else {
+      panelMode.value = 'dashboard'
+    }
 
     if (!subregions.usingMocks)
       await loadSubregionsForRegion(regionId)
@@ -522,6 +550,10 @@ const onDelete = async () => {
   try {
     if (confirmDelete.type === 'subregion') {
       await subregions.remove(confirmDelete.id)
+      if (Number(selectedSubregionId.value) === Number(confirmDelete.id)) {
+        selectedSubregionId.value = null
+        panelMode.value = 'dashboard'
+      }
       confirmDelete.open = false
       if (!subregions.usingMocks && expandedRegionId.value)
         await loadSubregionsForRegion(expandedRegionId.value)
@@ -532,8 +564,10 @@ const onDelete = async () => {
     }
 
     await regions.remove(confirmDelete.id)
-    if (Number(expandedRegionId.value) === Number(confirmDelete.id))
+    if (Number(expandedRegionId.value) === Number(confirmDelete.id)) {
       expandedRegionId.value = null
+      selectedSubregionId.value = null
+    }
     confirmDelete.open = false
     if (!regions.usingMocks)
       await regions.load()
@@ -569,7 +603,24 @@ definePageMeta({ middleware: 'auth' })
     <PageHeader
       title="Regions & Subregions"
       subtitle="Manage property regions and municipality rules"
-    />
+    >
+      <template #actions>
+        <BaseButton
+          v-if="isSubregionView"
+          color="primary"
+          label="Add subregion"
+          prepend-icon="bx-plus"
+          @click="openCreateSubregion(selectedRegion)"
+        />
+        <BaseButton
+          v-else
+          color="primary"
+          label="Create region"
+          prepend-icon="bx-plus"
+          @click="openPanel('create')"
+        />
+      </template>
+    </PageHeader>
 
     <VAlert
       v-if="regions.usingMocks || subregions.usingMocks"
@@ -586,44 +637,33 @@ definePageMeta({ middleware: 'auth' })
         cols="12"
         md="8"
       >
-        <VCard class="region-list-card">
-          <VCardItem>
-            <div class="list-card-heading">
-              <BaseButton
-                v-if="isSubregionView"
-                size="small"
-                variant="tonal"
-                label="Back to regions"
-                prepend-icon="bx-arrow-back"
-                class="list-card-heading__back"
-                @click="backToRegions"
-              />
+        <template v-if="!isSubregionView">
+          <VCard class="region-list-card">
+            <VCardItem>
               <VCardTitle>{{ listTitle }}</VCardTitle>
-            </div>
-            <template #append>
-              <span class="text-caption text-medium-emphasis">
-                {{ listCountLabel }}
-              </span>
-            </template>
-          </VCardItem>
+              <template #append>
+                <span class="text-caption text-medium-emphasis">
+                  {{ listCountLabel }}
+                </span>
+              </template>
+            </VCardItem>
 
-          <VCardText class="pb-2">
-            <BaseInput
-              v-model="filters.name"
-              :placeholder="isSubregionView ? 'Search subregions...' : 'Search regions...'"
-              size="small"
-              hide-details
-              prepend-inner-icon="bx-search"
+            <VCardText class="pb-2">
+              <BaseInput
+                v-model="filters.name"
+                placeholder="Search regions..."
+                size="small"
+                hide-details
+                prepend-inner-icon="bx-search"
+              />
+            </VCardText>
+
+            <VProgressLinear
+              v-if="regions.loading"
+              indeterminate
             />
-          </VCardText>
 
-          <VProgressLinear
-            v-if="regions.loading || subregions.loading"
-            indeterminate
-          />
-
-          <div class="region-list">
-            <template v-if="!isSubregionView">
+            <div class="region-list">
               <EmptyState
                 v-if="!regions.loading && rows.length === 0"
                 title="No regions found"
@@ -692,24 +732,47 @@ definePageMeta({ middleware: 'auth' })
                   />
                 </div>
               </div>
-            </template>
+            </div>
+          </VCard>
+        </template>
 
-            <template v-else>
-              <div class="subregion-list-head">
-                <div>
-                  <div class="text-caption text-medium-emphasis">
-                    Municipality rules nested under {{ selectedRegion?.region_name }}
-                  </div>
-                </div>
+        <template v-else>
+          <VCard class="region-list-card">
+            <VCardItem>
+              <div class="list-card-heading">
                 <BaseButton
                   size="small"
-                  color="primary"
-                  label="Add subregion"
-                  prepend-icon="bx-plus"
-                  @click="openCreateSubregion(selectedRegion)"
+                  variant="tonal"
+                  label="Back to regions"
+                  prepend-icon="bx-arrow-back"
+                  class="list-card-heading__back"
+                  @click="backToRegions"
                 />
+                <VCardTitle>{{ listTitle }}</VCardTitle>
               </div>
+              <template #append>
+                <span class="text-caption text-medium-emphasis">
+                  {{ listCountLabel }}
+                </span>
+              </template>
+            </VCardItem>
 
+            <VCardText class="pb-2">
+              <BaseInput
+                v-model="filters.name"
+                placeholder="Search subregions..."
+                size="small"
+                hide-details
+                prepend-inner-icon="bx-search"
+              />
+            </VCardText>
+
+            <VProgressLinear
+              v-if="subregions.loading"
+              indeterminate
+            />
+
+            <div class="region-list">
               <EmptyState
                 v-if="!subregions.loading && activeSubregionRows.length === 0"
                 title="No subregions found"
@@ -722,11 +785,13 @@ definePageMeta({ middleware: 'auth' })
                 v-else
                 class="subregion-list"
               >
-                <div
+                <button
                   v-for="row in activeSubregionRows"
                   :key="row.id"
-                  class="subregion-row"
-                  :class="{ 'subregion-row--active': Number(editingSubregionId) === Number(row.id) }"
+                  type="button"
+                  class="subregion-row subregion-row--clickable"
+                  :class="{ 'subregion-row--active': Number(selectedSubregionId) === Number(row.id) }"
+                  @click="selectSubregion(row, selectedRegion)"
                 >
                   <div class="subregion-row__main">
                     <div class="subregion-row__name text-truncate">
@@ -765,7 +830,10 @@ definePageMeta({ middleware: 'auth' })
                     </div>
                   </div>
 
-                  <div class="subregion-row__actions">
+                  <div
+                    class="subregion-row__actions"
+                    @click.stop
+                  >
                     <BaseButton
                       size="small"
                       variant="tonal"
@@ -781,11 +849,11 @@ definePageMeta({ middleware: 'auth' })
                       @click="askDelete(row.id, 'subregion')"
                     />
                   </div>
-                </div>
+                </button>
               </div>
-            </template>
-          </div>
-        </VCard>
+            </div>
+          </VCard>
+        </template>
       </VCol>
 
       <VCol
@@ -796,7 +864,7 @@ definePageMeta({ middleware: 'auth' })
           <VCardItem>
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
-              <div class="d-flex flex-wrap gap-2">
+              <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   v-if="!isSubregionView"
                   size="small"
@@ -807,19 +875,112 @@ definePageMeta({ middleware: 'auth' })
                   @click="openPanel('filter')"
                 />
                 <BaseButton
+                  v-if="!isSubregionView"
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
-                  :label="isSubregionView ? 'Add subregion' : 'Create'"
+                  :variant="panelMode === 'create' && panelEntity === 'region' ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' && panelEntity === 'region' ? 'primary' : undefined"
+                  label="Create"
                   prepend-icon="bx-plus"
-                  @click="openCreateFromPanel"
+                  @click="openPanel('create')"
+                />
+                <template v-if="panelMode === 'detail' && selectedSubregion">
+                  <BaseButton
+                    size="small"
+                    color="primary"
+                    label="Edit"
+                    prepend-icon="bx-edit"
+                    @click="editSubregion(selectedSubregion, selectedRegion)"
+                  />
+                  <VBtn
+                    icon
+                    variant="text"
+                    size="small"
+                    aria-label="Close subregion details"
+                    @click="closeSubregionDetail"
+                  >
+                    <VIcon icon="bx-x" />
+                  </VBtn>
+                </template>
+                <BaseButton
+                  v-else-if="isSubregionView"
+                  size="small"
+                  :variant="panelMode === 'create' && panelEntity === 'subregion' ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' && panelEntity === 'subregion' ? 'primary' : undefined"
+                  label="Add subregion"
+                  prepend-icon="bx-plus"
+                  @click="openCreateSubregion(selectedRegion)"
                 />
               </div>
             </template>
           </VCardItem>
 
           <VCardText>
-            <template v-if="panelEntity === 'subregion' && panelMode === 'create'">
+            <template v-if="panelEntity === 'subregion' && panelMode === 'detail' && selectedSubregion">
+              <div class="detail-hero mb-4">
+                <div class="text-h6 text-truncate">
+                  {{ selectedSubregion.subregion_name || selectedSubregion.name }}
+                </div>
+                <div class="text-body-2 text-medium-emphasis">
+                  {{ selectedRegion?.region_name || 'Subregion' }}
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <VChip
+                    v-if="licenseLabel(selectedSubregion)"
+                    size="small"
+                    :color="Number(selectedSubregion.business_license_account) === 1 ? 'success' : 'default'"
+                    label
+                  >
+                    {{ licenseLabel(selectedSubregion) }}
+                  </VChip>
+                  <VChip
+                    size="small"
+                    :color="selectedSubregion.limited_bookings === 'Yes' || selectedSubregion.limit_type ? 'warning' : 'default'"
+                    label
+                  >
+                    {{ limitLabel(selectedSubregion) }}
+                  </VChip>
+                </div>
+              </div>
+
+              <ul class="detail-list">
+                <li>
+                  <span class="detail-list__label">Transient Occupancy Tax</span>
+                  <span class="detail-list__value">{{ selectedSubregion.transient_occupancy_tax ?? '—' }}%</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Short-term nights</span>
+                  <span class="detail-list__value">{{ selectedSubregion.short_stay_len ? `${selectedSubregion.short_stay_len} nights` : '—' }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Permit number</span>
+                  <span class="detail-list__value">{{ selectedSubregion.permit_no || '—' }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Permit issue date</span>
+                  <span class="detail-list__value">{{ selectedSubregion.permit_issue_date || '—' }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Permit length</span>
+                  <span class="detail-list__value">{{ selectedSubregion.permit_length || selectedSubregion.policy_len ? `${selectedSubregion.permit_length || selectedSubregion.policy_len} months` : '—' }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Permit expiry</span>
+                  <span class="detail-list__value">{{ selectedSubregion.permit_expiry_date || '—' }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Booking limits</span>
+                  <span class="detail-list__value">{{ limitLabel(selectedSubregion) }}</span>
+                </li>
+                <li>
+                  <span class="detail-list__label">Limit based on</span>
+                  <span class="detail-list__value">
+                    {{ selectedSubregion.limit_filter === 'PERMIT_YEAR' ? 'Permit year' : selectedSubregion.limit_filter === 'CALENDAR' ? 'Calendar year' : '—' }}
+                  </span>
+                </li>
+              </ul>
+            </template>
+
+            <template v-else-if="panelEntity === 'subregion' && panelMode === 'create'">
               <AppAlert :errors="subregions.errors" />
               <VForm
                 class="entity-form"
@@ -1284,12 +1445,52 @@ definePageMeta({ middleware: 'auth' })
   flex-shrink: 0;
 }
 
-.subregion-list-head {
+.region-color-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(75, 70, 92, 0.2);
+}
+
+.detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.detail-list li {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(75, 70, 92, 0.08);
+}
+
+.detail-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detail-list--compact li {
+  padding: 7px 0;
+}
+
+.detail-list__label {
+  flex-shrink: 0;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-size: 0.8125rem;
+}
+
+.detail-list__value {
+  text-align: right;
+  font-weight: 500;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.detail-hero .text-h6 {
+  line-height: 1.3;
 }
 
 .subregion-empty {
@@ -1312,11 +1513,17 @@ definePageMeta({ middleware: 'auth' })
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(75, 70, 92, 0.1);
   border-radius: 10px;
   background: rgba(var(--v-theme-surface), 1);
+  text-align: left;
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.subregion-row--clickable {
+  cursor: pointer;
 }
 
 .subregion-row:hover {
@@ -1364,8 +1571,7 @@ definePageMeta({ middleware: 'auth' })
 
 @media (max-width: 960px) {
   .region-row,
-  .subregion-row,
-  .subregion-list-head {
+  .subregion-row {
     flex-direction: column;
     align-items: stretch;
   }
