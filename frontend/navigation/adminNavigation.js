@@ -25,7 +25,7 @@ export const adminNavigationGroups = [
       { title: 'Guests', to: '/admin/guests', icon: 'bxs-circle' },
       { title: 'Regions & Subregions', to: '/admin/regions', icon: 'bxs-circle' },
       { title: 'Audit Reports', to: '/admin/properties/audit/list', icon: 'bxs-circle' },
-      { title: 'Countries & States', to: '/admin/countries', icon: 'bxs-circle' },
+      { title: 'Countries, States & Cities', to: '/admin/countries', icon: 'bxs-circle' },
     ],
   },
   {

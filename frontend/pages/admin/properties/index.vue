@@ -4,6 +4,7 @@ import {
   propertyStatusLabel,
 } from '@/constants/properties'
 import { createEmptyPropertyForm, serializePropertyForm } from '@/utils/propertyForm'
+import { propertyCityName, propertyStateName } from '@/mocks/countries'
 
 const route = useRoute()
 const properties = usePropertiesStore()
@@ -29,6 +30,9 @@ const {
   ownerOptions,
   regionOptions: formRegionOptions,
   subregionOptions,
+  countryOptions,
+  stateOptions,
+  cityOptions,
   cleanerOptions,
   parentPropertyOptions,
 } = usePropertyFormOptions(formSource)
@@ -63,7 +67,7 @@ const rows = computed(() => {
       return false
 
     if (cityQuery) {
-      const city = String(property.city || '').toLowerCase()
+      const city = propertyCityName(property).toLowerCase()
       if (!city.includes(cityQuery))
         return false
     }
@@ -274,7 +278,7 @@ const resetPanelScroll = () => {
 }
 
 const propertyLocation = property => {
-  const parts = [property?.city, property?.state].filter(Boolean)
+  const parts = [propertyCityName(property), propertyStateName(property)].filter(Boolean)
 
   return parts.length ? parts.join(', ') : (property?.street_address || '—')
 }
@@ -874,6 +878,9 @@ definePageMeta({ middleware: 'auth' })
                 :owner-options="ownerOptions"
                 :region-options="formRegionOptions"
                 :subregion-options="subregionOptions"
+                :country-options="countryOptions"
+                :state-options="stateOptions"
+                :city-options="cityOptions"
                 :parent-property-options="parentPropertyOptions"
                 :cleaner-options="cleanerOptions"
                 @update:model-value="onFormUpdate"

@@ -9,7 +9,6 @@ import {
   PROPERTY_STATUS_CREATE_OPTIONS,
   PROPERTY_STATUS_OPTIONS,
   TOT_METHOD_OPTIONS,
-  US_STATE_OPTIONS,
   VRBO_TO_AIRBNB_TOT_MODE,
   VRBO_TOT_MODE_OPTIONS,
   vrboTotModeRequiresMethod,
@@ -26,6 +25,9 @@ const props = defineProps({
   ownerOptions: { type: Array, default: () => [] },
   regionOptions: { type: Array, default: () => [] },
   subregionOptions: { type: Array, default: () => [] },
+  countryOptions: { type: Array, default: () => [] },
+  stateOptions: { type: Array, default: () => [] },
+  cityOptions: { type: Array, default: () => [] },
   parentPropertyOptions: { type: Array, default: () => [] },
   cleanerOptions: { type: Array, default: () => [] },
   showResortFee: { type: Boolean, default: true },
@@ -106,6 +108,36 @@ const onRegionChange = value => {
     subregion_id: null,
     parent_id: null,
   })
+}
+
+const onCountryChange = value => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    country_id: value,
+    state_id: null,
+    city_id: null,
+  })
+}
+
+const onStateChange = value => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    state_id: value,
+    city_id: null,
+  })
+}
+
+const onCityChange = value => {
+  const selected = props.cityOptions.find(item => Number(item.value) === Number(value))
+  const next = {
+    ...props.modelValue,
+    city_id: value,
+  }
+
+  if (selected?.zip != null && selected.zip !== '' && !props.modelValue.zipcode)
+    next.zipcode = String(selected.zip)
+
+  emit('update:modelValue', next)
 }
 
 const fieldError = key => props.errors?.[key]
@@ -258,11 +290,13 @@ const fieldError = key => props.errors?.[key]
         cols="12"
         md="4"
       >
-        <BaseInput
-          :model-value="form.city"
-          label="City"
-          :error="fieldError('city')"
-          @update:model-value="updateField('city', $event)"
+        <BaseSelect
+          :model-value="form.country_id"
+          label="Country"
+          :items="countryOptions"
+          clearable
+          :error="fieldError('country_id')"
+          @update:model-value="onCountryChange"
         />
       </VCol>
 
@@ -271,12 +305,28 @@ const fieldError = key => props.errors?.[key]
         md="4"
       >
         <BaseSelect
-          :model-value="form.state"
+          :model-value="form.state_id"
           label="State"
-          :items="US_STATE_OPTIONS"
+          :items="stateOptions"
           clearable
-          :error="fieldError('state')"
-          @update:model-value="updateField('state', $event)"
+          :disabled="!form.country_id"
+          :error="fieldError('state_id') || fieldError('state')"
+          @update:model-value="onStateChange"
+        />
+      </VCol>
+
+      <VCol
+        cols="12"
+        md="4"
+      >
+        <BaseSelect
+          :model-value="form.city_id"
+          label="City"
+          :items="cityOptions"
+          clearable
+          :disabled="!form.state_id"
+          :error="fieldError('city_id') || fieldError('city')"
+          @update:model-value="onCityChange"
         />
       </VCol>
 

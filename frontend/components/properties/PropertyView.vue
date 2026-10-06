@@ -10,6 +10,7 @@ import {
   vrboTotModeRequiresMethod,
   yesNoLabel,
 } from '@/constants/properties'
+import { propertyCityName, propertyStateName } from '@/mocks/countries'
 
 const props = defineProps({
   property: { type: Object, required: true },
@@ -107,8 +108,8 @@ const sections = computed(() => {
         { label: 'Property address / title', value: property.property_title || '—' },
         { label: 'Hostaway listing ID', value: property.hostaway_listing_id || '—' },
         { label: 'Street address', value: property.street_address || '—' },
-        { label: 'City', value: property.city || '—' },
-        { label: 'State', value: property.state || '—' },
+        { label: 'City', value: propertyCityName(property) || '—' },
+        { label: 'State', value: propertyStateName(property) || '—' },
         { label: 'Zip code', value: property.zipcode || '—' },
         { label: 'Email titles', value: emailTitles(property) },
       ],
@@ -198,7 +199,7 @@ const sections = computed(() => {
           </VChip>
         </div>
         <p class="text-body-2 text-medium-emphasis mb-3">
-          {{ [property.city, property.state].filter(Boolean).join(', ') || property.street_address || '—' }}
+          {{ [propertyCityName(property), propertyStateName(property)].filter(Boolean).join(', ') || property.street_address || '—' }}
         </p>
         <div class="d-flex flex-wrap gap-4 text-body-2">
           <div class="d-flex align-center gap-2">

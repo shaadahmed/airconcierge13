@@ -1,3 +1,4 @@
+import { findCityById, MOCK_COUNTRIES } from '@/mocks/countries'
 import { MOCK_CLEANERS } from '@/mocks/cleaners'
 import { MOCK_OWNERS } from '@/mocks/owners'
 import { MOCK_PROPERTIES } from '@/mocks/properties'
@@ -11,6 +12,7 @@ export const usePropertyFormOptions = (formRef = null) => {
   const properties = usePropertiesStore()
   const owners = useOwnersStore()
   const regions = useRegionsStore()
+  const countries = useCountriesStore()
 
   const usingMocks = ref(false)
 
@@ -25,6 +27,7 @@ export const usePropertyFormOptions = (formRef = null) => {
       properties.load().catch(() => null),
       owners.load().catch(() => null),
       regions.load().catch(() => null),
+      countries.load().catch(() => null),
     ]
 
     await Promise.all(tasks)
@@ -32,9 +35,18 @@ export const usePropertyFormOptions = (formRef = null) => {
     const hasOwners = normalizeList(owners.data).length > 0
     const hasRegions = normalizeList(regions.data).length > 0
     const hasProperties = normalizeList(properties.data).length > 0
+    const hasCountries = normalizeList(countries.data).length > 0
 
-    usingMocks.value = !(hasOwners || hasRegions || hasProperties)
+    usingMocks.value = !(hasOwners || hasRegions || hasProperties || hasCountries)
   }
+
+  const currentForm = () => formRef?.value ?? formRef ?? {}
+
+  const countryList = computed(() => {
+    const list = normalizeList(countries.data)
+
+    return list.length ? list : MOCK_COUNTRIES
+  })
 
   const ownerOptions = computed(() => {
     const list = normalizeList(owners.data)
@@ -56,8 +68,6 @@ export const usePropertyFormOptions = (formRef = null) => {
       subregions: region.subregions || [],
     }))
   })
-
-  const currentForm = () => formRef?.value ?? formRef ?? {}
 
   const subregionOptions = computed(() => {
     const regionId = currentForm().region_id
@@ -94,6 +104,42 @@ export const usePropertyFormOptions = (formRef = null) => {
     return [...map.values()]
   })
 
+  const countryOptions = computed(() => countryList.value.map(country => ({
+    title: country.name || `Country #${country.id}`,
+    value: country.id,
+  })))
+
+  const stateOptions = computed(() => {
+    const countryId = currentForm().country_id
+    if (!countryId)
+      return []
+
+    const country = countryList.value.find(item => Number(item.id) === Number(countryId))
+
+    return (country?.states || []).map(state => ({
+      title: state.name || `State #${state.id}`,
+      value: state.id,
+    }))
+  })
+
+  const cityOptions = computed(() => {
+    const countryId = currentForm().country_id
+    const stateId = currentForm().state_id
+    if (!countryId || !stateId)
+      return []
+
+    const country = countryList.value.find(item => Number(item.id) === Number(countryId))
+    const state = (country?.states || []).find(item => Number(item.id) === Number(stateId))
+
+    return (state?.cities || []).map(city => ({
+      title: city.name || `City #${city.id}`,
+      value: city.id,
+      zip: city.zip ?? null,
+    }))
+  })
+
+  const resolveCity = cityId => findCityById(cityId, countryList.value)
+
   const cleanerOptions = computed(() => {
     // Cleaners API is not wired yet — mock list for form preview.
     return MOCK_CLEANERS.map(cleaner => ({
@@ -124,6 +170,10 @@ export const usePropertyFormOptions = (formRef = null) => {
     ownerOptions,
     regionOptions,
     subregionOptions,
+    countryOptions,
+    stateOptions,
+    cityOptions,
+    resolveCity,
     cleanerOptions,
     parentPropertyOptions,
   }

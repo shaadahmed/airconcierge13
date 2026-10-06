@@ -13,6 +13,9 @@ const {
   ownerOptions,
   regionOptions,
   subregionOptions,
+  countryOptions,
+  stateOptions,
+  cityOptions,
   cleanerOptions,
   parentPropertyOptions,
 } = usePropertyFormOptions(formSource)
@@ -105,6 +108,9 @@ definePageMeta({ middleware: 'auth' })
             :owner-options="ownerOptions"
             :region-options="regionOptions"
             :subregion-options="subregionOptions"
+            :country-options="countryOptions"
+            :state-options="stateOptions"
+            :city-options="cityOptions"
             :parent-property-options="parentPropertyOptions"
             :cleaner-options="cleanerOptions"
             @update:model-value="onFormUpdate"

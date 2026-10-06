@@ -1,20 +1,11 @@
 <script setup>
 const countries = useCountriesStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create'>} */
-const panelMode = ref('dashboard')
-
 const form = reactive({
   name: '',
   code: '',
   lat: 0,
   lng: 0,
-})
-
-const filters = reactive({
-  name: '',
-  code: '',
-  has_states: null,
 })
 
 const stateForm = reactive({
@@ -24,10 +15,25 @@ const stateForm = reactive({
   lng: 0,
 })
 
+const cityForm = reactive({
+  name: '',
+  code: '',
+  zip: '',
+  contact_code: '',
+})
+
+const countrySearch = ref('')
+const stateSearch = ref('')
+const citySearch = ref('')
 const editingId = ref(null)
 const editingStateId = ref(null)
+const editingCityId = ref(null)
 const selectedCountryId = ref(null)
-const confirmDelete = reactive({ open: false, id: null })
+const selectedStateId = ref(null)
+const countryDialogOpen = ref(false)
+const stateDialogOpen = ref(false)
+const cityDialogOpen = ref(false)
+const confirmDelete = reactive({ open: false, id: null, type: 'country' })
 
 const allRows = computed(() => {
   const data = countries.data?.data || countries.data || []
@@ -36,92 +42,60 @@ const allRows = computed(() => {
 })
 
 const stateCount = country => Array.isArray(country.states) ? country.states.length : 0
+const cityCount = state => Array.isArray(state.cities) ? state.cities.length : 0
 
-const rows = computed(() => {
-  const nameQuery = filters.name.trim().toLowerCase()
-  const codeQuery = filters.code.trim().toLowerCase()
+const filteredCountries = computed(() => {
+  const query = countrySearch.value.trim().toLowerCase()
+
+  if (!query)
+    return allRows.value
 
   return allRows.value.filter(country => {
-    if (nameQuery) {
-      const name = String(country.name || '').toLowerCase()
-      if (!name.includes(nameQuery))
-        return false
-    }
+    const name = String(country.name || '').toLowerCase()
+    const code = String(country.code || '').toLowerCase()
 
-    if (codeQuery) {
-      const code = String(country.code || '').toLowerCase()
-      if (!code.includes(codeQuery))
-        return false
-    }
-
-    if (filters.has_states !== null && filters.has_states !== undefined && filters.has_states !== '') {
-      const hasStates = stateCount(country) > 0
-      if (filters.has_states === 'yes' && !hasStates)
-        return false
-      if (filters.has_states === 'no' && hasStates)
-        return false
-    }
-
-    return true
+    return name.includes(query) || code.includes(query)
   })
 })
 
 const selectedCountry = computed(() => allRows.value.find(row => row.id === selectedCountryId.value) || null)
-const states = computed(() => selectedCountry.value?.states || [])
 
-const hasStatesFilterItems = [
-  { title: 'All countries', value: null },
-  { title: 'With states', value: 'yes' },
-  { title: 'Without states', value: 'no' },
-]
+const filteredStates = computed(() => {
+  const list = selectedCountry.value?.states || []
+  const query = stateSearch.value.trim().toLowerCase()
 
-const stats = computed(() => {
-  const list = allRows.value
-  const withStates = list.filter(country => stateCount(country) > 0)
-  const withoutStates = list.filter(country => stateCount(country) === 0)
-  const totalStates = list.reduce((sum, country) => sum + stateCount(country), 0)
-  const withCoords = list.filter(country => Number(country.lat) !== 0 || Number(country.lng) !== 0)
-  const withCode = list.filter(country => Boolean(country.code))
+  if (!query)
+    return list
 
-  return {
-    total: list.length,
-    withStates: withStates.length,
-    withoutStates: withoutStates.length,
-    totalStates,
-    withCoords: withCoords.length,
-    withCode: withCode.length,
-  }
-})
+  return list.filter(state => {
+    const name = String(state.name || '').toLowerCase()
+    const code = String(state.code || '').toLowerCase()
 
-const panelTitle = computed(() => {
-  if (panelMode.value === 'filter')
-    return 'Filter countries'
-  if (panelMode.value === 'create')
-    return editingId.value ? 'Edit country' : 'Create country'
-
-  return 'Country overview'
-})
-
-const openPanel = mode => {
-  if (panelMode.value === mode) {
-    panelMode.value = 'dashboard'
-
-    return
-  }
-
-  if (mode === 'create' && panelMode.value !== 'create')
-    resetForm()
-
-  panelMode.value = mode
-}
-
-const clearFilters = () => {
-  Object.assign(filters, {
-    name: '',
-    code: '',
-    has_states: null,
+    return name.includes(query) || code.includes(query)
   })
-}
+})
+
+const selectedState = computed(() => {
+  if (!selectedCountry.value || selectedStateId.value == null)
+    return null
+
+  return (selectedCountry.value.states || []).find(state => state.id === selectedStateId.value) || null
+})
+
+const filteredCities = computed(() => {
+  const list = selectedState.value?.cities || []
+  const query = citySearch.value.trim().toLowerCase()
+
+  if (!query)
+    return list
+
+  return list.filter(city => {
+    const name = String(city.name || '').toLowerCase()
+    const code = String(city.code || '').toLowerCase()
+
+    return name.includes(query) || code.includes(query)
+  })
+})
 
 onMounted(() => countries.load())
 
@@ -133,6 +107,7 @@ const resetForm = () => {
     lat: 0,
     lng: 0,
   })
+  countries.errors = {}
 }
 
 const resetStateForm = () => {
@@ -146,30 +121,55 @@ const resetStateForm = () => {
   countries.stateErrors = {}
 }
 
-const edit = country => {
+const resetCityForm = () => {
+  editingCityId.value = null
+  Object.assign(cityForm, {
+    name: '',
+    code: '',
+    zip: '',
+    contact_code: '',
+  })
+  countries.cityErrors = {}
+}
+
+const openCreateCountry = () => {
+  resetForm()
+  countryDialogOpen.value = true
+}
+
+const editCountry = country => {
   editingId.value = country.id
-  selectedCountryId.value = country.id
   Object.assign(form, {
     name: country.name ?? '',
     code: country.code ?? '',
     lat: country.lat ?? 0,
     lng: country.lng ?? 0,
   })
-  resetStateForm()
-  panelMode.value = 'create'
+  countries.errors = {}
+  countryDialogOpen.value = true
 }
 
 const selectCountry = country => {
   selectedCountryId.value = country.id
+  selectedStateId.value = null
+  stateSearch.value = ''
+  citySearch.value = ''
   resetStateForm()
+  resetCityForm()
 }
 
-const cancelCreate = () => {
+const selectState = state => {
+  selectedStateId.value = state.id
+  citySearch.value = ''
+  resetCityForm()
+}
+
+const cancelCountryDialog = () => {
+  countryDialogOpen.value = false
   resetForm()
-  panelMode.value = 'dashboard'
 }
 
-const submit = async () => {
+const submitCountry = async () => {
   try {
     const payload = {
       name: form.name,
@@ -183,8 +183,8 @@ const submit = async () => {
     else
       await countries.create(payload)
 
+    countryDialogOpen.value = false
     resetForm()
-    panelMode.value = 'dashboard'
     if (!countries.usingMocks)
       await countries.load()
   }
@@ -193,23 +193,18 @@ const submit = async () => {
   }
 }
 
-const askDelete = id => {
+const askDeleteCountry = id => {
   confirmDelete.open = true
   confirmDelete.id = id
+  confirmDelete.type = 'country'
 }
 
-const onDelete = async () => {
-  try {
-    await countries.remove(confirmDelete.id)
-    if (selectedCountryId.value === confirmDelete.id)
-      selectedCountryId.value = null
-    confirmDelete.open = false
-    if (!countries.usingMocks)
-      await countries.load()
-  }
-  catch {
-    // Store exposes errors.
-  }
+const openCreateState = () => {
+  if (!selectedCountryId.value)
+    return
+
+  resetStateForm()
+  stateDialogOpen.value = true
 }
 
 const editState = state => {
@@ -220,6 +215,13 @@ const editState = state => {
     lat: state.lat ?? 0,
     lng: state.lng ?? 0,
   })
+  countries.stateErrors = {}
+  stateDialogOpen.value = true
+}
+
+const cancelStateDialog = () => {
+  stateDialogOpen.value = false
+  resetStateForm()
 }
 
 const submitState = async () => {
@@ -239,6 +241,7 @@ const submitState = async () => {
     else
       await countries.createState(selectedCountryId.value, payload)
 
+    stateDialogOpen.value = false
     resetStateForm()
     if (!countries.usingMocks)
       await countries.load()
@@ -248,19 +251,121 @@ const submitState = async () => {
   }
 }
 
-const removeState = async stateId => {
-  if (!selectedCountryId.value)
+const askDeleteState = id => {
+  confirmDelete.open = true
+  confirmDelete.id = id
+  confirmDelete.type = 'state'
+}
+
+const openCreateCity = () => {
+  if (!selectedCountryId.value || !selectedStateId.value)
+    return
+
+  resetCityForm()
+  cityDialogOpen.value = true
+}
+
+const editCity = city => {
+  editingCityId.value = city.id
+  Object.assign(cityForm, {
+    name: city.name ?? '',
+    code: city.code ?? '',
+    zip: city.zip ?? '',
+    contact_code: city.contact_code ?? '',
+  })
+  countries.cityErrors = {}
+  cityDialogOpen.value = true
+}
+
+const cancelCityDialog = () => {
+  cityDialogOpen.value = false
+  resetCityForm()
+}
+
+const submitCity = async () => {
+  if (!selectedCountryId.value || !selectedStateId.value)
     return
 
   try {
-    await countries.removeState(selectedCountryId.value, stateId)
+    const payload = {
+      name: cityForm.name,
+      code: cityForm.code || null,
+      zip: cityForm.zip === '' || cityForm.zip == null ? null : Number(cityForm.zip),
+      contact_code: cityForm.contact_code || null,
+    }
+
+    if (editingCityId.value) {
+      await countries.updateCity(
+        selectedCountryId.value,
+        selectedStateId.value,
+        editingCityId.value,
+        payload,
+      )
+    }
+    else {
+      await countries.createCity(selectedCountryId.value, selectedStateId.value, payload)
+    }
+
+    cityDialogOpen.value = false
+    resetCityForm()
     if (!countries.usingMocks)
       await countries.load()
   }
   catch {
-    // Store exposes stateErrors.
+    // Store exposes cityErrors.
   }
 }
+
+const askDeleteCity = id => {
+  confirmDelete.open = true
+  confirmDelete.id = id
+  confirmDelete.type = 'city'
+}
+
+const onDelete = async () => {
+  try {
+    if (confirmDelete.type === 'country') {
+      await countries.remove(confirmDelete.id)
+      if (selectedCountryId.value === confirmDelete.id) {
+        selectedCountryId.value = null
+        selectedStateId.value = null
+      }
+    }
+    else if (confirmDelete.type === 'state' && selectedCountryId.value) {
+      await countries.removeState(selectedCountryId.value, confirmDelete.id)
+      if (selectedStateId.value === confirmDelete.id)
+        selectedStateId.value = null
+    }
+    else if (confirmDelete.type === 'city' && selectedCountryId.value && selectedStateId.value) {
+      await countries.removeCity(selectedCountryId.value, selectedStateId.value, confirmDelete.id)
+    }
+
+    confirmDelete.open = false
+    if (!countries.usingMocks)
+      await countries.load()
+  }
+  catch {
+    // Store exposes errors.
+  }
+}
+
+const deleteTitle = computed(() => {
+  if (confirmDelete.type === 'state')
+    return 'Delete state?'
+  if (confirmDelete.type === 'city')
+    return 'Delete city?'
+
+  return 'Delete country?'
+})
+
+const deleteMessage = computed(() => {
+  if (confirmDelete.type === 'state')
+    return 'This soft-deletes the selected state and its cities.'
+  if (confirmDelete.type === 'city')
+    return 'This soft-deletes the selected city.'
+
+  return 'This deletes the country and soft-deletes its states and cities.'
+})
 
 definePageMeta({ middleware: 'auth' })
 </script>
@@ -268,8 +373,8 @@ definePageMeta({ middleware: 'auth' })
 <template>
   <div>
     <PageHeader
-      title="Countries & States"
-      subtitle="Manage countries and their states"
+      title="Countries, States & Cities"
+      subtitle="Select a country, then a state, to manage cities"
     />
 
     <VAlert
@@ -285,356 +390,516 @@ definePageMeta({ middleware: 'auth' })
     <VRow>
       <VCol
         cols="12"
-        md="8"
+        md="4"
       >
-        <DataTableShell
-          title="All countries"
-          :loading="countries.loading"
-          :empty="rows.length === 0"
-          :empty-colspan="5"
-          empty-title="No countries found"
-          :empty-description="allRows.length && rows.length === 0 ? 'No countries match the current filters.' : ''"
-        >
-          <template #head>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Code</th>
-                <th>States</th>
-                <th>Coords</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-          </template>
+        <VCard class="geo-panel">
+          <VCardText class="pb-2">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="text-h6">
+                Countries ({{ filteredCountries.length }})
+              </div>
+              <VBtn
+                icon
+                size="small"
+                color="success"
+                rounded="circle"
+                aria-label="Create country"
+                @click="openCreateCountry"
+              >
+                <VIcon icon="bx-plus" />
+              </VBtn>
+            </div>
 
-          <tr
-            v-for="country in rows"
-            :key="country.id"
-            :class="{ 'bg-grey-lighten-4': selectedCountryId === country.id }"
+            <BaseInput
+              v-model="countrySearch"
+              placeholder="Search countries..."
+              prepend-inner-icon="bx-search"
+              size="small"
+              hide-details
+              class="mb-2"
+            />
+          </VCardText>
+
+          <VDivider />
+
+          <div
+            v-if="countries.loading && !allRows.length"
+            class="geo-panel__body d-flex align-center justify-center"
           >
-            <td>{{ country.name }}</td>
-            <td>{{ country.code || '—' }}</td>
-            <td>{{ stateCount(country) }}</td>
-            <td>{{ country.lat }}, {{ country.lng }}</td>
-            <td class="text-no-wrap">
-              <BaseButton
+            <VProgressCircular indeterminate />
+          </div>
+
+          <div
+            v-else-if="filteredCountries.length === 0"
+            class="geo-panel__body d-flex align-center justify-center"
+          >
+            <EmptyState
+              :title="allRows.length ? 'No countries match your search' : 'No countries yet'"
+              :description="allRows.length ? '' : 'Create a country to get started.'"
+            />
+          </div>
+
+          <div
+            v-else
+            class="geo-panel__body"
+          >
+            <button
+              v-for="country in filteredCountries"
+              :key="country.id"
+              type="button"
+              class="geo-row"
+              :class="{ 'geo-row--active': selectedCountryId === country.id }"
+              @click="selectCountry(country)"
+            >
+              <div class="geo-row__main">
+                <div class="geo-row__title">
+                  {{ country.name }}
+                </div>
+                <div class="geo-row__meta">
+                  Code: {{ country.code || '—' }}
+                </div>
+              </div>
+
+              <VChip
                 size="small"
                 variant="tonal"
-                label="States"
                 class="me-2"
-                @click="selectCountry(country)"
-              />
-              <BaseButton
-                size="small"
-                variant="tonal"
-                label="Edit"
-                class="me-2"
-                @click="edit(country)"
-              />
-              <BaseButton
-                size="small"
-                variant="tonal"
+              >
+                {{ stateCount(country) }} {{ stateCount(country) === 1 ? 'state' : 'states' }}
+              </VChip>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
+                color="primary"
+                aria-label="Edit country"
+                @click.stop="editCountry(country)"
+              >
+                <VIcon
+                  icon="bx-pencil"
+                  size="18"
+                />
+              </VBtn>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
                 color="error"
-                label="Delete"
-                @click="askDelete(country.id)"
-              />
-            </td>
-          </tr>
-        </DataTableShell>
+                aria-label="Delete country"
+                @click.stop="askDeleteCountry(country.id)"
+              >
+                <VIcon
+                  icon="bx-trash"
+                  size="18"
+                />
+              </VBtn>
+            </button>
+          </div>
+        </VCard>
       </VCol>
 
       <VCol
         cols="12"
         md="4"
       >
-        <VCard>
-          <VCardItem>
-            <VCardTitle>{{ panelTitle }}</VCardTitle>
-            <template #append>
-              <div class="d-flex flex-wrap gap-2">
-                <BaseButton
-                  size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
-                  label="Filter"
-                  prepend-icon="bx-filter-alt"
-                  @click="openPanel('filter')"
-                />
-                <BaseButton
-                  size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
-                  label="Create"
-                  prepend-icon="bx-plus"
-                  @click="openPanel('create')"
-                />
+        <VCard class="geo-panel">
+          <VCardText class="pb-2">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="text-h6">
+                States
+                <span
+                  v-if="selectedCountry"
+                  class="text-medium-emphasis"
+                >
+                  ({{ filteredStates.length }})
+                </span>
               </div>
-            </template>
-          </VCardItem>
-
-          <VCardText>
-            <div v-if="panelMode === 'dashboard'">
-              <p class="text-body-2 text-medium-emphasis mb-4">
-                Snapshot of countries and state coverage
-              </p>
-
-              <VRow dense class="mb-2">
-                <VCol cols="6">
-                  <div class="entity-stat-tile entity-stat-tile--success pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      With states
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.withStates }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="entity-stat-tile entity-stat-tile--muted pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      Without
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.withoutStates }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="entity-stat-tile entity-stat-tile--primary pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      Countries
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.total }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="6">
-                  <div class="entity-stat-tile entity-stat-tile--info pa-3 rounded">
-                    <div class="text-caption text-medium-emphasis">
-                      With coords
-                    </div>
-                    <div class="text-h5">
-                      {{ stats.withCoords }}
-                    </div>
-                  </div>
-                </VCol>
-                <VCol cols="12">
-                  <div class="entity-stat-tile entity-stat-tile--warning pa-3 rounded">
-                    <div class="d-flex align-center justify-space-between">
-                      <div>
-                        <div class="text-caption text-medium-emphasis">
-                          Total states
-                        </div>
-                        <div class="text-h5">
-                          {{ stats.totalStates }}
-                        </div>
-                      </div>
-                      <VIcon
-                        icon="bx-map-alt"
-                        size="28"
-                        class="text-medium-emphasis"
-                      />
-                    </div>
-                  </div>
-                </VCol>
-              </VRow>
+              <VBtn
+                icon
+                size="small"
+                color="success"
+                rounded="circle"
+                :disabled="!selectedCountry"
+                aria-label="Create state"
+                @click="openCreateState"
+              >
+                <VIcon icon="bx-plus" />
+              </VBtn>
             </div>
 
-            <div v-else-if="panelMode === 'filter'">
-              <VForm @submit.prevent>
-                <BaseInput
-                  v-model="filters.name"
-                  label="Name contains"
-                  class="mb-2"
-                />
-                <BaseInput
-                  v-model="filters.code"
-                  label="Code contains"
-                  class="mb-2"
-                />
-                <BaseSelect
-                  v-model="filters.has_states"
-                  label="States"
-                  :items="hasStatesFilterItems"
-                  clearable
-                  class="mb-2"
-                />
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <BaseButton
-                    type="button"
-                    variant="tonal"
-                    label="Clear filters"
-                    @click="clearFilters"
-                  />
-                  <BaseButton
-                    type="button"
-                    variant="text"
-                    label="Back to overview"
-                    @click="panelMode = 'dashboard'"
-                  />
-                </div>
-              </VForm>
-            </div>
-
-            <div v-else>
-              <AppAlert :errors="countries.errors" />
-              <VForm @submit.prevent="submit">
-                <BaseInput
-                  v-model="form.name"
-                  label="Name"
-                  class="mb-2"
-                  :error="countries.errors.name"
-                />
-                <BaseInput
-                  v-model="form.code"
-                  label="Code"
-                  class="mb-2"
-                  :error="countries.errors.code"
-                />
-                <BaseInput
-                  v-model="form.lat"
-                  label="Latitude"
-                  type="number"
-                  class="mb-2"
-                  :error="countries.errors.lat"
-                />
-                <BaseInput
-                  v-model="form.lng"
-                  label="Longitude"
-                  type="number"
-                  class="mb-2"
-                  :error="countries.errors.lng"
-                />
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <BaseButton
-                    type="submit"
-                    :label="editingId ? 'Update country' : 'Create country'"
-                    :loading="countries.loading"
-                  />
-                  <BaseButton
-                    type="button"
-                    variant="tonal"
-                    label="Cancel"
-                    @click="cancelCreate"
-                  />
-                </div>
-              </VForm>
-            </div>
+            <BaseInput
+              v-model="stateSearch"
+              placeholder="Search states..."
+              prepend-inner-icon="bx-search"
+              size="small"
+              hide-details
+              :disabled="!selectedCountry"
+              class="mb-2"
+            />
           </VCardText>
+
+          <VDivider />
+
+          <div
+            v-if="!selectedCountry"
+            class="geo-panel__body d-flex align-center justify-center"
+          >
+            <EmptyState title="Select a country to view its states" />
+          </div>
+
+          <div
+            v-else-if="filteredStates.length === 0"
+            class="geo-panel__body d-flex align-center justify-center"
+          >
+            <EmptyState
+              :title="(selectedCountry.states || []).length ? 'No states match your search' : 'No states for this country'"
+              :description="(selectedCountry.states || []).length ? '' : 'Use + to add a state.'"
+            />
+          </div>
+
+          <div
+            v-else
+            class="geo-panel__body"
+          >
+            <button
+              v-for="state in filteredStates"
+              :key="state.id"
+              type="button"
+              class="geo-row"
+              :class="{ 'geo-row--active': selectedStateId === state.id }"
+              @click="selectState(state)"
+            >
+              <div class="geo-row__main">
+                <div class="geo-row__title">
+                  {{ state.name }}
+                </div>
+                <div class="geo-row__meta">
+                  Code: {{ state.code || '—' }}
+                </div>
+              </div>
+
+              <VChip
+                size="small"
+                variant="tonal"
+                class="me-2"
+              >
+                {{ cityCount(state) }} {{ cityCount(state) === 1 ? 'city' : 'cities' }}
+              </VChip>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
+                color="primary"
+                aria-label="Edit state"
+                @click.stop="editState(state)"
+              >
+                <VIcon
+                  icon="bx-pencil"
+                  size="18"
+                />
+              </VBtn>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
+                color="error"
+                aria-label="Delete state"
+                @click.stop="askDeleteState(state.id)"
+              >
+                <VIcon
+                  icon="bx-trash"
+                  size="18"
+                />
+              </VBtn>
+            </button>
+          </div>
+        </VCard>
+      </VCol>
+
+      <VCol
+        cols="12"
+        md="4"
+      >
+        <VCard class="geo-panel">
+          <VCardText class="pb-2">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="text-h6">
+                Cities
+                <span
+                  v-if="selectedState"
+                  class="text-medium-emphasis"
+                >
+                  ({{ filteredCities.length }})
+                </span>
+              </div>
+              <VBtn
+                icon
+                size="small"
+                color="success"
+                rounded="circle"
+                :disabled="!selectedState"
+                aria-label="Create city"
+                @click="openCreateCity"
+              >
+                <VIcon icon="bx-plus" />
+              </VBtn>
+            </div>
+
+            <BaseInput
+              v-model="citySearch"
+              placeholder="Search cities..."
+              prepend-inner-icon="bx-search"
+              size="small"
+              hide-details
+              :disabled="!selectedState"
+              class="mb-2"
+            />
+          </VCardText>
+
+          <VDivider />
+
+          <div
+            v-if="!selectedState"
+            class="geo-panel__body d-flex align-center justify-center"
+          >
+            <EmptyState title="Select a state to view its cities" />
+          </div>
+
+          <div
+            v-else-if="filteredCities.length === 0"
+            class="geo-panel__body d-flex align-center justify-center"
+          >
+            <EmptyState
+              :title="(selectedState.cities || []).length ? 'No cities match your search' : 'No cities for this state'"
+              :description="(selectedState.cities || []).length ? '' : 'Use + to add a city.'"
+            />
+          </div>
+
+          <div
+            v-else
+            class="geo-panel__body"
+          >
+            <div
+              v-for="city in filteredCities"
+              :key="city.id"
+              class="geo-row geo-row--static"
+            >
+              <div class="geo-row__main">
+                <div class="geo-row__title">
+                  {{ city.name }}
+                </div>
+                <div class="geo-row__meta">
+                  Code: {{ city.code || '—' }}
+                  <span v-if="city.zip"> · Zip: {{ city.zip }}</span>
+                </div>
+              </div>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
+                color="primary"
+                aria-label="Edit city"
+                @click="editCity(city)"
+              >
+                <VIcon
+                  icon="bx-pencil"
+                  size="18"
+                />
+              </VBtn>
+
+              <VBtn
+                icon
+                size="x-small"
+                variant="text"
+                color="error"
+                aria-label="Delete city"
+                @click="askDeleteCity(city.id)"
+              >
+                <VIcon
+                  icon="bx-trash"
+                  size="18"
+                />
+              </VBtn>
+            </div>
+          </div>
         </VCard>
       </VCol>
     </VRow>
 
-    <VCard
-      v-if="selectedCountry"
-      class="mt-6"
+    <VDialog
+      v-model="countryDialogOpen"
+      max-width="480"
+      persistent
     >
-      <VCardItem>
-        <VCardTitle>States for {{ selectedCountry.name }}</VCardTitle>
-      </VCardItem>
-      <VCardText>
-        <AppAlert :errors="countries.stateErrors" />
-        <VRow>
-          <VCol
-            cols="12"
-            md="4"
-          >
-            <VForm @submit.prevent="submitState">
-              <BaseInput
-                v-model="stateForm.name"
-                label="State name"
-                :error="countries.stateErrors.name"
-              />
-              <BaseInput
-                v-model="stateForm.code"
-                label="State code"
-                :error="countries.stateErrors.code"
-              />
-              <BaseInput
-                v-model="stateForm.lat"
-                label="Latitude"
-                type="number"
-                :error="countries.stateErrors.lat"
-              />
-              <BaseInput
-                v-model="stateForm.lng"
-                label="Longitude"
-                type="number"
-                :error="countries.stateErrors.lng"
-              />
-              <div class="d-flex flex-wrap gap-2 mt-2">
-                <BaseButton
-                  type="submit"
-                  :label="editingStateId ? 'Update state' : 'Add state'"
-                  :loading="countries.loading"
-                />
-                <BaseButton
-                  v-if="editingStateId"
-                  type="button"
-                  variant="tonal"
-                  label="Cancel"
-                  @click="resetStateForm"
-                />
-              </div>
-            </VForm>
-          </VCol>
-          <VCol
-            cols="12"
-            md="8"
-          >
-            <DataTableShell
-              title="States"
-              :empty="states.length === 0"
-              :empty-colspan="5"
-              empty-title="No states for this country"
-            >
-              <template #head>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Code</th>
-                    <th>Lat</th>
-                    <th>Lng</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-              </template>
-              <tr
-                v-for="state in states"
-                :key="state.id"
-              >
-                <td>{{ state.name }}</td>
-                <td>{{ state.code }}</td>
-                <td>{{ state.lat }}</td>
-                <td>{{ state.lng }}</td>
-                <td class="text-no-wrap">
-                  <BaseButton
-                    size="small"
-                    variant="tonal"
-                    label="Edit"
-                    class="me-2"
-                    @click="editState(state)"
-                  />
-                  <BaseButton
-                    size="small"
-                    variant="tonal"
-                    color="error"
-                    label="Delete"
-                    @click="removeState(state.id)"
-                  />
-                </td>
-              </tr>
-            </DataTableShell>
-          </VCol>
-        </VRow>
-      </VCardText>
-    </VCard>
+      <VCard>
+        <VCardTitle>{{ editingId ? 'Edit country' : 'Create country' }}</VCardTitle>
+        <VCardText>
+          <AppAlert :errors="countries.errors" />
+          <VForm @submit.prevent="submitCountry">
+            <BaseInput
+              v-model="form.name"
+              label="Name"
+              class="mb-2"
+              :error="countries.errors.name"
+            />
+            <BaseInput
+              v-model="form.code"
+              label="Code"
+              class="mb-2"
+              :error="countries.errors.code"
+            />
+            <BaseInput
+              v-model="form.lat"
+              label="Latitude"
+              type="number"
+              class="mb-2"
+              :error="countries.errors.lat"
+            />
+            <BaseInput
+              v-model="form.lng"
+              label="Longitude"
+              type="number"
+              class="mb-2"
+              :error="countries.errors.lng"
+            />
+          </VForm>
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <BaseButton
+            variant="tonal"
+            label="Cancel"
+            @click="cancelCountryDialog"
+          />
+          <BaseButton
+            :label="editingId ? 'Update country' : 'Create country'"
+            :loading="countries.loading"
+            @click="submitCountry"
+          />
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <VDialog
+      v-model="stateDialogOpen"
+      max-width="480"
+      persistent
+    >
+      <VCard>
+        <VCardTitle>
+          {{ editingStateId ? 'Edit state' : `Add state${selectedCountry ? ` — ${selectedCountry.name}` : ''}` }}
+        </VCardTitle>
+        <VCardText>
+          <AppAlert :errors="countries.stateErrors" />
+          <VForm @submit.prevent="submitState">
+            <BaseInput
+              v-model="stateForm.name"
+              label="State name"
+              class="mb-2"
+              :error="countries.stateErrors.name"
+            />
+            <BaseInput
+              v-model="stateForm.code"
+              label="State code"
+              class="mb-2"
+              :error="countries.stateErrors.code"
+            />
+            <BaseInput
+              v-model="stateForm.lat"
+              label="Latitude"
+              type="number"
+              class="mb-2"
+              :error="countries.stateErrors.lat"
+            />
+            <BaseInput
+              v-model="stateForm.lng"
+              label="Longitude"
+              type="number"
+              class="mb-2"
+              :error="countries.stateErrors.lng"
+            />
+          </VForm>
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <BaseButton
+            variant="tonal"
+            label="Cancel"
+            @click="cancelStateDialog"
+          />
+          <BaseButton
+            :label="editingStateId ? 'Update state' : 'Add state'"
+            :loading="countries.loading"
+            @click="submitState"
+          />
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <VDialog
+      v-model="cityDialogOpen"
+      max-width="480"
+      persistent
+    >
+      <VCard>
+        <VCardTitle>
+          {{ editingCityId ? 'Edit city' : `Add city${selectedState ? ` — ${selectedState.name}` : ''}` }}
+        </VCardTitle>
+        <VCardText>
+          <AppAlert :errors="countries.cityErrors" />
+          <VForm @submit.prevent="submitCity">
+            <BaseInput
+              v-model="cityForm.name"
+              label="City name"
+              class="mb-2"
+              :error="countries.cityErrors.name"
+            />
+            <BaseInput
+              v-model="cityForm.code"
+              label="City code"
+              class="mb-2"
+              :error="countries.cityErrors.code"
+            />
+            <BaseInput
+              v-model="cityForm.zip"
+              label="Zip"
+              type="number"
+              class="mb-2"
+              :error="countries.cityErrors.zip"
+            />
+            <BaseInput
+              v-model="cityForm.contact_code"
+              label="Contact code"
+              class="mb-2"
+              :error="countries.cityErrors.contact_code"
+            />
+          </VForm>
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <BaseButton
+            variant="tonal"
+            label="Cancel"
+            @click="cancelCityDialog"
+          />
+          <BaseButton
+            :label="editingCityId ? 'Update city' : 'Add city'"
+            :loading="countries.loading"
+            @click="submitCity"
+          />
+        </VCardActions>
+      </VCard>
+    </VDialog>
 
     <ConfirmDialog
       v-model="confirmDelete.open"
-      title="Delete country?"
-      message="This deletes the country and soft-deletes its states."
+      :title="deleteTitle"
+      :message="deleteMessage"
       confirm-label="Delete"
       confirm-color="error"
       :loading="countries.loading"
@@ -644,28 +909,64 @@ definePageMeta({ middleware: 'auth' })
 </template>
 
 <style scoped>
-.entity-stat-tile {
-  border: 1px solid rgba(75, 70, 92, 0.08);
-  background: rgba(75, 70, 92, 0.03);
+.geo-panel {
+  height: min(70vh, 720px);
+  display: flex;
+  flex-direction: column;
 }
 
-.entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+/* Vuetify .v-card-text defaults to flex-grow, which stretches the header and
+   leaves a blank gap above the list inside fixed-height panels. */
+.geo-panel > .v-card-text {
+  flex: 0 0 auto;
 }
 
-.entity-stat-tile--muted {
-  background: rgba(168, 170, 174, 0.12);
+.geo-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+.geo-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 0;
+  border-bottom: 1px solid rgba(75, 70, 92, 0.08);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
 }
 
-.entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+.geo-row--static {
+  cursor: default;
 }
 
-.entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+.geo-row:hover {
+  background: rgba(75, 70, 92, 0.04);
+}
+
+.geo-row--active {
+  background: rgba(105, 108, 255, 0.08);
+}
+
+.geo-row__main {
+  flex: 1;
+  min-width: 0;
+  margin-right: 0.75rem;
+}
+
+.geo-row__title {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.geo-row__meta {
+  margin-top: 0.15rem;
+  font-size: 0.8125rem;
+  color: rgba(75, 70, 92, 0.6);
 }
 </style>
