@@ -399,8 +399,9 @@ definePageMeta({ middleware: 'auth' })
 </script>
 
 <template>
-  <div>
+  <div class="properties-page">
     <PageHeader
+      class="flex-shrink-0"
       title="Properties"
       subtitle="Manage listings and owner links"
     >
@@ -419,22 +420,23 @@ definePageMeta({ middleware: 'auth' })
       type="info"
       variant="tonal"
       density="compact"
-      class="mb-4"
+      class="mb-4 properties-page__alert"
     >
       Showing UI preview data until the properties API is connected.
     </VAlert>
 
-    <VRow>
+    <VRow class="properties-page__body">
       <VCol
         cols="12"
         md="4"
+        class="properties-page__col"
       >
         <VCard class="property-list-card">
-          <VCardItem>
+          <VCardItem class="flex-shrink-0">
             <VCardTitle>All properties</VCardTitle>
           </VCardItem>
 
-          <VCardText class="pb-2">
+          <VCardText class="pb-2 flex-shrink-0">
             <BaseInput
               v-model="filters.title"
               placeholder="Search properties..."
@@ -447,6 +449,7 @@ definePageMeta({ middleware: 'auth' })
           <VProgressLinear
             v-if="properties.loading"
             indeterminate
+            class="flex-shrink-0"
           />
 
           <div class="property-list">
@@ -521,9 +524,10 @@ definePageMeta({ middleware: 'auth' })
       <VCol
         cols="12"
         md="8"
+        class="properties-page__col"
       >
         <VCard class="property-panel-card">
-          <VCardItem>
+          <VCardItem class="flex-shrink-0">
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
               <div class="d-flex flex-wrap gap-2 align-center">
@@ -906,23 +910,65 @@ definePageMeta({ middleware: 'auth' })
 </template>
 
 <style scoped>
-.property-list-card {
+/* Navbar (64px) + layout-page-content padding-block (1.5rem × 2) */
+.properties-page {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 160px);
+  min-height: 0;
 }
 
+/* Vuetify sets .v-alert { flex: 1 1 }; keep preview banner compact in this column layout. */
+.properties-page__alert {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 960px) {
+  .properties-page {
+    height: calc(100dvh - 64px - 3rem);
+    overflow: hidden;
+  }
+
+  .properties-page__body {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-block: 0;
+    overflow: hidden;
+  }
+
+  .properties-page__col {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+
+  .property-list-card,
+  .property-panel-card {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+}
+
+.property-list-card,
 .property-panel-card {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 160px);
+  overflow: hidden;
 }
 
 .property-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .property-list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 12px 12px;
   display: flex;
