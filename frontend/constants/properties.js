@@ -100,9 +100,8 @@ export const US_STATE_OPTIONS = [
 ].map(state => ({ title: state, value: state }))
 
 export const MANAGEMENT_TYPE_OPTIONS = [
-  { title: 'Full Service', value: 1 },
-  { title: 'Co-Host', value: 2 },
-  { title: 'Consulting', value: 3 },
+  { title: 'End-to-End', value: 1 },
+  { title: 'Offsite', value: 2 },
 ]
 
 export const ADDITIONAL_FEE_TYPE_OPTIONS = [

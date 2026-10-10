@@ -211,35 +211,19 @@ const fieldError = key => props.errors?.[key]
         />
       </VCol>
 
-      <template v-if="mode === 'edit'">
-        <VCol
-          cols="12"
-          md="6"
-          lg="4"
-        >
-          <BaseSelect
-            :model-value="form.management_type_id"
-            label="Management type"
-            :items="MANAGEMENT_TYPE_OPTIONS"
-            required
-            :error="fieldError('management_type_id')"
-            @update:model-value="updateField('management_type_id', $event)"
-          />
-        </VCol>
-
-        <VCol
-          cols="12"
-          md="6"
-          lg="4"
-        >
-          <BaseInput
-            :model-value="form.property_image_url"
-            label="Property image URL"
-            :error="fieldError('property_image_url')"
-            @update:model-value="updateField('property_image_url', $event)"
-          />
-        </VCol>
-      </template>
+      <VCol
+        v-if="mode === 'edit'"
+        cols="12"
+        md="6"
+        lg="4"
+      >
+        <BaseInput
+          :model-value="form.property_image_url"
+          label="Property image URL"
+          :error="fieldError('property_image_url')"
+          @update:model-value="updateField('property_image_url', $event)"
+        />
+      </VCol>
 
       <!-- Address -->
       <VCol
@@ -547,6 +531,20 @@ const fieldError = key => props.errors?.[key]
           type="number"
           :error="fieldError('owners_montly_cost')"
           @update:model-value="updateField('owners_montly_cost', $event)"
+        />
+      </VCol>
+
+      <VCol
+        cols="12"
+        md="4"
+      >
+        <BaseSelect
+          :model-value="form.management_type_id"
+          label="Management type"
+          :items="MANAGEMENT_TYPE_OPTIONS"
+          required
+          :error="fieldError('management_type_id')"
+          @update:model-value="updateField('management_type_id', $event)"
         />
       </VCol>
 

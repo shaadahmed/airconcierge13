@@ -81,7 +81,6 @@ const sections = computed(() => {
   }
 
   taxItems.push(
-    { label: 'Status', value: propertyStatusLabel(property.status), chip: propertyStatusColor(property.status) },
     { label: 'Payment method', value: property.payment_method || '—' },
     { label: 'Air Concierge pays cleaners', value: yesNoLabel(property.airconcierge_pays_cleaners) },
     { label: 'CO HOST property', value: yesNoLabel(property.property_cohost) },
@@ -98,7 +97,6 @@ const sections = computed(() => {
         { label: 'Owners', value: ownerNames(property) },
         { label: 'Region', value: property.region?.region_name || property.region?.name || property.region_id || '—' },
         { label: 'City / subregion', value: property.subregion?.name || property.subregion_id || '—' },
-        { label: 'Management type', value: property.management_type?.name || labelFromOptions(MANAGEMENT_TYPE_OPTIONS, property.management_type_id) },
         { label: 'Property image URL', value: property.property_image_url || '—' },
       ],
     },
@@ -137,6 +135,7 @@ const sections = computed(() => {
         { label: 'Default management fee (%)', value: property.ac_management_fee != null ? `${property.ac_management_fee}%` : '—' },
         { label: 'Standard exit cleaning fee', value: money(property.exit_cleaning_fee) },
         { label: 'Owners monthly costs', value: money(property.owners_montly_cost) },
+        { label: 'Management type', value: property.management_type?.name || labelFromOptions(MANAGEMENT_TYPE_OPTIONS, property.management_type_id) },
         { label: 'Cleaners', value: cleanerNames(property) },
       ],
     },
@@ -230,62 +229,58 @@ const sections = computed(() => {
       </VCol>
     </VRow>
 
-    <VRow>
-      <VCol
+    <div class="property-view-sections">
+      <VCard
         v-for="section in sections"
         :key="section.title"
-        cols="12"
-        md="6"
+        variant="outlined"
+        class="property-view-section"
       >
-        <VCard
-          variant="outlined"
-          class="h-100"
-        >
-          <VCardItem>
-            <VCardTitle class="text-subtitle-1">
-              {{ section.title }}
-            </VCardTitle>
-          </VCardItem>
-          <VCardText>
-            <div
-              v-for="item in section.items"
-              :key="item.label"
-              class="property-view-row"
-            >
-              <div class="text-caption text-medium-emphasis">
-                {{ item.label }}
-              </div>
-              <div class="text-body-2">
-                <VChip
-                  v-if="item.chip"
-                  size="x-small"
-                  :color="item.chip"
-                  label
-                >
-                  {{ item.value }}
-                </VChip>
-                <span v-else>{{ item.value }}</span>
-              </div>
+        <VCardItem>
+          <VCardTitle class="text-subtitle-1">
+            {{ section.title }}
+          </VCardTitle>
+        </VCardItem>
+        <VCardText>
+          <div
+            v-for="item in section.items"
+            :key="item.label"
+            class="property-view-row"
+          >
+            <div class="text-caption text-medium-emphasis">
+              {{ item.label }}
             </div>
-          </VCardText>
-        </VCard>
-      </VCol>
+            <div class="text-body-2">
+              <VChip
+                v-if="item.chip"
+                size="x-small"
+                :color="item.chip"
+                label
+              >
+                {{ item.value }}
+              </VChip>
+              <span v-else>{{ item.value }}</span>
+            </div>
+          </div>
+        </VCardText>
+      </VCard>
+    </div>
 
-      <VCol cols="12">
-        <VCard variant="outlined">
-          <VCardItem>
-            <VCardTitle class="text-subtitle-1">
-              Notes (regarding management)
-            </VCardTitle>
-          </VCardItem>
-          <VCardText>
-            <p class="text-body-2 mb-0 whitespace-pre-wrap">
-              {{ property.management_notes || '—' }}
-            </p>
-          </VCardText>
-        </VCard>
-      </VCol>
-    </VRow>
+    <VCard
+      variant="outlined"
+      class="mt-6"
+    >
+      <VCardItem>
+        <VCardTitle class="text-subtitle-1">
+          Notes (regarding management)
+        </VCardTitle>
+      </VCardItem>
+      <VCardText>
+        <p class="text-body-2 mb-0 whitespace-pre-wrap">
+          {{ property.management_notes || '—' }}
+        </p>
+      </VCardText>
+    </VCard>
   </div>
 </template>
 
@@ -303,6 +298,23 @@ const sections = computed(() => {
   font-weight: 600;
   line-height: 1;
   color: rgb(var(--v-theme-on-surface));
+}
+
+.property-view-sections {
+  column-count: 1;
+  column-gap: 24px;
+}
+
+@media (min-width: 960px) {
+  .property-view-sections {
+    column-count: 2;
+  }
+}
+
+.property-view-section {
+  break-inside: avoid;
+  margin-bottom: 24px;
+  width: 100%;
 }
 
 .property-view-row {
