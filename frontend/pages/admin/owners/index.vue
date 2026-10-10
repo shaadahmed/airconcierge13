@@ -6,24 +6,28 @@ const regions = useRegionsStore()
 const panelMode = ref('dashboard')
 
 const paymentMethodItems = [
-  { title: 'Airbnb Co Host', value: 'Airbnb Co Host' },
+  { title: 'Another owner is receiving under an above method', value: 'Another owner is receiving under an above method' },
+  { title: 'Co Host - Credit Card charge to Owner', value: 'Credit Card (Co Host)' },
+  { title: 'Co Host - Direct Deposit to AC', value: 'Direct Deposit (Co Host)' },
   { title: 'Direct Deposit', value: 'Direct Deposit' },
   { title: 'Paypal', value: 'Paypal' },
-  { title: 'Another owner is receiving under an above method', value: 'Another owner is receiving under an above method' },
-  { title: 'Credit Card (Co Host)', value: 'Credit Card (Co Host)' },
-  { title: 'Direct Deposit (Co Host)', value: 'Direct Deposit (Co Host)' },
+]
+
+const statusItems = [
+  { title: 'Active', value: 1 },
+  { title: 'Inactive', value: 0 },
 ]
 
 const form = reactive({
+  region_id: '',
+  w9_on_file: 1,
   first_name: '',
   last_name: '',
-  full_name: '',
   owner_email: '',
   owner_phone: '',
-  region_id: '',
   payment_method: '',
+  active: 1,
   owner_payout_information: '',
-  w9_on_file: false,
 })
 
 const filters = reactive({
@@ -64,6 +68,22 @@ const propertiesCount = owner => {
 }
 
 const ownerRegion = owner => owner?.region?.region_name || owner?.region?.name || (owner?.region_id ? `Region #${owner.region_id}` : 'No region')
+
+const paymentMethodLabel = value => {
+  const match = paymentMethodItems.find(item => item.value === value)
+
+  return match?.title || value || '—'
+}
+
+const isOwnerActive = owner => {
+  if (owner?.active === false || owner?.active === 0 || owner?.active === '0')
+    return false
+
+  if (owner?.status === false || owner?.status === 0 || owner?.status === '0')
+    return false
+
+  return true
+}
 
 const ownerInitials = owner => {
   const name = displayName(owner)
@@ -232,15 +252,15 @@ onMounted(async () => {
 const resetForm = () => {
   editingId.value = null
   Object.assign(form, {
+    region_id: '',
+    w9_on_file: 1,
     first_name: '',
     last_name: '',
-    full_name: '',
     owner_email: '',
     owner_phone: '',
-    region_id: '',
     payment_method: '',
+    active: 1,
     owner_payout_information: '',
-    w9_on_file: false,
   })
 }
 
@@ -248,15 +268,15 @@ const edit = owner => {
   selectedId.value = owner.id
   editingId.value = owner.id
   Object.assign(form, {
+    region_id: owner.region_id || '',
+    w9_on_file: owner.w9_on_file ? 1 : 0,
     first_name: owner.first_name || '',
     last_name: owner.last_name || '',
-    full_name: owner.full_name || '',
     owner_email: owner.owner_email || '',
     owner_phone: owner.owner_phone || '',
-    region_id: owner.region_id || '',
     payment_method: owner.payment_method || '',
+    active: isOwnerActive(owner) ? 1 : 0,
     owner_payout_information: owner.owner_payout_information || '',
-    w9_on_file: owner.w9_on_file ?? false,
   })
   panelMode.value = 'create'
 }
@@ -274,6 +294,9 @@ const submit = async () => {
       owner_email: form.owner_email || null,
       owner_phone: form.owner_phone || null,
       owner_payout_information: form.owner_payout_information || null,
+      w9_on_file: Number(form.w9_on_file) === 1,
+      active: Number(form.active) === 1,
+      full_name: [form.first_name, form.last_name].filter(Boolean).join(' '),
     }
 
     const region = regionList.value.find(item => Number(item.id) === Number(payload.region_id))
@@ -573,9 +596,9 @@ definePageMeta({ middleware: 'auth' })
             </div>
 
             <div v-else-if="panelMode === 'detail' && selectedOwner">
-              <div class="d-flex align-center gap-3 mb-4">
+              <div class="d-flex align-center gap-3 mb-3">
                 <VAvatar
-                  size="64"
+                  size="48"
                   rounded="lg"
                   color="primary"
                   variant="tonal"
@@ -587,28 +610,36 @@ definePageMeta({ middleware: 'auth' })
                   />
                   <span
                     v-else
-                    class="text-h6"
+                    class="text-body-1 font-weight-medium"
                   >{{ ownerInitials(selectedOwner) }}</span>
                 </VAvatar>
                 <div class="min-w-0">
-                  <div class="text-h6 text-truncate">
+                  <div class="text-subtitle-1 font-weight-medium text-truncate">
                     {{ displayName(selectedOwner) }}
                   </div>
-                  <div class="text-body-2 text-medium-emphasis text-truncate">
+                  <div class="text-caption text-medium-emphasis text-truncate">
                     {{ ownerRegion(selectedOwner) }}
                   </div>
-                  <VChip
-                    size="small"
-                    :color="selectedOwner.w9_on_file ? 'success' : 'warning'"
-                    label
-                    class="mt-1"
-                  >
-                    {{ selectedOwner.w9_on_file ? 'W9 on file' : 'W9 missing' }}
-                  </VChip>
                 </div>
               </div>
 
-              <ul class="owner-detail-list">
+              <ul class="owner-detail-list owner-detail-list--compact">
+                <li>
+                  <span class="owner-detail-list__label">Region</span>
+                  <span class="owner-detail-list__value">{{ ownerRegion(selectedOwner) }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">W9 on file</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.w9_on_file ? 'Yes' : 'No' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">First name</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.first_name || '—' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Last name</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.last_name || '—' }}</span>
+                </li>
                 <li>
                   <span class="owner-detail-list__label">Email</span>
                   <span class="owner-detail-list__value">{{ selectedOwner.owner_email || '—' }}</span>
@@ -618,19 +649,23 @@ definePageMeta({ middleware: 'auth' })
                   <span class="owner-detail-list__value">{{ selectedOwner.owner_phone || '—' }}</span>
                 </li>
                 <li>
+                  <span class="owner-detail-list__label">Payment method</span>
+                  <span class="owner-detail-list__value">{{ paymentMethodLabel(selectedOwner.payment_method) }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Status</span>
+                  <span class="owner-detail-list__value">{{ isOwnerActive(selectedOwner) ? 'Active' : 'Inactive' }}</span>
+                </li>
+                <li>
+                  <span class="owner-detail-list__label">Owner payout information</span>
+                  <span class="owner-detail-list__value">{{ selectedOwner.owner_payout_information || '—' }}</span>
+                </li>
+                <li>
                   <span class="owner-detail-list__label">Properties</span>
                   <span class="owner-detail-list__value">
                     {{ propertiesCount(selectedOwner) }}
                     {{ propertiesCount(selectedOwner) === 1 ? 'property' : 'properties' }}
                   </span>
-                </li>
-                <li>
-                  <span class="owner-detail-list__label">Payment method</span>
-                  <span class="owner-detail-list__value">{{ selectedOwner.payment_method || '—' }}</span>
-                </li>
-                <li>
-                  <span class="owner-detail-list__label">Payout information</span>
-                  <span class="owner-detail-list__value">{{ selectedOwner.owner_payout_information || '—' }}</span>
                 </li>
               </ul>
             </div>
@@ -684,11 +719,35 @@ definePageMeta({ middleware: 'auth' })
                 class="owner-form"
                 @submit.prevent="submit"
               >
-                <BaseInput
-                  v-model="form.full_name"
-                  label="Full name"
-                  :error="owners.errors.full_name"
+                <BaseSelect
+                  v-model="form.region_id"
+                  label="Region"
+                  :items="regionOptions"
+                  clearable
+                  :error="owners.errors.region_id"
                 />
+                <div class="owner-form__field mb-4">
+                  <div class="text-body-2 mb-1">
+                    W9 on file
+                  </div>
+                  <VRadioGroup
+                    v-model="form.w9_on_file"
+                    inline
+                    hide-details="auto"
+                    :error-messages="owners.errors.w9_on_file || []"
+                  >
+                    <BaseRadio
+                      :value="1"
+                      label="Yes"
+                      size="small"
+                    />
+                    <BaseRadio
+                      :value="0"
+                      label="No"
+                      size="small"
+                    />
+                  </VRadioGroup>
+                </div>
                 <BaseInput
                   v-model="form.first_name"
                   label="First name"
@@ -711,27 +770,22 @@ definePageMeta({ middleware: 'auth' })
                   :error="owners.errors.owner_phone"
                 />
                 <BaseSelect
-                  v-model="form.region_id"
-                  label="Region"
-                  :items="regionOptions"
-                  clearable
-                  :error="owners.errors.region_id"
-                />
-                <BaseSelect
                   v-model="form.payment_method"
                   label="Payment method"
                   :items="paymentMethodItems"
                   clearable
                   :error="owners.errors.payment_method"
                 />
+                <BaseSelect
+                  v-model="form.active"
+                  label="Status"
+                  :items="statusItems"
+                  :error="owners.errors.active"
+                />
                 <BaseTextarea
                   v-model="form.owner_payout_information"
-                  label="Payout information"
+                  label="Owner payout information"
                   :error="owners.errors.owner_payout_information"
-                />
-                <BaseCheckbox
-                  v-model="form.w9_on_file"
-                  label="W9 on file"
                 />
                 <div class="d-flex flex-wrap gap-2 owner-form__actions">
                   <BaseButton
@@ -884,23 +938,33 @@ definePageMeta({ middleware: 'auth' })
 
 .owner-detail-list li {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
   padding: 10px 0;
   border-bottom: 1px solid rgba(75, 70, 92, 0.08);
 }
 
 .owner-detail-list li:last-child {
   border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.owner-detail-list--compact li {
+  padding: 7px 0;
 }
 
 .owner-detail-list__label {
-  font-size: 0.75rem;
+  flex-shrink: 0;
+  max-width: 45%;
+  font-size: 0.8125rem;
   color: rgba(var(--v-theme-on-surface), 0.55);
 }
 
 .owner-detail-list__value {
-  font-size: 0.9375rem;
+  text-align: right;
+  font-weight: 500;
+  font-size: 0.875rem;
   color: rgb(var(--v-theme-on-surface));
   word-break: break-word;
 }
