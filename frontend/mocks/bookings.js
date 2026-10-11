@@ -87,16 +87,22 @@ export const MOCK_BOOKINGS = [
     status: 'active',
     nightly_rate: 180,
     cancelled_booking: false,
-    reservation_start_date: '2026-04-18',
-    reservation_end_date: '2026-04-21',
-    booking_date: '2026-03-05',
+    is_payment_clear: '1',
+    month: '10',
+    year: '2026',
+    platform_id: 2,
+    reservation_start_date: '2026-10-08',
+    reservation_end_date: '2026-10-11',
+    booking_date: '2026-09-05',
     no_of_guests: 2,
     guest_name: 'Jordan Lee',
     guest_email: 'jordan.lee@example.com',
     platform: 'VRBO',
+    total_guest_paid: 720,
+    management_fee: 144,
     owner_notes: '',
     booking_notes: 'Self check-in via lockbox.',
-    created_at: '2026-03-05T09:10:00Z',
+    created_at: '2026-09-05T09:10:00Z',
   },
   {
     id: 1003,
@@ -118,6 +124,8 @@ export const MOCK_BOOKINGS = [
     guest_name: 'Sam Rivera',
     guest_email: 'sam.rivera@example.com',
     platform: 'Airbnb',
+    total_guest_paid: 1320,
+    management_fee: 264,
     owner_notes: 'Awaiting owner approval for 6 guests.',
     booking_notes: 'Inquiry converted; payment pending.',
     created_at: '2026-03-10T16:45:00Z',
@@ -142,6 +150,8 @@ export const MOCK_BOOKINGS = [
     guest_name: 'Casey Nguyen',
     guest_email: 'casey.nguyen@example.com',
     platform: 'Direct',
+    total_guest_paid: 1080,
+    management_fee: 216,
     owner_notes: 'Preferred parking stall #12.',
     booking_notes: '',
     created_at: '2026-03-12T11:30:00Z',
@@ -166,6 +176,8 @@ export const MOCK_BOOKINGS = [
     guest_name: 'Taylor Brooks',
     guest_email: 'taylor.brooks@example.com',
     platform: 'Airbnb',
+    total_guest_paid: 1125,
+    management_fee: 247.5,
     owner_notes: 'Ski week — confirm hot tub ready.',
     booking_notes: 'Bring pack-n-play on request.',
     created_at: '2026-02-20T18:00:00Z',
@@ -190,6 +202,8 @@ export const MOCK_BOOKINGS = [
     guest_name: 'Riley Quinn',
     guest_email: 'riley.quinn@example.com',
     platform: 'VRBO',
+    total_guest_paid: 0,
+    management_fee: 0,
     owner_notes: 'Guest cancelled due to travel change.',
     booking_notes: 'Full refund issued.',
     created_at: '2026-01-15T08:25:00Z',
@@ -214,6 +228,8 @@ export const MOCK_BOOKINGS = [
     guest_name: 'Morgan Ellis',
     guest_email: 'morgan.ellis@example.com',
     platform: 'Airbnb',
+    total_guest_paid: 2450,
+    management_fee: 490,
     owner_notes: 'Large party — confirm HOA guest rules.',
     booking_notes: 'Security deposit hold pending.',
     created_at: '2026-03-18T13:05:00Z',
@@ -231,16 +247,82 @@ export const MOCK_BOOKINGS = [
     status: 'active',
     nightly_rate: 195,
     cancelled_booking: false,
-    reservation_start_date: '2026-04-03',
-    reservation_end_date: '2026-04-06',
-    booking_date: '2026-02-28',
+    is_payment_clear: '1',
+    month: '10',
+    year: '2026',
+    platform_id: 4,
+    reservation_start_date: '2026-10-03',
+    reservation_end_date: '2026-10-06',
+    booking_date: '2026-09-18',
     no_of_guests: 2,
     guest_name: 'Jamie Patel',
     guest_email: 'jamie.patel@example.com',
     platform: 'Direct',
+    total_guest_paid: 780,
+    management_fee: 156,
     owner_notes: '',
     booking_notes: 'Walkable to gondola.',
-    created_at: '2026-02-28T20:40:00Z',
+    created_at: '2026-09-18T20:40:00Z',
+  },
+  {
+    id: 1009,
+    booking_code: 'AC-OB-2509',
+    property_id: 201,
+    property: {
+      id: 201,
+      property_title: 'Ocean View Villa',
+      property_image_url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=200&h=200&fit=crop',
+    },
+    location: 'Los Angeles, CA',
+    status: 'active',
+    nightly_rate: 0,
+    cancelled_booking: '0',
+    is_payment_clear: '',
+    month: '10',
+    year: '2026',
+    platform_id: 7,
+    reservation_start_date: '2026-10-20',
+    reservation_end_date: '2026-10-25',
+    booking_date: '2026-09-28',
+    no_of_guests: 0,
+    guest_name: 'Owner Block',
+    guest_email: '',
+    platform: 'Owner Block',
+    total_guest_paid: 0,
+    management_fee: 0,
+    owner_notes: 'Owner personal use.',
+    booking_notes: '',
+    created_at: '2026-09-28T12:00:00Z',
+  },
+  {
+    id: 1010,
+    booking_code: 'AC-OB-2510',
+    property_id: 101,
+    property: {
+      id: 101,
+      property_title: 'Pinecrest Cabin',
+      property_image_url: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=200&h=200&fit=crop',
+    },
+    location: 'South Lake Tahoe, CA',
+    status: 'active',
+    nightly_rate: 0,
+    cancelled_booking: '0',
+    is_payment_clear: '',
+    month: '10',
+    year: '2026',
+    platform_id: 7,
+    reservation_start_date: '2026-10-12',
+    reservation_end_date: '2026-10-14',
+    booking_date: '2026-10-01',
+    no_of_guests: 0,
+    guest_name: 'Owner Block',
+    guest_email: '',
+    platform: 'Owner Block',
+    total_guest_paid: 0,
+    management_fee: 0,
+    owner_notes: 'Maintenance window.',
+    booking_notes: '',
+    created_at: '2026-10-01T09:00:00Z',
   },
 ]
 
@@ -251,15 +333,40 @@ export const bookingPropertyTitle = booking =>
 
 export const bookingLocation = booking => booking?.location || '—'
 
+/** Owner calendar blocks are stored as bookings with platform_id 7 (legacy parity). */
+export const isOwnerBlockBooking = booking =>
+  Number(booking?.platform_id) === 7
+  || String(booking?.platform || '').toLowerCase() === 'owner block'
+
+export const isCancelledBooking = booking => {
+  if (booking?.status === 'cancelled')
+    return true
+
+  const raw = booking?.cancelled_booking
+  if (raw === true || raw === 1 || raw === '1' || raw === 2 || raw === '2'
+    || raw === 3 || raw === '3' || raw === 4 || raw === '4' || raw === 12 || raw === '12')
+    return true
+
+  return false
+}
+
+/** Cleared for payout (legacy is_payment_clear = 1). */
+export const isClearedBooking = booking =>
+  booking?.is_payment_clear === true
+  || booking?.is_payment_clear === 1
+  || booking?.is_payment_clear === '1'
+
 export const bookingStatusLabel = booking => {
-  if (booking?.cancelled_booking || booking?.status === 'cancelled')
+  if (isOwnerBlockBooking(booking))
+    return 'Owner Block'
+  if (isCancelledBooking(booking))
     return 'Cancelled'
   if (booking?.status === 'pending')
     return 'Pending'
   if (booking?.status === 'active')
     return 'Active'
 
-  return booking?.cancelled_booking ? 'Cancelled' : 'Active'
+  return 'Active'
 }
 
 export const bookingStatusColor = booking => {
@@ -269,6 +376,8 @@ export const bookingStatusColor = booking => {
     return 'error'
   if (label === 'pending')
     return 'info'
+  if (label === 'owner block')
+    return 'warning'
 
   return 'success'
 }
@@ -279,4 +388,55 @@ export const bookingNightlyRateLabel = booking => {
     return '—'
 
   return `$${rate} / night`
+}
+
+const formatCurrencyAmount = value => {
+  const amount = Number(value)
+  if (!Number.isFinite(amount))
+    return null
+
+  return amount.toLocaleString(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+export const bookingGuestPaidLabel = booking => {
+  const formatted = formatCurrencyAmount(booking?.total_guest_paid)
+  if (!formatted)
+    return '—'
+
+  return formatted
+}
+
+/** Air Concierge revenue for a booking (management fee). */
+export const bookingAcRevenueLabel = booking => {
+  const formatted = formatCurrencyAmount(booking?.management_fee)
+  if (!formatted)
+    return '—'
+
+  return formatted
+}
+
+export const bookingPlatformLabel = booking => {
+  const platform = String(booking?.platform || '').trim()
+
+  return platform || 'Other'
+}
+
+export const bookingPlatformTone = booking => {
+  const platform = bookingPlatformLabel(booking).toLowerCase()
+
+  if (platform.includes('airbnb'))
+    return 'airbnb'
+  if (platform.includes('vrbo'))
+    return 'vrbo'
+  if (platform.includes('booking'))
+    return 'booking'
+  if (platform.includes('direct'))
+    return 'direct'
+
+  return 'other'
 }
