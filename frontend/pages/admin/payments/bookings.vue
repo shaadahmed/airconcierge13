@@ -1254,7 +1254,7 @@ definePageMeta({ middleware: 'auth' })
 
 .costs-page__stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 1rem;
   align-items: stretch;
   min-height: 0;
