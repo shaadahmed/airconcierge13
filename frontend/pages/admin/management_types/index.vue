@@ -1,16 +1,9 @@
 <script setup>
 definePageMeta({ middleware: 'auth' })
 
-const fields = [
-  { key: 'name', label: 'Name' },
-]
+await navigateTo('/admin/settings/system?tab=management-types')
 </script>
 
 <template>
-  <AdminEntityCrud
-    title="Management types"
-    subtitle="Manage management categories"
-    endpoint="/admin/management_types"
-    :fields="fields"
-  />
+  <div />
 </template>

@@ -82,16 +82,6 @@ export const adminNavigationGroups = [
       { title: 'Manage Content', to: '/admin/cms', icon: 'bxs-circle' },
       { title: 'Manage Users', to: '/admin/users', icon: 'bxs-circle' },
       { title: 'Manage Roles', to: '/admin/roles', icon: 'bxs-circle' },
-      { title: 'Management Types', to: '/admin/management_types', icon: 'bxs-circle' },
-      {
-        title: 'Payment Types',
-        to: '/admin/payment_types',
-        icon: 'bxs-circle',
-        badgeContent: 'New',
-        badgeClass: 'bg-warning',
-      },
-      { title: 'System Resources', to: '/admin/resources', icon: 'bxs-circle' },
-      { title: 'Platforms', to: '/admin/platforms', icon: 'bxs-circle' },
       { title: 'Critical Actions', to: '/admin/settings/cockpit', icon: 'bxs-circle' },
       { title: 'Export Guests', to: '/admin/export/guestemailslist', icon: 'bxs-circle' },
       {
