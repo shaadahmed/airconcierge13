@@ -30,8 +30,12 @@ const toggle = () => {
         :icon="item.icon || 'bxs-circle'"
         class="nav-item-icon"
       />
-      <span class="nav-item-title">{{ item.title }}</span>
       <span
+        class="nav-item-title"
+        :title="item.title"
+      >{{ item.title }}</span>
+      <span
+        v-if="item.badgeContent"
         class="nav-item-badge"
         :class="item.badgeClass"
       >

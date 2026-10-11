@@ -158,9 +158,39 @@ const handleNavScroll = evt => {
 
   .nav-item-title {
     overflow: hidden;
+    min-inline-size: 0;
     margin-inline-end: auto;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  // Mobile overlay: wrap full labels instead of truncating
+  &.overlay-nav {
+    .nav-link,
+    .nav-group {
+      > :first-child {
+        block-size: auto;
+        min-block-size: 2.625rem;
+        padding-block: 0.5rem;
+        white-space: normal;
+      }
+    }
+
+    .nav-item-title {
+      overflow: visible;
+      text-overflow: unset;
+      white-space: normal;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .nav-link .router-link-exact-active,
+    .nav-group.open .nav-group-label:has(+ .nav-group-children-wrapper > .nav-group-children > .nav-link > .router-link-exact-active) {
+      &::after {
+        block-size: auto;
+        inset-block: 0;
+      }
+    }
   }
 
   // 👉 Collapsed

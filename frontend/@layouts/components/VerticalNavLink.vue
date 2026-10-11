@@ -26,10 +26,14 @@ const props = defineProps({
         class="nav-item-icon"
       />
       <!-- 👉 Title -->
-      <span class="nav-item-title">
+      <span
+        class="nav-item-title"
+        :title="item.title"
+      >
         {{ item.title }}
       </span>
       <span
+        v-if="item.badgeContent"
         class="nav-item-badge"
         :class="item.badgeClass"
       >
