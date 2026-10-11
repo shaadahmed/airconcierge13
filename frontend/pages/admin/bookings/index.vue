@@ -1,5 +1,9 @@
 <script setup>
 import {
+  BOOKING_CANCELLED_OPTIONS,
+  BOOKING_DISPUTE_STATUS_OPTIONS,
+} from '@/constants/bookings'
+import {
   AIRBNB_TOT_MODE_OPTIONS,
   LISTING_PLATFORM_OPTIONS,
   MANAGEMENT_TYPE_OPTIONS,
@@ -58,8 +62,16 @@ const listSearch = ref('')
 
 const selectedId = ref(null)
 const confirmDelete = reactive({ open: false, id: null })
-/** @type {{ open: boolean, id: string|number|null, type: 'cancel'|'resolve'|null }} */
-const bookingActionModal = reactive({ open: false, id: null, type: null })
+/** @type {{ open: boolean, id: string|number|null, type: 'cancel'|'resolve'|null, cancelled_booking: string|null, dispute_status: string|null }} */
+const bookingActionModal = reactive({
+  open: false,
+  id: null,
+  type: null,
+  cancelled_booking: null,
+  dispute_status: null,
+})
+const cancelledBookingOptions = BOOKING_CANCELLED_OPTIONS
+const disputeStatusOptions = BOOKING_DISPUTE_STATUS_OPTIONS
 const panelBodyRef = ref(null)
 
 const allRows = computed(() => {
@@ -382,9 +394,36 @@ const askDelete = id => {
   confirmDelete.id = id
 }
 
+const cancelledOptionValue = value => {
+  if (value === true || value === 1)
+    return '1'
+  if (value === false || value == null || value === '')
+    return '0'
+
+  return String(value)
+}
+
+const disputeOptionValue = booking => {
+  if (booking?.dispute_status != null && booking.dispute_status !== '')
+    return String(booking.dispute_status)
+  if (booking?.is_payment_clear != null && booking.is_payment_clear !== '')
+    return String(booking.is_payment_clear)
+
+  return '1'
+}
+
 const openBookingActionModal = (type, id) => {
+  const booking = allRows.value.find(row => String(row.id) === String(id))
+    || (String(selectedBooking.value?.id) === String(id) ? selectedBooking.value : null)
+
   bookingActionModal.type = type
   bookingActionModal.id = id
+  bookingActionModal.cancelled_booking = type === 'cancel'
+    ? '1'
+    : cancelledOptionValue(booking?.cancelled_booking)
+  bookingActionModal.dispute_status = type === 'resolve'
+    ? '2'
+    : disputeOptionValue(booking)
   bookingActionModal.open = true
 }
 
@@ -398,6 +437,8 @@ const closeBookingActionModal = () => {
 const resetBookingActionModal = () => {
   bookingActionModal.id = null
   bookingActionModal.type = null
+  bookingActionModal.cancelled_booking = null
+  bookingActionModal.dispute_status = null
 }
 
 const actionModalBooking = computed(() => {
@@ -406,6 +447,22 @@ const actionModalBooking = computed(() => {
 
   return allRows.value.find(booking => String(booking.id) === String(bookingActionModal.id))
     || selectedBooking.value
+})
+
+const actionModalInfoFields = computed(() => {
+  const booking = actionModalBooking.value
+  if (!booking)
+    return []
+
+  return [
+    { label: 'Booking Code', value: booking.booking_code || String(booking.id) },
+    { label: 'Status', value: bookingStatusLabel(booking) },
+    { label: 'Property', value: bookingPropertyTitle(booking) },
+    { label: 'Guest', value: booking.guest_name || '—' },
+    { label: 'Platform', value: bookingPlatformLabel(booking) || '—' },
+    { label: 'Reservation Start', value: formatDate(booking.reservation_start_date) },
+    { label: 'Reservation End', value: formatDate(booking.reservation_end_date) },
+  ]
 })
 
 const actionModalTitle = computed(() => (
@@ -437,13 +494,27 @@ const onDelete = async () => {
 
 const onConfirmBookingAction = async () => {
   try {
-    if (bookingActionModal.type === 'cancel' && bookingActionModal.id != null) {
-      await bookings.cancel(bookingActionModal.id)
-      if (!bookings.usingMocks)
-        await bookings.load()
+    if (bookingActionModal.id == null)
+      return
+
+    const payload = {
+      cancelled_booking: bookingActionModal.cancelled_booking,
+      dispute_status: bookingActionModal.dispute_status,
     }
 
-    // Resolve-dispute submit payload/fields will be wired later.
+    if (bookingActionModal.type === 'cancel') {
+      await bookings.cancel(bookingActionModal.id, payload)
+    }
+    else if (bookingActionModal.type === 'resolve') {
+      await bookings.save(bookingActionModal.id, {
+        ...payload,
+        is_payment_clear: bookingActionModal.dispute_status,
+      })
+    }
+
+    if (!bookings.usingMocks)
+      await bookings.load()
+
     closeBookingActionModal()
   }
   catch {
@@ -1173,82 +1244,42 @@ definePageMeta({ middleware: 'auth' })
 
     <VDialog
       v-model="bookingActionModal.open"
-      max-width="560"
+      max-width="640"
       @after-leave="resetBookingActionModal"
     >
       <VCard v-if="actionModalBooking">
         <VCardTitle>{{ actionModalTitle }}</VCardTitle>
         <VCardText>
-          <p class="text-body-2 text-medium-emphasis mb-4">
-            Limited booking fields for now — full cancel / dispute form fields will be added later.
-          </p>
+          <div class="booking-action-modal__info mb-4">
+            <div
+              v-for="field in actionModalInfoFields"
+              :key="field.label"
+              class="booking-action-modal__info-row"
+            >
+              <div class="text-caption text-medium-emphasis">
+                {{ field.label }}
+              </div>
+              <div class="text-body-2">
+                {{ field.value }}
+              </div>
+            </div>
+          </div>
 
           <VRow>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="actionModalBooking.booking_code || String(actionModalBooking.id)"
-                label="Booking Code"
-                readonly
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="bookingStatusLabel(actionModalBooking)"
-                label="Status"
-                readonly
+            <VCol cols="12">
+              <BaseSelect
+                v-model="bookingActionModal.cancelled_booking"
+                label="Cancelled Booking"
+                :items="cancelledBookingOptions"
+                clearable
               />
             </VCol>
             <VCol cols="12">
-              <BaseInput
-                :model-value="bookingPropertyTitle(actionModalBooking)"
-                label="Property"
-                readonly
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="actionModalBooking.guest_name || '—'"
-                label="Guest"
-                readonly
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="bookingPlatformLabel(actionModalBooking)"
-                label="Platform"
-                readonly
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="formatDate(actionModalBooking.reservation_start_date)"
-                label="Reservation Start"
-                readonly
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              sm="6"
-            >
-              <BaseInput
-                :model-value="formatDate(actionModalBooking.reservation_end_date)"
-                label="Reservation End"
-                readonly
+              <BaseSelect
+                v-model="bookingActionModal.dispute_status"
+                label="Dispute Status"
+                :items="disputeStatusOptions"
+                clearable
               />
             </VCol>
           </VRow>
@@ -1640,5 +1671,29 @@ definePageMeta({ middleware: 'auth' })
   color: inherit;
   cursor: pointer;
   line-height: 1;
+}
+
+.booking-action-modal__info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(75, 70, 92, 0.12);
+  border-radius: 0.5rem;
+  background: rgba(75, 70, 92, 0.03);
+}
+
+.booking-action-modal__info-row:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 599px) {
+  .booking-action-modal__info {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-action-modal__info-row:nth-child(3) {
+    grid-column: auto;
+  }
 }
 </style>

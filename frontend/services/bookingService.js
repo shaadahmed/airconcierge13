@@ -6,5 +6,5 @@ export const bookingService = {
   create: data => api.post('/admin/bookings', data),
   update: (id, data) => api.put(`/admin/bookings/${id}`, data),
   remove: id => api.delete(`/admin/bookings/${id}`),
-  cancel: id => api.post(`/admin/bookings/${id}/cancel`),
+  cancel: (id, data = {}) => api.post(`/admin/bookings/${id}/cancel`, data),
 }

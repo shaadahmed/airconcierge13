@@ -96,16 +96,26 @@ export const useBookingsStore = defineStore('bookings', {
         await bookingService.remove(id)
       }, 'errors', 'Unable to delete booking.')
     },
-    async cancel(id) {
+    async cancel(id, payload = {}) {
       return runStoreAction(this, async () => {
         if (this.usingMocks) {
-          return mockUpdate(this, id, {
-            cancelled_booking: true,
-            status: 'cancelled',
-          })
+          const cancelledBooking = payload.cancelled_booking != null && payload.cancelled_booking !== ''
+            ? String(payload.cancelled_booking)
+            : '1'
+          const patch = {
+            cancelled_booking: cancelledBooking === '0' ? '0' : cancelledBooking,
+            status: cancelledBooking === '0' ? 'active' : 'cancelled',
+          }
+
+          if (payload.dispute_status != null && payload.dispute_status !== '') {
+            patch.dispute_status = String(payload.dispute_status)
+            patch.is_payment_clear = String(payload.dispute_status)
+          }
+
+          return mockUpdate(this, id, patch)
         }
 
-        this.current = (await bookingService.cancel(id)).data
+        this.current = (await bookingService.cancel(id, payload)).data
 
         return this.current
       }, 'errors', 'Unable to cancel booking.')
