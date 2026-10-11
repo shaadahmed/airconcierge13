@@ -1,5 +1,10 @@
 <script setup>
 import {
+  AIRBNB_TOT_MODE_OPTIONS,
+  LISTING_PLATFORM_OPTIONS,
+  MANAGEMENT_TYPE_OPTIONS,
+} from '@/constants/properties'
+import {
   bookingLocation,
   bookingNightlyRateLabel,
   bookingPropertyTitle,
@@ -12,11 +17,37 @@ const bookings = useBookingsStore()
 /** @type {import('vue').Ref<'dashboard' | 'filter' | 'detail'>} */
 const panelMode = ref('dashboard')
 
-const filters = reactive({
-  code: '',
-  property: '',
-  status: null,
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1
+
+const defaultFilters = () => ({
+  apply_colors: true,
+  view_deleted: false,
+  booking_code: '',
+  region_id: null,
+  year: currentYear,
+  month: currentMonth,
+  reservation_from: '',
+  reservation_to: '',
+  property_id: null,
+  guest_id: null,
+  subregion_id: null,
+  booking_from: '',
+  booking_to: '',
+  no_of_nights: '',
+  cancelled_booking: '9',
+  management_type_id: null,
+  platform_ids: [],
+  tot_mode: null,
+  cleaner_invoiced: null,
+  dispute_status: null,
+  include_owner_block: 1,
 })
+
+const filters = reactive(defaultFilters())
+
+/** List toolbar quick search (separate from advance-search fields). */
+const listSearch = ref('')
 
 const selectedId = ref(null)
 const confirmDelete = reactive({ open: false, id: null })
@@ -30,8 +61,8 @@ const allRows = computed(() => {
 })
 
 const rows = computed(() => {
-  const codeQuery = filters.code.trim().toLowerCase()
-  const propertyQuery = filters.property.trim().toLowerCase()
+  const codeQuery = filters.booking_code.trim().toLowerCase()
+  const propertyQuery = listSearch.value.trim().toLowerCase()
 
   return allRows.value.filter(booking => {
     if (codeQuery) {
@@ -48,21 +79,107 @@ const rows = computed(() => {
         return false
     }
 
-    if (filters.status !== null && filters.status !== undefined && filters.status !== '') {
-      const label = bookingStatusLabel(booking).toLowerCase()
-      if (label !== String(filters.status).toLowerCase())
-        return false
-    }
-
     return true
   })
 })
 
-const statusFilterItems = [
-  { title: 'All statuses', value: null },
-  { title: 'Active', value: 'active' },
-  { title: 'Pending', value: 'pending' },
-  { title: 'Cancelled', value: 'cancelled' },
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+const yearFilterItems = [
+  { title: 'All', value: 0 },
+  ...Array.from({ length: currentYear - 2014 + 2 }, (_, index) => {
+    const year = 2014 + index
+
+    return { title: String(year), value: year }
+  }).reverse(),
+]
+
+const monthFilterItems = [
+  { title: 'All', value: 0 },
+  ...monthNames.map((name, index) => ({
+    title: `${String(index + 1).padStart(2, '0')} ${name}`,
+    value: index + 1,
+  })),
+]
+
+const regionFilterItems = [
+  { title: 'Select', value: null },
+]
+
+const subregionFilterItems = [
+  { title: 'All', value: null },
+]
+
+const propertyFilterItems = computed(() => {
+  const seen = new Map()
+
+  for (const booking of allRows.value) {
+    const id = booking.property_id ?? booking.property?.id
+    if (id == null || seen.has(id))
+      continue
+
+    seen.set(id, bookingPropertyTitle(booking))
+  }
+
+  return [
+    { title: 'Select', value: null },
+    ...[...seen.entries()].map(([value, title]) => ({ title, value })),
+  ]
+})
+
+const guestFilterItems = computed(() => {
+  const seen = new Map()
+
+  for (const booking of allRows.value) {
+    const name = String(booking.guest_name || '').trim()
+    if (!name || seen.has(name))
+      continue
+
+    seen.set(name, name)
+  }
+
+  return [
+    { title: 'Select', value: null },
+    ...[...seen.keys()].map(name => ({ title: name, value: name })),
+  ]
+})
+
+const bookingTypeFilterItems = [
+  { title: 'All', value: '' },
+  { title: 'All bookings with a Payout (active or cancelled)', value: '9' },
+  { title: 'Not Cancelled', value: '0' },
+  { title: 'Cancelled with no payout', value: '1' },
+  { title: 'Canceled with Payout (financials are being included in fees and Payouts)', value: '2' },
+  { title: 'Cancelled with and without payout', value: '12' },
+  { title: 'Disputed bookings', value: '10' },
+]
+
+const managementTypeFilterItems = [
+  { title: 'All types', value: null },
+  ...MANAGEMENT_TYPE_OPTIONS,
+]
+
+const platformFilterItems = LISTING_PLATFORM_OPTIONS
+
+const totModeFilterItems = [
+  { title: 'Select', value: null },
+  ...AIRBNB_TOT_MODE_OPTIONS,
+]
+
+const cleanerInvoicedFilterItems = [
+  { title: 'Yes/No/All', value: null },
+  { title: 'Yes', value: '1' },
+  { title: 'No', value: '0' },
+]
+
+const disputeStatusFilterItems = [
+  { title: 'All', value: null },
+  { title: 'No Dispute', value: '1' },
+  { title: 'Flagged as Dispute', value: '0' },
+  { title: 'Dispute Resolved', value: '2' },
 ]
 
 const monthBounds = computed(() => {
@@ -236,7 +353,11 @@ const closeDetail = () => {
 }
 
 const clearFilters = () => {
-  Object.assign(filters, { code: '', property: '', status: null })
+  Object.assign(filters, defaultFilters())
+}
+
+const applyFilters = () => {
+  panelMode.value = selectedId.value ? 'detail' : 'dashboard'
 }
 
 const goView = id => navigateTo(`/admin/bookings/${id}`)
@@ -452,69 +573,294 @@ definePageMeta({ middleware: 'auth' })
                 </div>
               </div>
 
-              <div class="d-flex flex-column gap-2">
-                <BaseButton
-                  color="primary"
-                  block
-                  label="View booking"
-                  prepend-icon="bx-show"
-                  @click="goView(selectedBooking.id)"
-                />
-                <BaseButton
-                  variant="tonal"
-                  block
-                  label="Edit booking"
-                  prepend-icon="bx-edit"
-                  @click="goEdit(selectedBooking.id)"
-                />
-                <BaseButton
+              <VRow dense>
+                <VCol cols="6">
+                  <BaseButton
+                    color="primary"
+                    block
+                    label="View booking"
+                    prepend-icon="bx-show"
+                    @click="goView(selectedBooking.id)"
+                  />
+                </VCol>
+                <VCol cols="6">
+                  <BaseButton
+                    variant="tonal"
+                    block
+                    label="Edit booking"
+                    prepend-icon="bx-edit"
+                    @click="goEdit(selectedBooking.id)"
+                  />
+                </VCol>
+                <VCol
                   v-if="bookingStatusLabel(selectedBooking) !== 'Cancelled'"
-                  variant="tonal"
-                  color="warning"
-                  block
-                  label="Cancel booking"
-                  prepend-icon="bx-calendar-x"
-                  @click="askCancel(selectedBooking.id)"
-                />
-                <BaseButton
-                  variant="tonal"
-                  color="error"
-                  block
-                  label="Delete"
-                  prepend-icon="bx-trash"
-                  @click="askDelete(selectedBooking.id)"
-                />
-              </div>
+                  cols="6"
+                >
+                  <BaseButton
+                    variant="tonal"
+                    color="warning"
+                    block
+                    label="Cancel booking"
+                    prepend-icon="bx-calendar-x"
+                    @click="askCancel(selectedBooking.id)"
+                  />
+                </VCol>
+                <VCol cols="6">
+                  <BaseButton
+                    variant="tonal"
+                    color="error"
+                    block
+                    label="Delete"
+                    prepend-icon="bx-trash"
+                    @click="askDelete(selectedBooking.id)"
+                  />
+                </VCol>
+              </VRow>
               </div>
 
               <div
                 v-else-if="panelMode === 'filter'"
                 key="filter"
               >
-              <VForm @submit.prevent>
-                <BaseInput
-                  v-model="filters.code"
-                  label="Booking code or guest contains"
-                  class="mb-2"
-                />
-                <BaseInput
-                  v-model="filters.property"
-                  label="Property or location contains"
-                  class="mb-2"
-                />
-                <BaseSelect
-                  v-model="filters.status"
-                  label="Status"
-                  :items="statusFilterItems"
-                  clearable
-                  class="mb-2"
-                />
-                <div class="d-flex flex-wrap gap-2 mt-2">
+              <VForm @submit.prevent="applyFilters">
+                <div class="d-flex flex-wrap gap-x-4 gap-y-2 mb-4">
+                  <BaseCheckbox
+                    v-model="filters.apply_colors"
+                    label="Apply Colors"
+                    hide-details
+                  />
+                  <BaseCheckbox
+                    v-model="filters.view_deleted"
+                    label="View Deleted Entries"
+                    hide-details
+                  />
+                </div>
+
+                <VRow>
+                  <VCol cols="12">
+                    <BaseInput
+                      v-model="filters.booking_code"
+                      label="Booking Code"
+                      placeholder="e.g., BK123456"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.region_id"
+                      label="City/Region"
+                      placeholder="Select"
+                      :items="regionFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.subregion_id"
+                      label="Subregion"
+                      :items="subregionFilterItems"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.year"
+                      label="Year"
+                      :items="yearFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.month"
+                      label="Month"
+                      :items="monthFilterItems"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.property_id"
+                      label="Property"
+                      placeholder="Select"
+                      :items="propertyFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.guest_id"
+                      label="Guest"
+                      placeholder="Select"
+                      :items="guestFilterItems"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseInput
+                      v-model="filters.reservation_from"
+                      label="Reservation From"
+                      type="date"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseInput
+                      v-model="filters.reservation_to"
+                      label="Reservation To"
+                      type="date"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseInput
+                      v-model="filters.booking_from"
+                      label="Booking From"
+                      type="date"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseInput
+                      v-model="filters.booking_to"
+                      label="Booking To"
+                      type="date"
+                    />
+                  </VCol>
+
+                  <VCol cols="12">
+                    <BaseInput
+                      v-model="filters.no_of_nights"
+                      label="Number of Nights"
+                      placeholder="Min/Max nights e.g., 3-7"
+                    />
+                  </VCol>
+
+                  <VCol cols="12">
+                    <BaseSelect
+                      v-model="filters.cancelled_booking"
+                      label="Booking Type (Cancellation)"
+                      :items="bookingTypeFilterItems"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.management_type_id"
+                      label="Management Type"
+                      :items="managementTypeFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.platform_ids"
+                      label="Platform(s)"
+                      placeholder="Select"
+                      :items="platformFilterItems"
+                      multiple
+                      chips
+                      closable-chips
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.tot_mode"
+                      label="TOT Mode"
+                      placeholder="Select"
+                      :items="totModeFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.cleaner_invoiced"
+                      label="Cleaner Invoiced"
+                      :items="cleanerInvoicedFilterItems"
+                    />
+                  </VCol>
+
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <BaseSelect
+                      v-model="filters.dispute_status"
+                      label="Dispute Status"
+                      :items="disputeStatusFilterItems"
+                    />
+                  </VCol>
+                  <VCol
+                    cols="12"
+                    sm="6"
+                  >
+                    <div class="text-body-2 mb-1">
+                      Include Owner Block
+                    </div>
+                    <VRadioGroup
+                      v-model="filters.include_owner_block"
+                      inline
+                      hide-details="auto"
+                    >
+                      <BaseRadio
+                        :value="1"
+                        label="Yes"
+                      />
+                      <BaseRadio
+                        :value="0"
+                        label="No"
+                      />
+                    </VRadioGroup>
+                  </VCol>
+                </VRow>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
                   <BaseButton
                     type="button"
                     variant="tonal"
-                    label="Clear filters"
+                    label="Clear All"
                     @click="clearFilters"
+                  />
+                  <BaseButton
+                    type="submit"
+                    color="primary"
+                    label="Apply Filters"
                   />
                   <BaseButton
                     type="button"
@@ -644,7 +990,7 @@ definePageMeta({ middleware: 'auth' })
 
           <VCardText class="pb-2 flex-shrink-0">
             <BaseInput
-              v-model="filters.property"
+              v-model="listSearch"
               placeholder="Search properties..."
               size="small"
               hide-details

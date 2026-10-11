@@ -1,26 +1,79 @@
 <script setup>
+import { bookingFormFromRecord, moneyNumber } from '@/constants/bookings'
+import { bookingPropertyTitle } from '@/mocks/bookings'
+
 const route = useRoute()
 const bookings = useBookingsStore()
+const properties = usePropertiesStore()
 
-const form = reactive({
-  booking_code: '',
-  reservation_start_date: '',
-  reservation_end_date: '',
-  no_of_guests: null,
-  owner_notes: '',
-  booking_notes: '',
+const form = reactive(bookingFormFromRecord(null))
+const loaded = ref(false)
+
+const propertyOptions = computed(() => {
+  const data = properties.data?.data || properties.data || []
+  const list = Array.isArray(data) ? data : []
+  const options = list.map(property => ({
+    title: property.property_title || bookingPropertyTitle(property) || `Property #${property.id}`,
+    value: property.id,
+  }))
+
+  const currentId = form.property_id ?? bookings.current?.property_id ?? bookings.current?.property?.id
+  if (currentId != null && !options.some(option => String(option.value) === String(currentId))) {
+    options.unshift({
+      title: bookingPropertyTitle(bookings.current) || `Property #${currentId}`,
+      value: currentId,
+    })
+  }
+
+  return options
+})
+
+const parentBookingOptions = computed(() => {
+  const currentId = String(route.params.id)
+  const data = bookings.data?.data || bookings.data || []
+  const list = Array.isArray(data) ? data : []
+
+  return [
+    { title: 'No it is individual booking', value: '' },
+    ...list
+      .filter(booking => String(booking.id) !== currentId)
+      .map(booking => ({
+        title: `${booking.booking_code || `#${booking.id}`} — ${booking.guest_name || 'Guest'}`,
+        value: String(booking.id),
+      })),
+  ]
+})
+
+const payments = computed(() => {
+  const list = bookings.current?.payments
+  return Array.isArray(list) ? list : []
+})
+
+const paymentsTotal = computed(() => {
+  if (bookings.current?.payments_total != null)
+    return moneyNumber(bookings.current.payments_total)
+
+  return payments.value.reduce((sum, payment) => sum + moneyNumber(payment.price), 0)
 })
 
 onMounted(async () => {
-  await bookings.loadOne(route.params.id)
-  Object.keys(form).forEach(key => {
-    form[key] = bookings.current?.[key] ?? form[key]
-  })
+  await Promise.all([
+    properties.load(),
+    bookings.load(),
+    bookings.loadOne(route.params.id),
+  ])
+
+  Object.assign(form, bookingFormFromRecord(bookings.current))
+  loaded.value = true
 })
+
+const onFormUpdate = value => {
+  Object.assign(form, value)
+}
 
 const save = async () => {
   try {
-    await bookings.save(route.params.id, form)
+    await bookings.save(route.params.id, { ...form })
   }
   catch {
     // Validation errors are exposed by the store.
@@ -31,51 +84,59 @@ definePageMeta({ middleware: 'auth' })
 </script>
 
 <template>
-  <VCard title="Booking details">
-    <VCardText>
-      <VAlert
-        v-if="bookings.errors.general"
-        type="error"
-        class="mb-4"
-      >
-        {{ bookings.errors.general[0] }}
-      </VAlert>
-      <VForm @submit.prevent="save">
-        <VRow>
-          <VCol
-            v-for="field in ['booking_code', 'reservation_start_date', 'reservation_end_date', 'no_of_guests']"
-            :key="field"
-            cols="12"
-            md="6"
-          >
-            <BaseInput
-              v-model="form[field]"
-              :label="field.replaceAll('_', ' ')"
-              :type="field.includes('date') ? 'date' : 'text'"
-              :error="bookings.errors[field]"
-            />
-          </VCol>
-          <VCol cols="12">
-            <BaseTextarea
-              v-model="form.owner_notes"
-              label="Owner notes"
-              :error="bookings.errors.owner_notes"
-            />
-          </VCol>
-          <VCol cols="12">
-            <BaseTextarea
-              v-model="form.booking_notes"
-              label="Booking notes"
-              :error="bookings.errors.booking_notes"
-            />
-          </VCol>
-        </VRow>
+  <div>
+    <PageHeader
+      title="Edit Booking"
+      :subtitle="form.booking_code ? `Booking ${form.booking_code}` : 'Update reservation details'"
+    >
+      <template #actions>
         <BaseButton
-          type="submit"
-          label="Save booking"
-          :loading="bookings.loading"
+          variant="tonal"
+          label="Back to list"
+          to="/admin/bookings"
         />
-      </VForm>
-    </VCardText>
-  </VCard>
+      </template>
+    </PageHeader>
+
+    <VCard>
+      <VCardItem>
+        <VCardTitle>Edit Booking</VCardTitle>
+        <template #append>
+          <BaseButton
+            v-if="form.month && form.year"
+            size="small"
+            variant="tonal"
+            label="View all Bookings in this month/year"
+            :to="{ path: '/admin/bookings', query: { month: form.month, year: form.year } }"
+          />
+        </template>
+      </VCardItem>
+      <VCardText>
+        <AppAlert :errors="bookings.errors" />
+
+        <div
+          v-if="!loaded || bookings.loading"
+          class="text-medium-emphasis py-8 text-center"
+        >
+          Loading booking…
+        </div>
+
+        <BookingForm
+          v-else
+          :model-value="form"
+          mode="edit"
+          submit-label="Update"
+          :errors="bookings.errors"
+          :loading="bookings.loading"
+          :property-options="propertyOptions"
+          :parent-booking-options="parentBookingOptions"
+          :payments="payments"
+          :payments-total="paymentsTotal"
+          @update:model-value="onFormUpdate"
+          @submit="save"
+          @cancel="navigateTo('/admin/bookings')"
+        />
+      </VCardText>
+    </VCard>
+  </div>
 </template>
