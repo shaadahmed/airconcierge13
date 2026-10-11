@@ -32,9 +32,9 @@ const form = reactive({
 
 const filters = reactive({
   search: '',
-  name: '',
-  email: '',
   region_id: '',
+  payment_method: '',
+  status: null,
   w9_on_file: null,
 })
 
@@ -100,11 +100,15 @@ const ownerInitials = owner => {
 
 const rows = computed(() => {
   const searchQuery = filters.search.trim().toLowerCase()
-  const nameQuery = filters.name.trim().toLowerCase()
-  const emailQuery = filters.email.trim().toLowerCase()
   const regionId = filters.region_id === '' || filters.region_id === null
     ? null
     : Number(filters.region_id)
+  const paymentMethod = filters.payment_method === '' || filters.payment_method == null
+    ? null
+    : filters.payment_method
+  const statusFilter = filters.status === '' || filters.status === null || filters.status === undefined
+    ? null
+    : Number(filters.status)
 
   return allRows.value.filter(owner => {
     if (searchQuery) {
@@ -120,20 +124,19 @@ const rows = computed(() => {
         return false
     }
 
-    if (nameQuery) {
-      const name = displayName(owner).toLowerCase()
-      if (!name.includes(nameQuery))
-        return false
-    }
-
-    if (emailQuery) {
-      const email = String(owner.owner_email || '').toLowerCase()
-      if (!email.includes(emailQuery))
-        return false
-    }
-
     if (regionId !== null && Number(owner.region_id) !== regionId)
       return false
+
+    if (paymentMethod !== null && owner.payment_method !== paymentMethod)
+      return false
+
+    if (statusFilter !== null) {
+      const active = isOwnerActive(owner)
+      if (statusFilter === 1 && !active)
+        return false
+      if (statusFilter === 0 && active)
+        return false
+    }
 
     if (filters.w9_on_file !== null && filters.w9_on_file !== undefined && filters.w9_on_file !== '') {
       const hasW9 = Boolean(owner.w9_on_file)
@@ -177,8 +180,12 @@ const regionOptions = computed(() => {
   return [...map.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)))
 })
 
+const statusFilterItems = [
+  { title: 'Active', value: 1 },
+  { title: 'Inactive', value: 0 },
+]
+
 const w9FilterItems = [
-  { title: 'All owners', value: null },
   { title: 'W9 on file', value: 'yes' },
   { title: 'W9 missing', value: 'no' },
 ]
@@ -235,9 +242,9 @@ const selectOwner = owner => {
 const clearFilters = () => {
   Object.assign(filters, {
     search: '',
-    name: '',
-    email: '',
     region_id: '',
+    payment_method: '',
+    status: null,
     w9_on_file: null,
   })
 }
@@ -671,27 +678,34 @@ definePageMeta({ middleware: 'auth' })
             </div>
 
             <div v-else-if="panelMode === 'filter'">
-              <VForm @submit.prevent>
-                <BaseInput
-                  v-model="filters.name"
-                  label="Name contains"
-                  class="mb-2"
-                />
-                <BaseInput
-                  v-model="filters.email"
-                  label="Email contains"
-                  class="mb-2"
-                />
+              <VForm
+                class="owner-filter-form"
+                @submit.prevent
+              >
                 <BaseSelect
                   v-model="filters.region_id"
-                  label="Region"
+                  label="Region or City"
                   :items="regionOptions"
                   clearable
                   class="mb-2"
                 />
                 <BaseSelect
+                  v-model="filters.payment_method"
+                  label="Payment method"
+                  :items="paymentMethodItems"
+                  clearable
+                  class="mb-2"
+                />
+                <BaseSelect
+                  v-model="filters.status"
+                  label="Status"
+                  :items="statusFilterItems"
+                  clearable
+                  class="mb-2"
+                />
+                <BaseSelect
                   v-model="filters.w9_on_file"
-                  label="W9 status"
+                  label="W9 on file"
                   :items="w9FilterItems"
                   clearable
                   class="mb-2"
@@ -829,6 +843,11 @@ definePageMeta({ middleware: 'auth' })
 
 .owner-panel-body {
   overflow-y: auto;
+}
+
+.owner-filter-form {
+  /* Keep outlined floating labels from being clipped by the scroll container. */
+  padding-top: 4px;
 }
 
 .owner-list {

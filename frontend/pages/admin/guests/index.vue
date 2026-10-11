@@ -6,16 +6,24 @@ const panelMode = ref('dashboard')
 
 const form = reactive({
   guest_name: '',
-  first_name: '',
-  last_name: '',
-  email: '',
   phone: '',
+  email: '',
   city: '',
   state: '',
   country: '',
+  corporate_travel_booking_agent: null,
+  corporate_travel_booking_agent_name_email: '',
+  corporate_travel_booking_agent_first_name: '',
+  corporate_travel_booking_agent_last_name: '',
+  corporate_business_name: '',
   notes: '',
-  blacklisted: false,
 })
+
+const corporateAgentItems = [
+  { title: 'Select', value: null },
+  { title: 'Yes', value: '1' },
+  { title: 'No', value: '0' },
+]
 
 const filters = reactive({
   name: '',
@@ -263,15 +271,17 @@ const resetForm = () => {
   editingId.value = null
   Object.assign(form, {
     guest_name: '',
-    first_name: '',
-    last_name: '',
-    email: '',
     phone: '',
+    email: '',
     city: '',
     state: '',
     country: '',
+    corporate_travel_booking_agent: null,
+    corporate_travel_booking_agent_name_email: '',
+    corporate_travel_booking_agent_first_name: '',
+    corporate_travel_booking_agent_last_name: '',
+    corporate_business_name: '',
     notes: '',
-    blacklisted: false,
   })
 }
 
@@ -279,15 +289,17 @@ const edit = guest => {
   editingId.value = guest.id
   Object.assign(form, {
     guest_name: guest.guest_name || '',
-    first_name: guest.first_name || '',
-    last_name: guest.last_name || '',
-    email: guest.email || '',
     phone: guest.phone || '',
+    email: guest.email || '',
     city: guest.city || '',
     state: guest.state || '',
     country: guest.country || '',
+    corporate_travel_booking_agent: guest.corporate_travel_booking_agent ?? null,
+    corporate_travel_booking_agent_name_email: guest.corporate_travel_booking_agent_name_email || '',
+    corporate_travel_booking_agent_first_name: guest.corporate_travel_booking_agent_first_name || '',
+    corporate_travel_booking_agent_last_name: guest.corporate_travel_booking_agent_last_name || '',
+    corporate_business_name: guest.corporate_business_name || '',
     notes: guest.notes || '',
-    blacklisted: guest.blacklisted ?? false,
   })
   panelMode.value = 'create'
 }
@@ -300,9 +312,17 @@ const cancelCreate = () => {
 const submit = async () => {
   try {
     const payload = {
-      ...form,
-      email: form.email || null,
+      guest_name: form.guest_name,
       phone: form.phone || null,
+      email: form.email || null,
+      city: form.city || null,
+      state: form.state || null,
+      country: form.country || null,
+      corporate_travel_booking_agent: form.corporate_travel_booking_agent,
+      corporate_travel_booking_agent_name_email: form.corporate_travel_booking_agent_name_email || null,
+      corporate_travel_booking_agent_first_name: form.corporate_travel_booking_agent_first_name || null,
+      corporate_travel_booking_agent_last_name: form.corporate_travel_booking_agent_last_name || null,
+      corporate_business_name: form.corporate_business_name || null,
       notes: form.notes || null,
     }
 
@@ -594,32 +614,26 @@ definePageMeta({ middleware: 'auth' })
             <!-- Create / edit panel -->
             <div v-else>
               <AppAlert :errors="guests.errors" />
-              <VForm @submit.prevent="submit">
+              <VForm
+                class="guest-form"
+                @submit.prevent="submit"
+              >
                 <BaseInput
                   v-model="form.guest_name"
-                  label="Guest name"
+                  label="Guest Name"
+                  required
                   :error="guests.errors.guest_name"
                 />
                 <BaseInput
-                  v-model="form.first_name"
-                  label="First name"
-                  :error="guests.errors.first_name"
-                />
-                <BaseInput
-                  v-model="form.last_name"
-                  label="Last name"
-                  :error="guests.errors.last_name"
+                  v-model="form.phone"
+                  label="Phone"
+                  :error="guests.errors.phone"
                 />
                 <BaseInput
                   v-model="form.email"
                   label="Email"
                   type="email"
                   :error="guests.errors.email"
-                />
-                <BaseInput
-                  v-model="form.phone"
-                  label="Phone"
-                  :error="guests.errors.phone"
                 />
                 <BaseInput
                   v-model="form.city"
@@ -636,16 +650,39 @@ definePageMeta({ middleware: 'auth' })
                   label="Country"
                   :error="guests.errors.country"
                 />
+                <BaseSelect
+                  v-model="form.corporate_travel_booking_agent"
+                  label="Corporate Travel Booking Agent"
+                  :items="corporateAgentItems"
+                  :error="guests.errors.corporate_travel_booking_agent"
+                />
+                <BaseInput
+                  v-model="form.corporate_travel_booking_agent_name_email"
+                  label="Corporate Travel Booking Agent Name (Email)"
+                  type="email"
+                  :error="guests.errors.corporate_travel_booking_agent_name_email"
+                />
+                <BaseInput
+                  v-model="form.corporate_travel_booking_agent_first_name"
+                  label="Corporate Travel Booking Agent Name (First)"
+                  :error="guests.errors.corporate_travel_booking_agent_first_name"
+                />
+                <BaseInput
+                  v-model="form.corporate_travel_booking_agent_last_name"
+                  label="Corporate Travel Booking Agent Name (Last)"
+                  :error="guests.errors.corporate_travel_booking_agent_last_name"
+                />
+                <BaseInput
+                  v-model="form.corporate_business_name"
+                  label="Corporate / Business Name"
+                  :error="guests.errors.corporate_business_name"
+                />
                 <BaseTextarea
                   v-model="form.notes"
                   label="Notes"
                   :error="guests.errors.notes"
                 />
-                <BaseCheckbox
-                  v-model="form.blacklisted"
-                  label="Blacklisted"
-                />
-                <div class="d-flex flex-wrap gap-2 mt-2">
+                <div class="d-flex flex-wrap gap-2 guest-form__actions">
                   <BaseButton
                     type="submit"
                     :label="editingId ? 'Update guest' : 'Create guest'"
@@ -678,6 +715,14 @@ definePageMeta({ middleware: 'auth' })
 </template>
 
 <style scoped>
+.guest-form :deep(.v-input) {
+  margin-bottom: 1rem;
+}
+
+.guest-form__actions {
+  margin-top: 0.25rem;
+}
+
 .guest-stat-tile {
   border: 1px solid rgba(75, 70, 92, 0.08);
   background: rgba(75, 70, 92, 0.03);
