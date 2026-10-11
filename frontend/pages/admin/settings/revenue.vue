@@ -1,22 +1,30 @@
 <script setup>
+import { MOCK_PROPERTIES } from '@/mocks/properties'
+import {
+  formatOwnerValue,
+  formatRate,
+  revenuePropertyItems,
+} from '@/mocks/revenueSettings'
+
 const settings = useRevenueSettingsStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'create' | 'detail'>} */
 const panelMode = ref('dashboard')
 
 const form = reactive({
-  property_id: '',
-  dynamic_pricing: 0,
+  property_id: null,
+  dynamic_pricing: false,
   base_rate: '',
   min_rate: '',
 })
 
 const filters = reactive({
-  property_id: '',
-  dynamic_pricing: null,
+  property_id: null,
 })
 
 const editingId = ref(null)
+const selectedId = ref(null)
+const listSearch = ref('')
 
 const allRows = computed(() => {
   const data = settings.data?.data || settings.data || []
@@ -24,18 +32,60 @@ const allRows = computed(() => {
   return Array.isArray(data) ? data : []
 })
 
+const selectedRow = computed(() => (
+  selectedId.value == null
+    ? null
+    : allRows.value.find(row => String(row.id) === String(selectedId.value)) || null
+))
+
+const propertyFilterItems = computed(() => {
+  const fromRows = allRows.value
+    .map(row => row.property || { id: row.property_id, property_title: `Property #${row.property_id}` })
+    .filter(Boolean)
+
+  return revenuePropertyItems(fromRows)
+})
+
+const formPropertyItems = computed(() => propertyFilterItems.value)
+
+const editingRow = computed(() => (
+  editingId.value == null
+    ? null
+    : allRows.value.find(row => String(row.id) === String(editingId.value)) || null
+))
+
+const ownerStated = computed(() => {
+  const propertyId = form.property_id
+  if (!propertyId)
+    return { min_nightly_rate: null, min_nights_per_booking: null }
+
+  const fromRow = allRows.value.find(row => String(row.property_id) === String(propertyId))
+  if (fromRow) {
+    return {
+      min_nightly_rate: fromRow.min_nightly_rate,
+      min_nights_per_booking: fromRow.min_nights_per_booking,
+    }
+  }
+
+  const fromProperty = MOCK_PROPERTIES.find(item => String(item.id) === String(propertyId))?.revenue_settings
+
+  return {
+    min_nightly_rate: fromProperty?.min_nightly_rate ?? null,
+    min_nights_per_booking: fromProperty?.min_nights_per_booking ?? null,
+  }
+})
+
 const rows = computed(() => {
-  const propertyQuery = filters.property_id.trim()
+  const propertyQuery = filters.property_id
+  const search = listSearch.value.trim().toLowerCase()
 
   return allRows.value.filter(row => {
-    if (propertyQuery && String(row.property_id) !== propertyQuery)
+    if (propertyQuery != null && propertyQuery !== '' && String(row.property_id) !== String(propertyQuery))
       return false
 
-    if (filters.dynamic_pricing !== null && filters.dynamic_pricing !== undefined && filters.dynamic_pricing !== '') {
-      const enabled = Boolean(Number(row.dynamic_pricing))
-      if (filters.dynamic_pricing === 'yes' && !enabled)
-        return false
-      if (filters.dynamic_pricing === 'no' && enabled)
+    if (search) {
+      const title = (row.property?.property_title || String(row.property_id)).toLowerCase()
+      if (!title.includes(search))
         return false
     }
 
@@ -43,20 +93,11 @@ const rows = computed(() => {
   })
 })
 
-const dynamicFilterItems = [
-  { title: 'All settings', value: null },
-  { title: 'Dynamic pricing on', value: 'yes' },
-  { title: 'Dynamic pricing off', value: 'no' },
-]
-
 const stats = computed(() => {
   const list = allRows.value
   const dynamicOn = list.filter(row => Boolean(Number(row.dynamic_pricing)))
   const withBase = list.filter(row => row.base_rate != null && row.base_rate !== '')
   const withMin = list.filter(row => row.min_rate != null && row.min_rate !== '')
-  const avgBase = withBase.length
-    ? withBase.reduce((sum, row) => sum + Number(row.base_rate || 0), 0) / withBase.length
-    : 0
 
   return {
     total: list.length,
@@ -64,109 +105,77 @@ const stats = computed(() => {
     dynamicOff: list.length - dynamicOn.length,
     withBase: withBase.length,
     withMin: withMin.length,
-    avgBase,
   }
 })
-
-const statusChartSeries = computed(() => [stats.value.dynamicOn, stats.value.dynamicOff])
-
-const statusChartOptions = computed(() => ({
-  chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
-  labels: ['Dynamic on', 'Dynamic off'],
-  colors: ['#28c76f', '#a8aaae'],
-  legend: { position: 'bottom', fontSize: '13px' },
-  dataLabels: { enabled: false },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '68%',
-        labels: {
-          show: true,
-          name: { show: true, fontSize: '13px' },
-          value: { show: true, fontSize: '22px', fontWeight: 600, formatter: value => String(value) },
-          total: { show: true, label: 'Total', fontSize: '13px', formatter: () => String(stats.value.total) },
-        },
-      },
-    },
-  },
-  stroke: { width: 0 },
-  tooltip: { y: { formatter: value => `${value} settings` } },
-}))
-
-const activityChartSeries = computed(() => ([{
-  name: 'Settings',
-  data: [stats.value.withBase, stats.value.withMin, Math.round(stats.value.avgBase)],
-}]))
-
-const activityChartOptions = computed(() => ({
-  chart: { type: 'bar', parentHeightOffset: 0, toolbar: { show: false } },
-  plotOptions: { bar: { borderRadius: 6, columnWidth: '48%', distributed: true } },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
-  dataLabels: { enabled: false },
-  legend: { show: false },
-  grid: {
-    strokeDashArray: 6,
-    borderColor: 'rgba(75, 70, 92, 0.12)',
-    yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } },
-  },
-  xaxis: {
-    categories: ['Base rate', 'Min rate', 'Avg base'],
-    labels: { style: { colors: '#a5a3ae', fontSize: '12px' } },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    labels: { style: { colors: '#a5a3ae' }, formatter: value => Math.round(value) },
-    min: 0,
-    forceNiceScale: true,
-  },
-  tooltip: { y: { formatter: value => String(value) } },
-}))
 
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Filter revenue settings'
   if (panelMode.value === 'create')
     return editingId.value ? 'Edit revenue setting' : 'Create revenue setting'
+  if (panelMode.value === 'detail' && selectedRow.value)
+    return selectedRow.value.property?.property_title || `Property #${selectedRow.value.property_id}`
 
   return 'Revenue overview'
 })
 
 const openPanel = mode => {
   if (panelMode.value === mode) {
-    panelMode.value = 'dashboard'
+    panelMode.value = selectedRow.value ? 'detail' : 'dashboard'
 
     return
   }
 
-  if (mode === 'create' && panelMode.value !== 'create')
-    resetForm()
+  if (mode === 'create' && panelMode.value !== 'create') {
+    editingId.value = null
+    Object.assign(form, {
+      property_id: null,
+      dynamic_pricing: false,
+      base_rate: '',
+      min_rate: '',
+    })
+  }
 
   panelMode.value = mode
 }
 
 const clearFilters = () => {
-  Object.assign(filters, { property_id: '', dynamic_pricing: null })
+  filters.property_id = null
+  listSearch.value = ''
 }
 
 const resetForm = () => {
   editingId.value = null
   Object.assign(form, {
-    property_id: '',
-    dynamic_pricing: 0,
+    property_id: null,
+    dynamic_pricing: false,
     base_rate: '',
     min_rate: '',
   })
 }
 
+const selectRow = row => {
+  selectedId.value = row.id
+  panelMode.value = 'detail'
+}
+
+const closeDetail = () => {
+  selectedId.value = null
+  panelMode.value = 'dashboard'
+}
+
 const edit = row => {
-  editingId.value = row.id
+  const target = row || selectedRow.value
+  if (!target)
+    return
+
+  editingId.value = target.id
+  selectedId.value = target.id
   Object.assign(form, {
-    property_id: row.property_id || '',
-    dynamic_pricing: Number(row.dynamic_pricing) || 0,
-    base_rate: row.base_rate ?? '',
-    min_rate: row.min_rate ?? '',
+    property_id: target.property_id || null,
+    dynamic_pricing: Boolean(Number(target.dynamic_pricing)),
+    base_rate: target.base_rate ?? '',
+    min_rate: target.min_rate ?? '',
   })
   panelMode.value = 'create'
 }
@@ -175,23 +184,33 @@ const submit = async () => {
   try {
     const payload = {
       property_id: Number(form.property_id),
-      dynamic_pricing: Number(form.dynamic_pricing) || 0,
+      dynamic_pricing: form.dynamic_pricing ? 1 : 0,
       base_rate: form.base_rate === '' ? null : Number(form.base_rate),
       min_rate: form.min_rate === '' ? null : Number(form.min_rate),
+      min_nightly_rate: ownerStated.value.min_nightly_rate,
+      min_nights_per_booking: ownerStated.value.min_nights_per_booking,
     }
 
+    let saved
     if (editingId.value)
-      await settings.update(editingId.value, payload)
+      saved = await settings.update(editingId.value, payload)
     else
-      await settings.create(payload)
+      saved = await settings.create(payload)
 
+    selectedId.value = saved?.id || editingId.value
     resetForm()
-    panelMode.value = 'dashboard'
-    await settings.load()
+    panelMode.value = selectedId.value ? 'detail' : 'dashboard'
+    if (!settings.usingMocks)
+      await settings.load()
   }
   catch {
     // Store exposes validation errors.
   }
+}
+
+const cancelForm = () => {
+  resetForm()
+  panelMode.value = selectedId.value ? 'detail' : 'dashboard'
 }
 
 onMounted(() => settings.load())
@@ -200,66 +219,103 @@ definePageMeta({ middleware: 'auth' })
 </script>
 
 <template>
-  <div>
+  <div class="revenue-page">
     <PageHeader
+      class="flex-shrink-0"
       title="Revenue Settings"
-      subtitle="Per-property revenue configuration"
-    />
+      subtitle="Per-property KYC / revenue configuration"
+    >
+      <template #actions>
+        <BaseButton
+          color="primary"
+          label="Create setting"
+          prepend-icon="bx-plus"
+          @click="openPanel('create')"
+        />
+      </template>
+    </PageHeader>
 
-    <VRow>
-      <VCol
-        cols="12"
-        md="8"
-      >
-        <DataTableShell
-          title="All revenue settings"
-          :loading="settings.loading"
-          :empty="rows.length === 0"
-          :empty-colspan="5"
-          empty-title="No revenue settings found"
-          :empty-description="allRows.length && rows.length === 0 ? 'No settings match the current filters.' : ''"
-        >
-          <template #head>
-            <thead>
-              <tr>
-                <th>Property</th>
-                <th>Dynamic</th>
-                <th>Base rate</th>
-                <th>Min rate</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-          </template>
+    <VAlert
+      v-if="settings.usingMocks"
+      type="info"
+      variant="tonal"
+      density="compact"
+      class="mb-4 revenue-page__alert"
+    >
+      Showing UI preview data until the revenue settings API is connected.
+    </VAlert>
 
-          <tr
-            v-for="row in rows"
-            :key="row.id"
-          >
-            <td>{{ row.property?.property_title || row.property_id }}</td>
-            <td>{{ Number(row.dynamic_pricing) ? 'On' : 'Off' }}</td>
-            <td>{{ row.base_rate ?? '—' }}</td>
-            <td>{{ row.min_rate ?? '—' }}</td>
-            <td class="text-no-wrap">
-              <BaseButton
-                size="small"
-                variant="tonal"
-                label="Edit"
-                @click="edit(row)"
+    <div class="revenue-page__stage">
+      <!-- List: left 60% — settings for each property -->
+      <div class="revenue-page__col revenue-page__col--list">
+        <VCard class="revenue-list-card">
+          <VCardItem class="flex-shrink-0">
+            <VCardTitle>Property revenue settings</VCardTitle>
+          </VCardItem>
+
+          <VCardText class="revenue-list-card__search flex-shrink-0">
+            <BaseInput
+              v-model="listSearch"
+              placeholder="Search properties..."
+              size="small"
+              hide-details
+              prepend-inner-icon="bx-search"
+            />
+          </VCardText>
+
+          <VProgressLinear
+            :active="settings.loading"
+            :indeterminate="settings.loading"
+            class="flex-shrink-0"
+          />
+
+          <div class="revenue-list">
+            <button
+              v-for="row in rows"
+              :key="row.id"
+              type="button"
+              class="revenue-list-item"
+              :class="{ 'revenue-list-item--selected': String(selectedId) === String(row.id) }"
+              @click="selectRow(row)"
+            >
+              <div class="revenue-list-item__main">
+                <div class="revenue-list-item__title text-truncate">
+                  {{ row.property?.property_title || `Property #${row.property_id}` }}
+                </div>
+                <div class="revenue-list-item__rates">
+                  <span>
+                    <span class="revenue-list-item__rate-label">Base</span>
+                    {{ formatRate(row.base_rate) }}
+                  </span>
+                  <span>
+                    <span class="revenue-list-item__rate-label">Min</span>
+                    {{ formatRate(row.min_rate) }}
+                  </span>
+                </div>
+              </div>
+              <VIcon
+                icon="bx-chevron-right"
+                size="20"
+                class="revenue-list-item__chevron"
               />
-            </td>
-          </tr>
-        </DataTableShell>
-      </VCol>
+            </button>
 
-      <VCol
-        cols="12"
-        md="4"
-      >
-        <VCard>
-          <VCardItem>
+            <EmptyState
+              v-if="!settings.loading && rows.length === 0"
+              title="No revenue settings found"
+              :description="allRows.length && rows.length === 0 ? 'No settings match the current filters.' : ''"
+            />
+          </div>
+        </VCard>
+      </div>
+
+      <!-- Panel: right 40% — overview / detail / filter / create -->
+      <div class="revenue-page__col revenue-page__col--side">
+        <VCard class="revenue-panel-card">
+          <VCardItem class="flex-shrink-0">
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
-              <div class="d-flex flex-wrap gap-2">
+              <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   size="small"
                   :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
@@ -270,23 +326,41 @@ definePageMeta({ middleware: 'auth' })
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  :variant="panelMode === 'create' && !editingId ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' && !editingId ? 'primary' : undefined"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
                 />
+                <template v-if="panelMode === 'detail' && selectedRow">
+                  <BaseButton
+                    size="small"
+                    color="primary"
+                    label="Edit"
+                    prepend-icon="bx-edit"
+                    @click="edit(selectedRow)"
+                  />
+                  <VBtn
+                    icon
+                    variant="text"
+                    size="small"
+                    aria-label="Close details"
+                    @click="closeDetail"
+                  >
+                    <VIcon icon="bx-x" />
+                  </VBtn>
+                </template>
               </div>
             </template>
           </VCardItem>
 
-          <VCardText>
+          <VCardText class="revenue-panel-body">
             <div v-if="panelMode === 'dashboard'">
               <p class="text-body-2 text-medium-emphasis mb-4">
-                Snapshot of revenue configuration
+                Snapshot of revenue configuration across properties
               </p>
 
-              <VRow dense class="mb-2">
+              <VRow dense>
                 <VCol cols="6">
                   <div class="entity-stat-tile entity-stat-tile--success pa-3 rounded">
                     <div class="text-caption text-medium-emphasis">
@@ -320,59 +394,75 @@ definePageMeta({ middleware: 'auth' })
                 <VCol cols="6">
                   <div class="entity-stat-tile entity-stat-tile--warning pa-3 rounded">
                     <div class="text-caption text-medium-emphasis">
-                      Avg base
+                      With min rate
                     </div>
                     <div class="text-h5">
-                      {{ stats.avgBase.toLocaleString(undefined, { maximumFractionDigits: 0 }) }}
+                      {{ stats.withMin }}
                     </div>
                   </div>
                 </VCol>
               </VRow>
 
-              <ClientOnly>
-                <div class="mt-4">
-                  <div class="text-subtitle-2 mb-2">
-                    Dynamic pricing
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="donut"
-                    height="220"
-                    :options="statusChartOptions"
-                    :series="statusChartSeries"
-                  />
-                  <EmptyState
-                    v-else-if="!settings.loading"
-                    title="No settings yet"
-                    description="Counts and charts will appear once settings are loaded."
-                  />
+              <p class="text-body-2 text-medium-emphasis mt-4 mb-0">
+                Select a property on the left to view details, or use Filter / Create.
+              </p>
+            </div>
+
+            <div v-else-if="panelMode === 'detail' && selectedRow">
+              <div class="revenue-detail">
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Property</span>
+                  <span class="revenue-detail__value">
+                    {{ selectedRow.property?.property_title || `Property #${selectedRow.property_id}` }}
+                  </span>
                 </div>
-                <div class="mt-6">
-                  <div class="text-subtitle-2 mb-2">
-                    Rates
-                  </div>
-                  <VueApexCharts
-                    v-if="stats.total > 0"
-                    type="bar"
-                    height="200"
-                    :options="activityChartOptions"
-                    :series="activityChartSeries"
-                  />
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Dynamic pricing</span>
+                  <VChip
+                    size="small"
+                    :color="Number(selectedRow.dynamic_pricing) ? 'success' : 'secondary'"
+                    label
+                  >
+                    {{ Number(selectedRow.dynamic_pricing) ? 'On' : 'Off' }}
+                  </VChip>
                 </div>
-              </ClientOnly>
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Owner stated min nightly</span>
+                  <span class="revenue-detail__value">{{ formatRate(selectedRow.min_nightly_rate) }}</span>
+                </div>
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Owner stated min nights</span>
+                  <span class="revenue-detail__value">{{ formatOwnerValue(selectedRow.min_nights_per_booking) }}</span>
+                </div>
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Base rate</span>
+                  <span class="revenue-detail__value">{{ formatRate(selectedRow.base_rate) }}</span>
+                </div>
+                <div
+                  v-if="selectedRow.previous_base_rate != null"
+                  class="revenue-detail__prev"
+                >
+                  Previous Value: {{ formatRate(selectedRow.previous_base_rate) }}
+                </div>
+                <div class="revenue-detail__row">
+                  <span class="revenue-detail__label">Minimum rate</span>
+                  <span class="revenue-detail__value">{{ formatRate(selectedRow.min_rate) }}</span>
+                </div>
+                <div
+                  v-if="selectedRow.previous_min_rate != null"
+                  class="revenue-detail__prev"
+                >
+                  Previous Value: {{ formatRate(selectedRow.previous_min_rate) }}
+                </div>
+              </div>
             </div>
 
             <div v-else-if="panelMode === 'filter'">
               <VForm @submit.prevent>
-                <BaseInput
-                  v-model="filters.property_id"
-                  label="Property ID"
-                  class="mb-2"
-                />
                 <BaseSelect
-                  v-model="filters.dynamic_pricing"
-                  label="Dynamic pricing"
-                  :items="dynamicFilterItems"
+                  v-model="filters.property_id"
+                  label="Property"
+                  :items="propertyFilterItems"
                   clearable
                   class="mb-2"
                 />
@@ -386,63 +476,276 @@ definePageMeta({ middleware: 'auth' })
                   <BaseButton
                     type="button"
                     variant="text"
-                    label="Back to overview"
-                    @click="panelMode = 'dashboard'"
+                    label="Back"
+                    @click="panelMode = selectedRow ? 'detail' : 'dashboard'"
                   />
                 </div>
               </VForm>
             </div>
 
-            <div v-else>
+            <div v-else-if="panelMode === 'create'">
               <AppAlert :errors="settings.errors" />
               <VForm @submit.prevent="submit">
-                <BaseInput
+                <BaseSelect
                   v-model="form.property_id"
-                  label="Property ID"
-                  type="number"
+                  label="Property"
+                  :items="formPropertyItems"
                   :error="settings.errors.property_id"
+                  :disabled="Boolean(editingId)"
+                  class="mb-2"
                 />
-                <BaseInput
+
+                <VRow dense class="mb-2">
+                  <VCol cols="12">
+                    <BaseInput
+                      :model-value="formatRate(ownerStated.min_nightly_rate)"
+                      label="Owner Stated Minimum Nightly Rate"
+                      disabled
+                      readonly
+                    />
+                  </VCol>
+                  <VCol cols="12">
+                    <BaseInput
+                      :model-value="formatOwnerValue(ownerStated.min_nights_per_booking)"
+                      label="Owner Stated Minimum Number Of Nights"
+                      disabled
+                      readonly
+                    />
+                  </VCol>
+                </VRow>
+
+                <BaseCheckbox
                   v-model="form.dynamic_pricing"
-                  label="Dynamic pricing (0/1)"
-                  type="number"
-                  :error="settings.errors.dynamic_pricing"
+                  label="Dynamic Pricing"
+                  hide-details
+                  class="mb-3"
                 />
+
                 <BaseInput
                   v-model="form.base_rate"
-                  label="Base rate"
+                  label="Base Rate"
                   type="number"
+                  placeholder="$"
                   :error="settings.errors.base_rate"
+                  class="mb-1"
                 />
+                <div
+                  v-if="editingRow?.previous_base_rate != null"
+                  class="text-caption text-success mb-3"
+                >
+                  Previous Value: {{ formatRate(editingRow.previous_base_rate) }}
+                </div>
+
                 <BaseInput
                   v-model="form.min_rate"
-                  label="Min rate"
+                  label="Minimum Rate"
                   type="number"
+                  placeholder="$"
                   :error="settings.errors.min_rate"
+                  class="mb-1"
                 />
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <BaseButton
-                    type="submit"
-                    :label="editingId ? 'Update setting' : 'Create setting'"
-                    :loading="settings.loading"
-                  />
+                <div
+                  v-if="editingRow?.previous_min_rate != null"
+                  class="text-caption text-success mb-3"
+                >
+                  Previous Value: {{ formatRate(editingRow.previous_min_rate) }}
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-2 justify-end">
                   <BaseButton
                     type="button"
                     variant="tonal"
                     label="Cancel"
-                    @click="panelMode = 'dashboard'"
+                    @click="cancelForm"
+                  />
+                  <BaseButton
+                    type="submit"
+                    :label="editingId ? 'Save' : 'Create setting'"
+                    prepend-icon="bx-check"
+                    :loading="settings.loading"
                   />
                 </div>
               </VForm>
             </div>
           </VCardText>
         </VCard>
-      </VCol>
-    </VRow>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* Navbar (64px) + layout-page-content padding-block (1.5rem × 2) */
+.revenue-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Vuetify sets .v-alert { flex: 1 1 }; keep preview banner compact. */
+.revenue-page__alert {
+  flex: 0 0 auto;
+}
+
+.revenue-page__stage {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (min-width: 960px) {
+  .revenue-page {
+    height: calc(100dvh - 64px - 3rem);
+    overflow: hidden;
+  }
+
+  .revenue-page__stage {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .revenue-page__col {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+
+  .revenue-list-card,
+  .revenue-panel-card {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+}
+
+.revenue-page__col {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.revenue-list-card,
+.revenue-panel-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.revenue-list-card__search {
+  padding-block: 0 0.75rem;
+}
+
+.revenue-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.revenue-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-content: flex-start;
+}
+
+.revenue-list-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(75, 70, 92, 0.12);
+  border-radius: 0.5rem;
+  background: rgb(var(--v-theme-surface));
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.revenue-list-item:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35);
+  background: rgba(var(--v-theme-primary), 0.03);
+}
+
+.revenue-list-item--selected {
+  border-color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.06);
+}
+
+.revenue-list-item__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.revenue-list-item__title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+
+.revenue-list-item__rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+
+.revenue-list-item__rate-label {
+  margin-right: 0.25rem;
+  font-weight: 400;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+
+.revenue-list-item__chevron {
+  flex-shrink: 0;
+  color: rgba(var(--v-theme-on-surface), 0.35);
+}
+
+.revenue-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.revenue-detail__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.revenue-detail__label {
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+}
+
+.revenue-detail__value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.revenue-detail__prev {
+  margin-top: -0.5rem;
+  font-size: 0.75rem;
+  color: rgb(var(--v-theme-success));
+}
+
 .entity-stat-tile {
   border: 1px solid rgba(75, 70, 92, 0.08);
   background: rgba(75, 70, 92, 0.03);
@@ -462,5 +765,15 @@ definePageMeta({ middleware: 'auth' })
 
 .entity-stat-tile--warning {
   background: rgba(255, 159, 67, 0.1);
+}
+
+@media (max-width: 959px) {
+  .revenue-page__stage {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-list {
+    max-height: 28rem;
+  }
 }
 </style>
