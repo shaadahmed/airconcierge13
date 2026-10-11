@@ -1,46 +1,55 @@
 import { defineStore } from 'pinia'
+import { MOCK_VENDORS } from '@/mocks/vendors'
 import { vendorService } from '@/services/vendorService'
+import { mockAwareLoad, mockCreate, mockRemove, mockUpdate, runStoreAction } from '@/stores/mockHelpers'
 
 export const useVendorsStore = defineStore('vendors', {
-  state: () => ({ data: [], current: null, loading: false, errors: {} }),
+  state: () => ({
+    data: [],
+    current: null,
+    loading: false,
+    errors: {},
+    usingMocks: false,
+  }),
   actions: {
     async load(params = {}) {
-      await this.run(async () => {
-        this.data = (await vendorService.list(params)).data
-      })
+      await runStoreAction(this, () => mockAwareLoad(this, {
+        list: () => vendorService.list(params),
+        mocks: MOCK_VENDORS,
+      }), 'errors', 'Unable to process vendors.')
     },
     async create(payload) {
-      return this.run(async () => {
-        const vendor = (await vendorService.create(payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks)
+          return mockCreate(this, { id: Date.now(), ...payload })
 
+        const vendor = (await vendorService.create(payload)).data
         this.current = vendor
 
         return vendor
-      })
+      }, 'errors', 'Unable to process vendors.')
     },
     async update(id, payload) {
-      return this.run(async () => {
-        const vendor = (await vendorService.update(id, payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks)
+          return mockUpdate(this, id, payload)
 
+        const vendor = (await vendorService.update(id, payload)).data
         this.current = vendor
 
         return vendor
-      })
+      }, 'errors', 'Unable to process vendors.')
     },
-    async run(callback) {
-      this.loading = true
-      this.errors = {}
+    async remove(id) {
+      return runStoreAction(this, async () => {
+        if (this.usingMocks) {
+          mockRemove(this, id)
 
-      try {
-        return await callback()
-      }
-      catch (error) {
-        this.errors = error?.data?.errors || { general: [error?.data?.message || 'Unable to process vendors.'] }
-        throw error
-      }
-      finally {
-        this.loading = false
-      }
+          return
+        }
+
+        await vendorService.remove(id)
+      }, 'errors', 'Unable to process vendors.')
     },
   },
 })

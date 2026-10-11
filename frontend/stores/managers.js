@@ -1,51 +1,55 @@
 import { defineStore } from 'pinia'
+import { MOCK_MANAGERS } from '@/mocks/managers'
 import { managerService } from '@/services/managerService'
+import { mockAwareLoad, mockCreate, mockRemove, mockUpdate, runStoreAction } from '@/stores/mockHelpers'
 
 export const useManagersStore = defineStore('managers', {
-  state: () => ({ data: [], current: null, loading: false, errors: {} }),
+  state: () => ({
+    data: [],
+    current: null,
+    loading: false,
+    errors: {},
+    usingMocks: false,
+  }),
   actions: {
     async load(params = {}) {
-      await this.run(async () => {
-        this.data = (await managerService.list(params)).data
-      })
+      await runStoreAction(this, () => mockAwareLoad(this, {
+        list: () => managerService.list(params),
+        mocks: MOCK_MANAGERS,
+      }), 'errors', 'Unable to process managers.')
     },
     async create(payload) {
-      return this.run(async () => {
-        const manager = (await managerService.create(payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks)
+          return mockCreate(this, { id: Date.now(), ...payload })
 
+        const manager = (await managerService.create(payload)).data
         this.current = manager
 
         return manager
-      })
+      }, 'errors', 'Unable to process managers.')
     },
     async update(id, payload) {
-      return this.run(async () => {
-        const manager = (await managerService.update(id, payload)).data
+      return runStoreAction(this, async () => {
+        if (this.usingMocks)
+          return mockUpdate(this, id, payload)
 
+        const manager = (await managerService.update(id, payload)).data
         this.current = manager
 
         return manager
-      })
+      }, 'errors', 'Unable to process managers.')
     },
     async remove(id) {
-      return this.run(async () => {
-        await managerService.remove(id)
-      })
-    },
-    async run(callback) {
-      this.loading = true
-      this.errors = {}
+      return runStoreAction(this, async () => {
+        if (this.usingMocks) {
+          mockRemove(this, id)
 
-      try {
-        return await callback()
-      }
-      catch (error) {
-        this.errors = error?.data?.errors || { general: [error?.data?.message || 'Unable to process managers.'] }
-        throw error
-      }
-      finally {
-        this.loading = false
-      }
+          return
+        }
+
+        await managerService.remove(id)
+      }, 'errors', 'Unable to process managers.')
     },
   },
 })
