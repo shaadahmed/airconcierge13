@@ -53,6 +53,25 @@ export const MOCK_OWNER_BLOCKS = [
     }),
   },
   {
+    id: 505,
+    ...withProperty(101, {
+      reservation_start_date: '2026-10-24',
+      reservation_end_date: '2026-10-27',
+      no_of_nights: 3,
+      payment_of_cleaners: 185,
+      exit_cleaning: '1',
+      booking_notes: 'Owner weekend stay.',
+      first_name: 'Jordan',
+      last_name: 'Lee',
+      email: 'jordan.lee@example.com',
+      month: 10,
+      year: 2026,
+      created_at: '2026-10-05T10:00:00Z',
+      latest_log: 'Created by Jordan Lee',
+      deleted_at: null,
+    }),
+  },
+  {
     id: 502,
     ...withProperty(102, {
       reservation_start_date: '2026-10-20',
