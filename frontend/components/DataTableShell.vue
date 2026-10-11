@@ -62,6 +62,7 @@ defineProps({
           :description="emptyDescription"
         />
       </tbody>
+      <slot name="foot" />
     </VTable>
 
     <VProgressLinear
