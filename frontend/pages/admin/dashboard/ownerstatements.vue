@@ -709,28 +709,6 @@ definePageMeta({ middleware: 'auth' })
                   </ClientOnly>
                 </VCol>
               </VRow>
-
-              <div class="entity-stat-tile entity-stat-tile--success pa-4 rounded mt-2">
-                <div class="d-flex flex-wrap align-center justify-space-between gap-3">
-                  <div>
-                    <div class="text-caption text-medium-emphasis">
-                      {{ report.cohost_property_flag == '1' || report.cohost_property_flag === 1 ? '*' : '' }}Net income
-                    </div>
-                    <div
-                      class="text-h4 mb-0"
-                      :class="netIncome >= 0 ? 'text-success' : 'text-error'"
-                    >
-                      {{ formatCurrency(netIncome) }}
-                    </div>
-                  </div>
-                  <VIcon
-                    icon="bx-trending-up"
-                    size="48"
-                    class="entity-stat-tile__watermark entity-stat-tile__watermark--inline"
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
             </VCardText>
           </VCard>
         </VCol>
@@ -816,6 +794,28 @@ definePageMeta({ middleware: 'auth' })
                   </VExpansionPanelText>
                 </VExpansionPanel>
               </VExpansionPanels>
+
+              <div class="entity-stat-tile entity-stat-tile--success pa-4 rounded mt-4">
+                <div class="d-flex flex-wrap align-center justify-space-between gap-3">
+                  <div>
+                    <div class="text-caption text-medium-emphasis">
+                      {{ report.cohost_property_flag == '1' || report.cohost_property_flag === 1 ? '*' : '' }}Net income
+                    </div>
+                    <div
+                      class="text-h4 mb-0"
+                      :class="netIncome >= 0 ? 'text-success' : 'text-error'"
+                    >
+                      {{ formatCurrency(netIncome) }}
+                    </div>
+                  </div>
+                  <VIcon
+                    icon="bx-trending-up"
+                    size="48"
+                    class="entity-stat-tile__watermark entity-stat-tile__watermark--inline"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
 
               <div
                 v-if="moneyNumber(report.total_elect_to_remit)"
