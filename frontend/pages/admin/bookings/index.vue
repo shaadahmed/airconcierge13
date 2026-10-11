@@ -374,7 +374,7 @@ const applyFilters = () => {
 }
 
 const goView = id => navigateTo(`/admin/bookings/${id}`)
-const goEdit = id => navigateTo(`/admin/bookings/${id}`)
+const goEdit = id => navigateTo(`/admin/bookings/${id}/edit`)
 const goCreate = () => navigateTo('/admin/bookings/create')
 
 const askDelete = id => {

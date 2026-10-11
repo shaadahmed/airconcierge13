@@ -95,6 +95,12 @@ definePageMeta({ middleware: 'auth' })
           label="Back to list"
           to="/admin/bookings"
         />
+        <BaseButton
+          variant="tonal"
+          label="View booking"
+          prepend-icon="bx-show"
+          :to="`/admin/bookings/${route.params.id}`"
+        />
       </template>
     </PageHeader>
 
