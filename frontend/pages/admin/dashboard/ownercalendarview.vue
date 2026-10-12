@@ -997,9 +997,15 @@ onMounted(async () => {
                     v-for="item in LEGEND"
                     :key="item.key"
                     class="owner-calendar-legend__item"
-                    :style="{ backgroundColor: item.color }"
                   >
-                    {{ item.label }}
+                    <span
+                      class="owner-calendar-legend__swatch"
+                      :style="{ backgroundColor: item.color }"
+                      aria-hidden="true"
+                    />
+                    <span class="owner-calendar-legend__label">
+                      {{ item.label }}
+                    </span>
                   </div>
                 </div>
                 <p class="owner-calendar-legend__hint text-body-2 text-medium-emphasis mt-3 mb-0">
@@ -1383,15 +1389,26 @@ onMounted(async () => {
 .owner-calendar-legend {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .owner-calendar-legend__item {
-  padding: 0.35rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.owner-calendar-legend__swatch {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 0.625rem;
   border-radius: 999px;
-  color: #fff;
+}
+
+.owner-calendar-legend__label {
   font-size: 0.8125rem;
   line-height: 1.3;
+  color: rgba(75, 70, 92, 0.9);
 }
 
 .owner-calendar-legend__hint {
