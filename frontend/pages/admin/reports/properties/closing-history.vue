@@ -48,7 +48,7 @@ const statusChartSeries = computed(() => [stats.value.withOccupancy, Math.max(st
 const statusChartOptions = computed(() => ({
   chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
   labels: ['With occupancy', 'Without'],
-  colors: ['#28c76f', '#a8aaae'],
+  colors: ['#16A34A', '#6c757d'],
   legend: { position: 'bottom', fontSize: '13px' },
   dataLabels: { enabled: false },
   plotOptions: {
@@ -248,14 +248,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 </style>

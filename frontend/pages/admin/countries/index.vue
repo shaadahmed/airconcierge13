@@ -401,7 +401,7 @@ definePageMeta({ middleware: 'auth' })
               <VBtn
                 icon
                 size="small"
-                color="success"
+                color="primary"
                 rounded="circle"
                 aria-label="Create country"
                 @click="openCreateCountry"
@@ -519,7 +519,7 @@ definePageMeta({ middleware: 'auth' })
               <VBtn
                 icon
                 size="small"
-                color="success"
+                color="primary"
                 rounded="circle"
                 :disabled="!selectedCountry"
                 aria-label="Create state"
@@ -639,7 +639,7 @@ definePageMeta({ middleware: 'auth' })
               <VBtn
                 icon
                 size="small"
-                color="success"
+                color="primary"
                 rounded="circle"
                 :disabled="!selectedState"
                 aria-label="Create city"
@@ -950,7 +950,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .geo-row--active {
-  background: rgba(105, 108, 255, 0.08);
+  background: rgba(104, 101, 255, 0.08);
 }
 
 .geo-row__main {

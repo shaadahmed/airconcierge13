@@ -164,7 +164,7 @@ const statusChartOptions = computed(() => ({
     toolbar: { show: false },
   },
   labels: ['Active', 'Inactive', 'Snoozed'],
-  colors: ['#28c76f', '#a8aaae', '#ff9f43'],
+  colors: ['#16A34A', '#6c757d', '#6865FF'],
   legend: {
     position: 'bottom',
     fontSize: '13px',
@@ -223,7 +223,7 @@ const activityChartOptions = computed(() => ({
       distributed: true,
     },
   },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
+  colors: ['#6865FF', '#6865FF', '#D97706'],
   dataLabels: { enabled: false },
   legend: { show: false },
   grid: {
@@ -991,12 +991,12 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .property-list-item:hover {
-  background: rgba(105, 108, 255, 0.04);
+  background: rgba(104, 101, 255, 0.04);
 }
 
 .property-list-item--selected {
-  background: rgba(105, 108, 255, 0.1);
-  border-color: rgba(105, 108, 255, 0.45);
+  background: rgba(104, 101, 255, 0.1);
+  border-color: rgba(104, 101, 255, 0.45);
 }
 
 .property-list-item__thumb {
@@ -1064,7 +1064,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .property-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .property-stat-tile--muted {
@@ -1072,14 +1072,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .property-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .property-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .property-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 </style>

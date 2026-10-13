@@ -226,7 +226,7 @@ const statusChartSeries = computed(() => [
 const statusChartOptions = computed(() => ({
   chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
   labels: ['Income', 'Expenses'],
-  colors: ['#28c76f', '#ea5455'],
+  colors: ['#16A34A', '#DC3545'],
   legend: { position: 'bottom', fontSize: '13px' },
   dataLabels: { enabled: false },
   plotOptions: {
@@ -264,7 +264,7 @@ const nightsChartSeries = computed(() => ([{
 const nightsChartOptions = computed(() => ({
   chart: { type: 'bar', parentHeightOffset: 0, toolbar: { show: false } },
   plotOptions: { bar: { borderRadius: 6, columnWidth: '48%', distributed: true } },
-  colors: ['#00cfe8', '#ff9f43'],
+  colors: ['#6865FF', '#D97706'],
   dataLabels: { enabled: false },
   legend: { show: false },
   grid: {
@@ -970,16 +970,16 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--success .entity-stat-tile__watermark {
-  color: rgb(40, 199, 111);
+  color: rgb(22, 163, 74);
   opacity: 0.22;
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--primary .entity-stat-tile__watermark {
@@ -988,7 +988,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--info .entity-stat-tile__watermark {
@@ -997,11 +997,11 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 
 .entity-stat-tile--warning .entity-stat-tile__watermark {
-  color: rgb(255, 159, 67);
+  color: rgb(217, 119, 6);
   opacity: 0.24;
 }
 

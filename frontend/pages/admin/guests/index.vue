@@ -146,7 +146,7 @@ const statusChartOptions = computed(() => ({
     toolbar: { show: false },
   },
   labels: ['Clear', 'Blacklisted'],
-  colors: ['#28c76f', '#ea5455'],
+  colors: ['#16A34A', '#DC3545'],
   legend: {
     position: 'bottom',
     fontSize: '13px',
@@ -205,7 +205,7 @@ const activityChartOptions = computed(() => ({
       distributed: true,
     },
   },
-  colors: ['#696cff', '#00cfe8', '#ff9f43'],
+  colors: ['#6865FF', '#6865FF', '#D97706'],
   dataLabels: { enabled: false },
   legend: { show: false },
   grid: {
@@ -729,7 +729,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .guest-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .guest-stat-tile--danger {
@@ -737,14 +737,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .guest-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .guest-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .guest-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 </style>

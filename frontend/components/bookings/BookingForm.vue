@@ -1178,7 +1178,6 @@ const onManagementFeeBlur = () => {
       >
         <BaseButton
           type="button"
-          variant="tonal"
           label="Cancel"
           @click="$emit('cancel')"
         />

@@ -4,6 +4,11 @@ import {
   BOOKING_DISPUTE_STATUS_OPTIONS,
 } from '@/constants/bookings'
 import {
+  BOOKING_STATUS_CANCELLED_CALENDAR,
+  BOOKING_STATUS_LEGEND,
+  bookingStatusHex,
+} from '@/constants/uiColors'
+import {
   LATE_CANCELLATION_LABEL,
   UPDATE_TERMS_LABEL,
   nightsBetween,
@@ -91,11 +96,7 @@ const filterMonth = computed({
   },
 })
 
-const LEGEND = [
-  { key: 'confirmed', label: 'Guest booking', color: '#28c76f' },
-  { key: 'block', label: 'Owner block', color: '#82868b' },
-  { key: 'cancelled', label: 'Cancelled booking', color: '#7d4006' },
-]
+const LEGEND = BOOKING_STATUS_LEGEND
 
 const TURNOVER_HINT = 'Pill bars end mid-morning on check-out (11 AM) and start mid-afternoon on check-in (4 PM). Same-day turnover leaves a clear gap between the two pills.'
 
@@ -227,12 +228,10 @@ const eventKind = record => {
 }
 
 const eventColor = kind => {
-  if (kind === 'block')
-    return '#82868b'
   if (kind === 'cancelled')
-    return '#7d4006'
+    return BOOKING_STATUS_CANCELLED_CALENDAR
 
-  return '#28c76f'
+  return bookingStatusHex(kind)
 }
 
 const eventTitle = record => {
@@ -516,10 +515,10 @@ const selectedStatusColor = computed(() => {
   const event = selectedEvent.value
   if (!event)
     return 'primary'
-  if (event.kind === 'block')
-    return 'warning'
   if (event.kind === 'cancelled')
     return 'error'
+  if (event.kind === 'block')
+    return bookingStatusHex(event.kind)
 
   return bookingStatusColor(event)
 })
@@ -827,6 +826,7 @@ onMounted(async () => {
                       <VChip
                         size="x-small"
                         :color="selectedStatusColor"
+                        :variant="selectedEvent.kind === 'cancelled' ? 'tonal' : 'flat'"
                         label
                       >
                         {{ selectedStatusLabel }}
@@ -919,7 +919,7 @@ onMounted(async () => {
                 </div>
 
                 <VRow dense>
-                  <VCol cols="12">
+                  <VCol :cols="canCancelSelected ? 12 : 6">
                     <BaseButton
                       color="primary"
                       block
@@ -941,7 +941,7 @@ onMounted(async () => {
                       @click="askCancel"
                     />
                   </VCol>
-                  <VCol :cols="canCancelSelected ? 6 : 12">
+                  <VCol cols="6">
                     <BaseButton
                       variant="tonal"
                       color="error"
@@ -1111,6 +1111,7 @@ onMounted(async () => {
                       'owner-calendar__bar--round-end': bar.roundEnd,
                       'owner-calendar__bar--cut-start': !bar.roundStart,
                       'owner-calendar__bar--cut-end': !bar.roundEnd,
+                      'owner-calendar__bar--soft': bar.kind === 'cancelled',
                       'owner-calendar__bar--selected': String(selectedId) === String(bar.id),
                     }"
                     :style="{
@@ -1195,7 +1196,6 @@ onMounted(async () => {
             @click="closeCancelModal"
           />
           <BaseButton
-            color="warning"
             label="Cancel booking"
             :loading="bookings.loading"
             @click="onConfirmCancel"
@@ -1548,11 +1548,21 @@ onMounted(async () => {
   padding-right: calc(0.65rem + 1px);
 }
 
+.owner-calendar__bar--soft {
+  color: #22303E;
+  background-image: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
 .owner-calendar__bar--selected {
   outline: 2px solid rgba(255, 255, 255, 0.95);
   outline-offset: 1px;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.2);
   z-index: 3;
+}
+
+.owner-calendar__bar--soft.owner-calendar__bar--selected {
+  outline-color: rgba(34, 48, 62, 0.35);
 }
 
 .owner-calendar__bar:hover {

@@ -46,7 +46,7 @@ const statusChartSeries = computed(() => [stats.value.positive, stats.value.zero
 const statusChartOptions = computed(() => ({
   chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
   labels: ['Positive', 'Zero'],
-  colors: ['#28c76f', '#a8aaae'],
+  colors: ['#16A34A', '#6c757d'],
   legend: { position: 'bottom', fontSize: '13px' },
   dataLabels: { enabled: false },
   plotOptions: {
@@ -74,7 +74,7 @@ const activityChartSeries = computed(() => ([{
 const activityChartOptions = computed(() => ({
   chart: { type: 'bar', parentHeightOffset: 0, toolbar: { show: false } },
   plotOptions: { bar: { borderRadius: 6, columnWidth: '48%' } },
-  colors: ['#696cff'],
+  colors: ['#6865FF'],
   dataLabels: { enabled: false },
   legend: { show: false },
   grid: {
@@ -277,14 +277,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 </style>

@@ -752,7 +752,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--muted {
@@ -760,11 +760,11 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 
 @media (max-width: 959px) {

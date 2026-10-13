@@ -764,7 +764,8 @@ const fieldError = key => props.errors?.[key]
       />
       <BaseButton
         type="button"
-        variant="tonal"
+        :intent="readonly ? 'none' : undefined"
+        :variant="readonly ? 'tonal' : undefined"
         :label="readonly ? 'Back' : 'Cancel'"
         @click="$emit('cancel')"
       />

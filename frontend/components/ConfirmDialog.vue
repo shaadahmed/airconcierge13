@@ -54,7 +54,6 @@ const confirm = () => {
       <VCardActions>
         <VSpacer />
         <BaseButton
-          variant="tonal"
           :label="cancelLabel"
           @click="close"
         />

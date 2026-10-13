@@ -877,14 +877,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .owner-list-item:hover {
-  background: rgba(105, 108, 255, 0.04);
-  border-color: rgba(105, 108, 255, 0.28);
+  background: rgba(104, 101, 255, 0.04);
+  border-color: rgba(104, 101, 255, 0.28);
 }
 
 .owner-list-item--selected {
-  background: rgba(105, 108, 255, 0.1);
-  border-color: rgba(105, 108, 255, 0.45);
-  box-shadow: 0 2px 8px rgba(105, 108, 255, 0.12);
+  background: rgba(104, 101, 255, 0.1);
+  border-color: rgba(104, 101, 255, 0.45);
+  box-shadow: 0 2px 8px rgba(104, 101, 255, 0.12);
 }
 
 .owner-list-item__thumb {
@@ -994,7 +994,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--muted {
@@ -1002,14 +1002,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 </style>

@@ -1323,7 +1323,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--muted {
@@ -1331,15 +1331,15 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 
 .region-list-card {
@@ -1387,9 +1387,9 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .region-row--clickable:hover {
-  border-color: rgba(105, 108, 255, 0.28);
-  background: rgba(105, 108, 255, 0.03);
-  box-shadow: 0 2px 8px rgba(105, 108, 255, 0.08);
+  border-color: rgba(104, 101, 255, 0.28);
+  background: rgba(104, 101, 255, 0.03);
+  box-shadow: 0 2px 8px rgba(104, 101, 255, 0.08);
 }
 
 .region-row__swatch {
@@ -1423,7 +1423,7 @@ definePageMeta({ middleware: 'auth' })
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
   color: rgb(var(--v-theme-primary));
   font-size: 0.72rem;
   font-weight: 600;
@@ -1527,14 +1527,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .subregion-row:hover {
-  border-color: rgba(105, 108, 255, 0.28);
-  background: rgba(105, 108, 255, 0.03);
+  border-color: rgba(104, 101, 255, 0.28);
+  background: rgba(104, 101, 255, 0.03);
 }
 
 .subregion-row--active {
-  border-color: rgba(105, 108, 255, 0.45);
-  background: rgba(105, 108, 255, 0.08);
-  box-shadow: 0 2px 8px rgba(105, 108, 255, 0.1);
+  border-color: rgba(104, 101, 255, 0.45);
+  background: rgba(104, 101, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(104, 101, 255, 0.1);
 }
 
 .subregion-row__main {

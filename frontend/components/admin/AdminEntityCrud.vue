@@ -154,7 +154,6 @@ onMounted(async () => {
                 <BaseButton
                   v-if="editingId"
                   type="button"
-                  variant="tonal"
                   label="Cancel"
                   @click="resetForm"
                 />
@@ -209,8 +208,6 @@ onMounted(async () => {
               />
               <BaseButton
                 size="small"
-                variant="tonal"
-                color="error"
                 label="Delete"
                 @click="Object.assign(confirmDelete, { open: true, id: row.id })"
               />

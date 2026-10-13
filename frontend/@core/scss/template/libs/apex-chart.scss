@@ -22,6 +22,16 @@ body .apexcharts-canvas {
 
     &.apexcharts-theme-light {
       color: rgba(var(--v-theme-on-background), var(--v-high-emphasis-opacity));
+
+      // Keep labels readable if a light series fill is applied as tooltip background.
+      .apexcharts-tooltip-text,
+      .apexcharts-tooltip-title,
+      .apexcharts-tooltip-text-y-label,
+      .apexcharts-tooltip-text-y-value,
+      .apexcharts-tooltip-text-label,
+      .apexcharts-tooltip-text-value {
+        color: rgba(var(--v-theme-on-background), var(--v-high-emphasis-opacity));
+      }
     }
 
     &.apexcharts-theme-dark {

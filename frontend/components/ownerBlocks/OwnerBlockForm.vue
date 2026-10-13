@@ -263,13 +263,11 @@ const onSubmit = () => emit('submit')
     <div class="d-flex flex-wrap gap-2 mt-6">
       <BaseButton
         type="submit"
-        color="primary"
         :label="submitLabel"
         :loading="loading"
       />
       <BaseButton
         type="button"
-        variant="tonal"
         label="Cancel"
         @click="emit('cancel')"
       />

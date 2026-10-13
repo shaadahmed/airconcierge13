@@ -326,7 +326,7 @@ const statusChartSeries = computed(() => [stats.value.propertyCount, stats.value
 const statusChartOptions = computed(() => ({
   chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
   labels: ['Property payments', 'Booking payments'],
-  colors: ['#696cff', '#28c76f'],
+  colors: ['#6865FF', '#16A34A'],
   legend: { position: 'bottom', fontSize: '13px' },
   dataLabels: { enabled: false },
   plotOptions: {
@@ -362,7 +362,7 @@ const amountChartSeries = computed(() => ([{
 const amountChartOptions = computed(() => ({
   chart: { type: 'bar', parentHeightOffset: 0, toolbar: { show: false } },
   plotOptions: { bar: { borderRadius: 6, columnWidth: '48%', distributed: true } },
-  colors: ['#696cff', '#28c76f'],
+  colors: ['#6865FF', '#16A34A'],
   dataLabels: { enabled: false },
   legend: { show: false },
   grid: {
@@ -1324,20 +1324,20 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .costs-item:hover {
-  border-color: rgba(105, 108, 255, 0.35);
+  border-color: rgba(104, 101, 255, 0.35);
 }
 
 .costs-item--selected {
-  border-color: rgba(105, 108, 255, 0.55);
-  background: rgba(105, 108, 255, 0.08);
+  border-color: rgba(104, 101, 255, 0.55);
+  background: rgba(104, 101, 255, 0.08);
 }
 
 .costs-item--recurring {
-  background: rgba(0, 207, 232, 0.08);
+  background: rgba(104, 101, 255, 0.08);
 }
 
 .costs-item--selected.costs-item--recurring {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .costs-item--deleted {
@@ -1413,19 +1413,19 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.1);
+  background: rgba(217, 119, 6, 0.1);
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 @media (max-width: 959px) {

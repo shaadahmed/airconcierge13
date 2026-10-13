@@ -1,14 +1,16 @@
 <script setup>
+import { BOOKING_STATUS_CANCELLED } from '@/constants/uiColors'
+
 const dashboard = useDashboardStore()
 const stats = computed(() => dashboard.data.stats || {})
 const revenue = computed(() => dashboard.data.revenue || { labels: [], values: [] })
 
 const statCards = computed(() => ([
   { key: 'bookings_this_month', title: 'Bookings this month', color: 'primary', icon: 'bx-calendar' },
-  { key: 'cancelled_this_month', title: 'Cancelled this month', color: 'error', icon: 'bx-x-circle' },
+  { key: 'cancelled_this_month', title: 'Cancelled this month', color: BOOKING_STATUS_CANCELLED, icon: 'bx-x-circle' },
   { key: 'active_properties', title: 'Active properties', color: 'success', icon: 'bx-building' },
-  { key: 'owners', title: 'Owners', color: 'info', icon: 'bx-user' },
-  { key: 'revenue_this_month', title: 'Revenue this month', color: 'warning', icon: 'bx-dollar' },
+  { key: 'owners', title: 'Owners', color: 'secondary', icon: 'bx-user' },
+  { key: 'revenue_this_month', title: 'Revenue this month', color: 'primary', icon: 'bx-dollar' },
 ]))
 
 const chartSeries = computed(() => ([
@@ -28,7 +30,7 @@ const chartOptions = computed(() => ({
     width: 3,
     curve: 'smooth',
   },
-  colors: ['#696cff'],
+  colors: ['#6865FF'],
   grid: {
     strokeDashArray: 6,
     borderColor: 'rgba(75, 70, 92, 0.12)',

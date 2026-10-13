@@ -23,10 +23,11 @@ UI was served as minimal Blade views. A free Sneat Nuxt theme exists at `nuxtjs-
 
 ## Standing UI/UX style rule
 
-See also `frontend/docs/ui-ux.md`.
+See also `frontend/docs/ui-ux.md` and [ADR-022](022-ui-color-palette.md) (canonical five-color palette).
 
-- Match `nuxtjs-theme/` equivalents when they exist.
-- Otherwise stay within the same Sneat design language (tokens, spacing, conventions).
+- Match `nuxtjs-theme/` equivalents when they exist (layout/spacing/components).
+- Colors must follow ADR-022 only — do not pull rainbow accents from the theme kit.
+- Otherwise stay within the same Sneat design language (spacing, conventions).
 - No visual divergence from that style on any page going forward.
 
 ## Consequences

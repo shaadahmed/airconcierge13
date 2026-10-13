@@ -2,6 +2,12 @@
  * UI-preview fixtures for bookings until the API is wired.
  */
 
+import {
+  BOOKING_STATUS_CANCELLED,
+  BOOKING_STATUS_GUEST,
+  BOOKING_STATUS_OWNER_BLOCK,
+} from '@/constants/uiColors'
+
 export const MOCK_BOOKINGS = [
   {
     id: 1001,
@@ -534,13 +540,12 @@ export const bookingStatusColor = booking => {
   const label = bookingStatusLabel(booking).toLowerCase()
 
   if (label === 'cancelled')
-    return 'error'
-  if (label === 'pending')
-    return 'info'
+    return BOOKING_STATUS_CANCELLED
   if (label === 'owner block')
-    return 'warning'
+    return BOOKING_STATUS_OWNER_BLOCK
 
-  return 'success'
+  // Guest / active / pending bookings share the legend guest-booking green
+  return BOOKING_STATUS_GUEST
 }
 
 export const bookingNightlyRateLabel = booking => {

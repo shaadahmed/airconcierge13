@@ -1,5 +1,9 @@
 <script setup>
 import { formatMoney, nightsBetween } from '@/constants/ownerBlocks'
+import {
+  BOOKING_STATUS_OWNER_BLOCK,
+  OWNER_BLOCK_CLEANING_CHART_COLORS,
+} from '@/constants/uiColors'
 import { MOCK_REGIONS } from '@/mocks/regions'
 import { MOCK_PROPERTIES } from '@/mocks/properties'
 import {
@@ -230,7 +234,7 @@ const statusChartSeries = computed(() => [
 const statusChartOptions = computed(() => ({
   chart: { type: 'donut', parentHeightOffset: 0, toolbar: { show: false } },
   labels: ['Post-stay cleaning', 'No post-stay cleaning'],
-  colors: ['#ff9f43', '#6d6b7a'],
+  colors: [...OWNER_BLOCK_CLEANING_CHART_COLORS],
   legend: {
     position: 'right',
     fontSize: '12px',
@@ -246,15 +250,41 @@ const statusChartOptions = computed(() => ({
         size: '68%',
         labels: {
           show: true,
-          name: { show: true, fontSize: '13px' },
-          value: { show: true, fontSize: '22px', fontWeight: 600, formatter: value => String(value) },
-          total: { show: true, label: 'Blocks', fontSize: '13px', formatter: () => String(stats.value.chartTotal) },
+          // Light series fills make ApexCharts' default name color unreadable on white.
+          name: {
+            show: true,
+            fontSize: '13px',
+            color: '#22303E',
+          },
+          value: {
+            show: true,
+            fontSize: '22px',
+            fontWeight: 600,
+            color: '#22303E',
+            formatter: value => String(value),
+          },
+          total: {
+            show: true,
+            label: 'Blocks',
+            fontSize: '13px',
+            color: '#6c757d',
+            formatter: () => String(stats.value.chartTotal),
+          },
         },
       },
     },
   },
   stroke: { width: 0 },
-  tooltip: { y: { formatter: value => `${value} blocks` } },
+  states: {
+    hover: { filter: { type: 'none' } },
+    active: { filter: { type: 'none' } },
+  },
+  // Light palette segments must not paint the tooltip; white text on light fill is unreadable.
+  tooltip: {
+    theme: 'light',
+    fillSeriesColor: false,
+    y: { formatter: value => `${value} blocks` },
+  },
 }))
 
 const selectedBlock = computed(() => {
@@ -469,7 +499,7 @@ definePageMeta({ middleware: 'auth' })
                   <VAvatar
                     size="56"
                     rounded="lg"
-                    color="warning"
+                    :color="BOOKING_STATUS_OWNER_BLOCK"
                     variant="tonal"
                   >
                     <VImg
@@ -490,7 +520,7 @@ definePageMeta({ middleware: 'auth' })
                       </h2>
                       <VChip
                         size="x-small"
-                        color="warning"
+                        :color="BOOKING_STATUS_OWNER_BLOCK"
                         label
                       >
                         Owner Block
@@ -713,7 +743,7 @@ definePageMeta({ middleware: 'auth' })
                   class="mb-2"
                 >
                   <VCol cols="6">
-                    <div class="entity-stat-tile entity-stat-tile--warning pa-3 rounded">
+                    <div class="entity-stat-tile entity-stat-tile--secondary pa-3 rounded">
                       <div class="text-caption text-medium-emphasis">
                         Owner blocks
                       </div>
@@ -831,13 +861,17 @@ definePageMeta({ middleware: 'auth' })
               :class="{ 'owner-block-list-item--selected': String(selectedId) === String(block.id) }"
               @click="selectBlock(block)"
             >
-              <span class="owner-block-list-item__flag">
+              <span
+                class="owner-block-list-item__flag"
+                :style="{ background: BOOKING_STATUS_OWNER_BLOCK }"
+              >
                 Owner Block
               </span>
 
               <VChip
                 size="x-small"
-                :color="ownerBlockHasPostStayCleaning(block) ? 'warning' : 'secondary'"
+                :color="ownerBlockHasPostStayCleaning(block) ? 'success' : 'secondary'"
+                variant="tonal"
                 label
                 class="owner-block-list-item__status"
               >
@@ -850,7 +884,7 @@ definePageMeta({ middleware: 'auth' })
                     size="52"
                     rounded="lg"
                     class="owner-block-list-item__thumb"
-                    color="warning"
+                    :color="BOOKING_STATUS_OWNER_BLOCK"
                     variant="tonal"
                   >
                     <VImg
@@ -1060,14 +1094,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .owner-block-list-item:hover {
-  background: rgba(255, 159, 67, 0.06);
-  border-color: rgba(255, 159, 67, 0.35);
+  background: rgba(108, 117, 125, 0.06);
+  border-color: rgba(108, 117, 125, 0.35);
 }
 
 .owner-block-list-item--selected {
-  background: rgba(255, 159, 67, 0.12);
-  border-color: rgba(255, 159, 67, 0.5);
-  box-shadow: 0 0 0 1px rgba(255, 159, 67, 0.14);
+  background: rgba(108, 117, 125, 0.12);
+  border-color: rgba(108, 117, 125, 0.5);
+  box-shadow: 0 0 0 1px rgba(108, 117, 125, 0.14);
 }
 
 .owner-block-list-item__flag {
@@ -1087,7 +1121,7 @@ definePageMeta({ middleware: 'auth' })
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: #ff9f43;
+  background: #6c757d;
 }
 
 .owner-block-list-item__status {
@@ -1169,18 +1203,18 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  border-color: rgba(40, 199, 111, 0.25);
-  background: rgba(40, 199, 111, 0.08);
+  border-color: rgba(22, 163, 74, 0.25);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--info {
-  border-color: rgba(0, 207, 232, 0.25);
-  background: rgba(0, 207, 232, 0.08);
+  border-color: rgba(104, 101, 255, 0.25);
+  background: rgba(104, 101, 255, 0.08);
 }
 
-.entity-stat-tile--warning {
-  border-color: rgba(255, 159, 67, 0.28);
-  background: rgba(255, 159, 67, 0.1);
+.entity-stat-tile--secondary {
+  border-color: rgba(108, 117, 125, 0.28);
+  background: rgba(108, 117, 125, 0.1);
 }
 
 .entity-stat-tile--danger {

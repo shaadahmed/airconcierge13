@@ -14,7 +14,6 @@ import {
   bookingLocation,
   bookingNightlyRateLabel,
   bookingPlatformLabel,
-  bookingPlatformTone,
   bookingPropertyTitle,
   bookingStatusColor,
   bookingStatusLabel,
@@ -302,7 +301,7 @@ const statusChartOptions = computed(() => ({
     'Cleared Bookings',
     'Owner Blocks',
   ],
-  colors: ['#28c76f', '#ea5455', '#00cfe8', '#ff9f43'],
+  colors: ['#6865FF', '#16A34A', '#DC3545', '#6c757d'],
   legend: {
     position: 'right',
     fontSize: '12px',
@@ -1149,7 +1148,7 @@ definePageMeta({ middleware: 'auth' })
             >
               <span
                 class="booking-list-item__flag"
-                :class="`booking-list-item__flag--${bookingPlatformTone(booking)}`"
+                :style="{ background: bookingStatusColor(booking) }"
               >
                 {{ bookingPlatformLabel(booking) }}
               </span>
@@ -1426,14 +1425,14 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .booking-list-item:hover {
-  background: rgba(105, 108, 255, 0.04);
-  border-color: rgba(105, 108, 255, 0.28);
+  background: rgba(104, 101, 255, 0.04);
+  border-color: rgba(104, 101, 255, 0.28);
 }
 
 .booking-list-item--selected {
-  background: rgba(105, 108, 255, 0.1);
-  border-color: rgba(105, 108, 255, 0.45);
-  box-shadow: 0 0 0 1px rgba(105, 108, 255, 0.12);
+  background: rgba(104, 101, 255, 0.1);
+  border-color: rgba(104, 101, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(104, 101, 255, 0.12);
 }
 
 .booking-list-item__flag {
@@ -1453,27 +1452,7 @@ definePageMeta({ middleware: 'auth' })
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: #6d6b7a;
-}
-
-.booking-list-item__flag--airbnb {
-  background: #ff5a5f;
-}
-
-.booking-list-item__flag--vrbo {
-  background: #3b5998;
-}
-
-.booking-list-item__flag--booking {
-  background: #003580;
-}
-
-.booking-list-item__flag--direct {
-  background: #28c76f;
-}
-
-.booking-list-item__flag--other {
-  background: #6d6b7a;
+  background: #6c757d;
 }
 
 .booking-list-item__status {
@@ -1642,7 +1621,7 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--success {
-  background: rgba(40, 199, 111, 0.08);
+  background: rgba(22, 163, 74, 0.08);
 }
 
 .entity-stat-tile--danger {
@@ -1650,15 +1629,15 @@ definePageMeta({ middleware: 'auth' })
 }
 
 .entity-stat-tile--primary {
-  background: rgba(105, 108, 255, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--info {
-  background: rgba(0, 207, 232, 0.1);
+  background: rgba(104, 101, 255, 0.1);
 }
 
 .entity-stat-tile--warning {
-  background: rgba(255, 159, 67, 0.12);
+  background: rgba(217, 119, 6, 0.12);
 }
 
 .cleared-bookings-info-btn {

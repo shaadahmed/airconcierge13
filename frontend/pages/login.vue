@@ -97,6 +97,8 @@ definePageMeta({ layout: 'blank', middleware: 'guest' })
                 <BaseButton
                   block
                   type="submit"
+                  color="primary"
+                  intent="none"
                   label="Login"
                   :loading="auth.loading"
                 />
