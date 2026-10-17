@@ -1064,7 +1064,7 @@ onMounted(async () => {
                 </VRow>
 
                 <div class="owner-calendar-nights-panel mt-4">
-                  <div class="owner-calendar-nights-panel__total text-caption text-medium-emphasis mb-3">
+                  <div class="owner-calendar-nights-panel__total text-caption text-medium-emphasis mb-1">
                     {{ nightsCoverage.total }} nights in selected month
                   </div>
                   <DiskPieChart

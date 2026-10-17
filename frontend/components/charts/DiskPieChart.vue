@@ -307,7 +307,7 @@ const onDiskPointerLeave = () => {
 <style scoped>
 .disk-pie__layout {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.875rem;
 }
 
@@ -317,7 +317,9 @@ const onDiskPointerLeave = () => {
   min-width: 0;
   perspective: 920px;
   perspective-origin: 50% 42%;
-  padding-block: 1.35rem 2.35rem;
+  /* Bottom padding keeps the drop shadow; top stays tight so the filter panel
+     does not show a large gap above the foreshortened disk. */
+  padding-block: 0 2.1rem;
   transform-style: preserve-3d;
 }
 
@@ -345,6 +347,8 @@ const onDiskPointerLeave = () => {
   width: 100%;
   max-width: 220px;
   margin-inline: auto;
+  /* Pull the tilted disk up into the unused layout space from rotateX. */
+  margin-block-start: -18%;
   transform: rotateX(58deg);
   transform-style: preserve-3d;
 }
@@ -355,7 +359,8 @@ const onDiskPointerLeave = () => {
   flex-direction: column;
   gap: 0.5rem;
   margin: 0;
-  padding: 0;
+  /* Nudge legend down to sit beside the foreshortened disk face. */
+  padding: 0.35rem 0 0;
   list-style: none;
   min-width: 0;
 }
@@ -385,8 +390,8 @@ const onDiskPointerLeave = () => {
 
 .disk-pie__swatch {
   flex-shrink: 0;
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.5rem;
+  height: 1.35rem;
   border-radius: 999px;
   box-shadow: 0 2px 4px rgba(34, 48, 62, 0.16);
 }
