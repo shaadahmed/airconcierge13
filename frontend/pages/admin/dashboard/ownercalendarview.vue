@@ -851,12 +851,16 @@ onMounted(async () => {
             >
               <VBtn
                 icon
-                variant="text"
+                variant="flat"
+                color="secondary-light"
                 size="small"
                 aria-label="Close details"
                 @click="closeDetail"
               >
-                <VIcon icon="bx-x" />
+                <VIcon
+                  icon="bx-x"
+                  color="secondary"
+                />
               </VBtn>
             </template>
           </VCardItem>
