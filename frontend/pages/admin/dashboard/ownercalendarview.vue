@@ -5,7 +5,9 @@ import {
 } from '@/constants/bookings'
 import {
   BOOKING_STATUS_CANCELLED_CALENDAR,
-  BOOKING_STATUS_LEGEND,
+  BOOKING_STATUS_GUEST,
+  BOOKING_STATUS_OWNER_BLOCK,
+  COLOR_PRIMARY,
   bookingStatusHex,
 } from '@/constants/uiColors'
 import {
@@ -95,10 +97,6 @@ const filterMonth = computed({
       viewMonth.value = month - 1
   },
 })
-
-const LEGEND = BOOKING_STATUS_LEGEND
-
-const TURNOVER_HINT = 'Pill bars end mid-morning on check-out (11 AM) and start mid-afternoon on check-in (4 PM). Same-day turnover leaves a clear gap between the two pills.'
 
 const CHECKOUT_END_FRAC = 0.42
 const CHECKIN_START_FRAC = 0.58
@@ -200,6 +198,24 @@ const eachStayDayKey = (start, end) => {
   const cursor = new Date(startDate)
 
   while (cursor <= endDate) {
+    keys.push(toDateKey(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return keys
+}
+
+/** Overnight nights for a stay: [start, end) calendar days. */
+const eachNightKey = (start, end) => {
+  const startDate = parseDate(start)
+  const endDate = parseDate(end)
+  if (!startDate || !endDate || endDate <= startDate)
+    return []
+
+  const keys = []
+  const cursor = new Date(startDate)
+
+  while (cursor < endDate) {
     keys.push(toDateKey(cursor))
     cursor.setDate(cursor.getDate() + 1)
   }
@@ -485,7 +501,7 @@ const panelTitle = computed(() => {
   if (isDetailLayout.value)
     return isOwnerBlock.value ? 'Owner block' : 'Booking'
 
-  return 'Filter & legend'
+  return 'Filter'
 })
 
 const selectedNightCount = computed(() => {
@@ -498,6 +514,72 @@ const selectedNightCount = computed(() => {
 
   return nightsBetween(event.start, event.end)
 })
+
+const nightsCoverage = computed(() => {
+  const year = viewYear.value
+  const month = viewMonth.value
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const monthNightKeys = new Set()
+
+  for (let day = 1; day <= daysInMonth; day += 1)
+    monthNightKeys.add(toDateKey(new Date(year, month, day)))
+
+  const guestNights = new Set()
+  const blockNights = new Set()
+
+  for (const event of preparedEvents.value) {
+    for (const key of eachNightKey(event.start, event.end)) {
+      if (!monthNightKeys.has(key))
+        continue
+
+      if (event.kind === 'block')
+        blockNights.add(key)
+      else if (event.kind !== 'cancelled')
+        guestNights.add(key)
+    }
+  }
+
+  let guest = 0
+  let block = 0
+  let available = 0
+
+  for (const key of monthNightKeys) {
+    if (guestNights.has(key))
+      guest += 1
+    else if (blockNights.has(key))
+      block += 1
+    else
+      available += 1
+  }
+
+  return {
+    guest,
+    block,
+    available,
+    total: daysInMonth,
+  }
+})
+
+const nightsDiskItems = computed(() => [
+  {
+    key: 'guest',
+    label: 'Guest bookings',
+    color: BOOKING_STATUS_GUEST,
+    value: nightsCoverage.value.guest,
+  },
+  {
+    key: 'block',
+    label: 'Owner blocks',
+    color: BOOKING_STATUS_OWNER_BLOCK,
+    value: nightsCoverage.value.block,
+  },
+  {
+    key: 'available',
+    label: 'Available nights',
+    color: COLOR_PRIMARY.normal,
+    value: nightsCoverage.value.available,
+  },
+])
 
 const selectedStatusLabel = computed(() => {
   const event = selectedEvent.value
@@ -763,27 +845,19 @@ onMounted(async () => {
         <VCard class="owner-calendar-panel-card">
           <VCardItem class="flex-shrink-0">
             <VCardTitle>{{ panelTitle }}</VCardTitle>
-            <template #append>
-              <div class="d-flex flex-wrap gap-2 align-center">
-                <BaseButton
-                  v-if="!isDetailLayout"
-                  size="small"
-                  color="primary"
-                  label="Create"
-                  prepend-icon="bx-plus"
-                  to="/admin/dashboard/ownerblock/all?create=1"
-                />
-                <VBtn
-                  v-if="isDetailLayout"
-                  icon
-                  variant="text"
-                  size="small"
-                  aria-label="Close details"
-                  @click="closeDetail"
-                >
-                  <VIcon icon="bx-x" />
-                </VBtn>
-              </div>
+            <template
+              v-if="isDetailLayout"
+              #append
+            >
+              <VBtn
+                icon
+                variant="text"
+                size="small"
+                aria-label="Close details"
+                @click="closeDetail"
+              >
+                <VIcon icon="bx-x" />
+              </VBtn>
             </template>
           </VCardItem>
 
@@ -989,28 +1063,17 @@ onMounted(async () => {
                   </VCol>
                 </VRow>
 
-                <div class="text-subtitle-2 mb-2 mt-2">
-                  Legend
-                </div>
-                <div class="owner-calendar-legend">
-                  <div
-                    v-for="item in LEGEND"
-                    :key="item.key"
-                    class="owner-calendar-legend__item"
-                  >
-                    <span
-                      class="owner-calendar-legend__swatch"
-                      :style="{ backgroundColor: item.color }"
-                      aria-hidden="true"
-                    />
-                    <span class="owner-calendar-legend__label">
-                      {{ item.label }}
-                    </span>
+                <div class="owner-calendar-nights-panel mt-4">
+                  <div class="owner-calendar-nights-panel__total text-caption text-medium-emphasis mb-3">
+                    {{ nightsCoverage.total }} nights in selected month
                   </div>
+                  <DiskPieChart
+                    :items="nightsDiskItems"
+                    aria-label="Nights covered by booking type"
+                    empty-title="No nights to chart"
+                    empty-description="Select a property and month to see night coverage."
+                  />
                 </div>
-                <p class="owner-calendar-legend__hint text-body-2 text-medium-emphasis mt-3 mb-0">
-                  {{ TURNOVER_HINT }}
-                </p>
               </div>
             </Transition>
           </VCardText>
@@ -1334,15 +1397,15 @@ onMounted(async () => {
     max-height: 100%;
   }
 
-  /* Default: filter 30% left, calendar 70% right */
+  /* Default: filter 35% left, calendar 65% right */
   .owner-calendar-page__col--side {
-    width: calc(30% - 0.5rem);
+    width: calc(35% - 0.5rem);
     left: 0;
   }
 
   .owner-calendar-page__col--calendar {
-    width: calc(70% - 0.5rem);
-    left: calc(30% + 0.5rem);
+    width: calc(65% - 0.5rem);
+    left: calc(35% + 0.5rem);
   }
 
   /* Detail: calendar 60% left, details 40% right */
@@ -1392,33 +1455,18 @@ onMounted(async () => {
   opacity: 0;
 }
 
-.owner-calendar-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.owner-calendar-nights-panel {
+  padding: 0.875rem;
+  border: 1px solid rgba(75, 70, 92, 0.12);
+  border-radius: 12px;
+  background:
+    linear-gradient(165deg, rgba(104, 101, 255, 0.05), transparent 42%),
+    rgb(var(--v-theme-surface));
 }
 
-.owner-calendar-legend__item {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.owner-calendar-legend__swatch {
-  flex-shrink: 0;
-  width: 2.25rem;
-  height: 0.625rem;
-  border-radius: 999px;
-}
-
-.owner-calendar-legend__label {
-  font-size: 0.8125rem;
-  line-height: 1.3;
-  color: rgba(75, 70, 92, 0.9);
-}
-
-.owner-calendar-legend__hint {
-  line-height: 1.35;
+.owner-calendar-nights-panel__total {
+  text-align: start;
+  white-space: nowrap;
 }
 
 .owner-calendar-toolbar {
