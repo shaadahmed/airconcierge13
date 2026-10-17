@@ -420,6 +420,8 @@ definePageMeta({ middleware: 'auth' })
       <VCol
         cols="12"
         md="4"
+        order="2"
+        order-md="1"
         class="properties-page__col"
       >
         <VCard class="property-list-card">
@@ -515,6 +517,8 @@ definePageMeta({ middleware: 'auth' })
       <VCol
         cols="12"
         md="8"
+        order="1"
+        order-md="2"
         class="properties-page__col"
       >
         <VCard class="property-panel-card">

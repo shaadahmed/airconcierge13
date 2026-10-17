@@ -1,6 +1,6 @@
 <script setup>
 const entities = useAdminEntitiesStore()
-const endpoint = '/admin/dashboard/cashflow'
+const endpoint = '/admin/dashboard/cash-flow'
 
 /** @type {import('vue').Ref<'dashboard' | 'filter'>} */
 const panelMode = ref('dashboard')
