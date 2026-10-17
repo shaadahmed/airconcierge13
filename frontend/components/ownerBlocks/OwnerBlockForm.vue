@@ -105,7 +105,7 @@ const onSubmit = () => emit('submit')
 
       <VCol
         cols="12"
-        md="4"
+        md="6"
       >
         <BaseInput
           :model-value="form.reservation_start_date"
@@ -120,7 +120,7 @@ const onSubmit = () => emit('submit')
       </VCol>
       <VCol
         cols="12"
-        md="4"
+        md="6"
       >
         <BaseInput
           :model-value="form.reservation_end_date"
@@ -133,10 +133,7 @@ const onSubmit = () => emit('submit')
           @update:model-value="updateField('reservation_end_date', $event)"
         />
       </VCol>
-      <VCol
-        cols="12"
-        md="4"
-      >
+      <VCol cols="12">
         <div class="d-flex align-center gap-1 mb-1">
           <span class="text-body-2">
             Will you need cleaning post Owner stay
@@ -183,23 +180,27 @@ const onSubmit = () => emit('submit')
 
       <template v-if="!isEdit">
         <VCol cols="12">
-          <BaseCheckbox
-            :model-value="form.charge_agreement"
-            :label="CHARGE_AGREEMENT_LABEL"
-            :error="fieldError('charge_agreement')"
-            @update:model-value="updateField('charge_agreement', $event)"
-          />
+          <div class="owner-block-form__agreements">
+            <BaseCheckbox
+              :model-value="form.charge_agreement"
+              :label="CHARGE_AGREEMENT_LABEL"
+              :error="fieldError('charge_agreement')"
+              @update:model-value="updateField('charge_agreement', $event)"
+            />
+          </div>
         </VCol>
         <VCol cols="12">
           <div class="text-subtitle-2 mb-2">
             Terms of use
           </div>
-          <BaseCheckbox
-            :model-value="form.terms_agreement"
-            :label="TERMS_AGREEMENT_LABEL"
-            :error="fieldError('terms_agreement')"
-            @update:model-value="updateField('terms_agreement', $event)"
-          />
+          <div class="owner-block-form__agreements">
+            <BaseCheckbox
+              :model-value="form.terms_agreement"
+              :label="TERMS_AGREEMENT_LABEL"
+              :error="fieldError('terms_agreement')"
+              @update:model-value="updateField('terms_agreement', $event)"
+            />
+          </div>
           <div class="text-body-2 mt-1">
             <BaseLink
               href="https://www.airconcierge.net/privacy-policy/"
@@ -220,12 +221,14 @@ const onSubmit = () => emit('submit')
           <div class="text-subtitle-2 mb-2">
             Cleaning agreement
           </div>
-          <BaseCheckbox
-            :model-value="form.cleaning_agreement"
-            :label="CLEANING_AGREEMENT_LABEL"
-            :error="fieldError('cleaning_agreement')"
-            @update:model-value="updateField('cleaning_agreement', $event)"
-          />
+          <div class="owner-block-form__agreements">
+            <BaseCheckbox
+              :model-value="form.cleaning_agreement"
+              :label="CLEANING_AGREEMENT_LABEL"
+              :error="fieldError('cleaning_agreement')"
+              @update:model-value="updateField('cleaning_agreement', $event)"
+            />
+          </div>
         </VCol>
       </template>
 
@@ -284,5 +287,11 @@ const onSubmit = () => emit('submit')
   border: 0;
   background: transparent;
   cursor: help;
+}
+
+.owner-block-form__agreements :deep(.v-label) {
+  font-size: 75%;
+  line-height: 1.35;
+  opacity: 1;
 }
 </style>

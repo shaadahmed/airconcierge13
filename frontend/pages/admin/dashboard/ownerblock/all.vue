@@ -1,5 +1,10 @@
 <script setup>
-import { formatMoney, nightsBetween } from '@/constants/ownerBlocks'
+import {
+  emptyOwnerBlockForm,
+  formatMoney,
+  nightsBetween,
+  ownerBlockFormFromRecord,
+} from '@/constants/ownerBlocks'
 import {
   BOOKING_STATUS_OWNER_BLOCK,
   OWNER_BLOCK_CLEANING_CHART_COLORS,
@@ -14,10 +19,13 @@ import {
   ownerBlockPropertyTitle,
 } from '@/mocks/ownerBlocks'
 
+const route = useRoute()
 const ownerBlocks = useOwnerBlocksStore()
+const properties = usePropertiesStore()
 
-/** @type {import('vue').Ref<'dashboard' | 'filter' | 'detail'>} */
+/** @type {import('vue').Ref<'dashboard' | 'filter' | 'detail' | 'create' | 'edit'>} */
 const panelMode = ref('dashboard')
+const form = reactive(emptyOwnerBlockForm('create'))
 
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
@@ -294,15 +302,51 @@ const selectedBlock = computed(() => {
   return allRows.value.find(block => String(block.id) === String(selectedId.value)) || null
 })
 
-const isDetailLayout = computed(() => panelMode.value === 'detail' && Boolean(selectedBlock.value))
+/** Detail and edit keep the summary/form panel on the right. */
+const isDetailLayout = computed(() => (
+  (panelMode.value === 'detail' || panelMode.value === 'edit')
+  && Boolean(selectedBlock.value)
+))
 
 const panelTitle = computed(() => {
   if (panelMode.value === 'filter')
     return 'Advance search'
-  if (isDetailLayout.value)
+  if (panelMode.value === 'create')
+    return 'Add new block'
+  if (panelMode.value === 'edit')
+    return 'Update block'
+  if (panelMode.value === 'detail' && selectedBlock.value)
     return 'Owner block'
 
   return 'Blocks overview'
+})
+
+const propertyOptions = computed(() => {
+  const data = properties.data?.data || properties.data || []
+  const list = Array.isArray(data) && data.length ? data : MOCK_PROPERTIES
+
+  const options = [
+    { title: 'Select', value: null },
+    ...list.map(property => ({
+      title: `${property.property_title} - ${property.street_address || ''}`.trim(),
+      value: property.id,
+      property,
+    })),
+  ]
+
+  const currentId = form.property_id
+    ?? selectedBlock.value?.property_id
+    ?? selectedBlock.value?.property?.id
+
+  if (currentId != null && !options.some(option => String(option.value) === String(currentId))) {
+    options.splice(1, 0, {
+      title: ownerBlockPropertyTitle(selectedBlock.value) || `Property #${currentId}`,
+      value: currentId,
+      property: selectedBlock.value?.property || null,
+    })
+  }
+
+  return options
 })
 
 const resetPanelScroll = () => {
@@ -313,9 +357,27 @@ const resetPanelScroll = () => {
   })
 }
 
+const resetCreateForm = () => {
+  Object.assign(form, emptyOwnerBlockForm('create'))
+  ownerBlocks.errors = {}
+}
+
+const openCreatePanel = () => {
+  resetCreateForm()
+  selectedId.value = null
+  panelMode.value = 'create'
+  resetPanelScroll()
+}
+
 const openPanel = mode => {
   if (panelMode.value === mode) {
     panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
+
+    return
+  }
+
+  if (mode === 'create') {
+    openCreatePanel()
 
     return
   }
@@ -334,6 +396,75 @@ const closeDetail = () => {
   panelMode.value = 'dashboard'
 }
 
+const cancelCreate = () => {
+  resetCreateForm()
+  panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
+}
+
+const openEditPanel = id => {
+  const block = allRows.value.find(row => String(row.id) === String(id))
+  if (!block)
+    return
+
+  selectedId.value = block.id
+  Object.assign(form, ownerBlockFormFromRecord(block))
+  ownerBlocks.errors = {}
+  panelMode.value = 'edit'
+  resetPanelScroll()
+}
+
+const cancelEdit = () => {
+  ownerBlocks.errors = {}
+  panelMode.value = selectedId.value != null ? 'detail' : 'dashboard'
+  resetPanelScroll()
+}
+
+const onFormUpdate = value => {
+  Object.assign(form, value)
+}
+
+const submitCreate = async () => {
+  try {
+    const selected = propertyOptions.value.find(
+      option => String(option.value) === String(form.property_id),
+    )
+    const property = selected?.property
+
+    const payload = {
+      ...form,
+      property_title: property?.property_title || selected?.title,
+      street_address: property?.street_address || '',
+      location: property
+        ? `${property.subregion?.name || property.city?.name || '—'}, ${property.city?.state?.code || ''}`.trim()
+        : '—',
+      region_id: property?.region_id ?? null,
+      subregion_id: property?.subregion_id ?? null,
+      property: property
+        ? {
+            id: property.id,
+            property_title: property.property_title,
+            street_address: property.street_address,
+            property_image_url: property.property_image_url,
+            region_id: property.region_id,
+            subregion_id: property.subregion_id,
+          }
+        : null,
+    }
+
+    const block = await ownerBlocks.create(payload)
+
+    resetCreateForm()
+    selectedId.value = block.id
+    panelMode.value = 'detail'
+    resetPanelScroll()
+    if (!ownerBlocks.usingMocks)
+      await ownerBlocks.load()
+  }
+  catch {
+    // Store exposes validation errors.
+  }
+}
+
 const clearFilters = () => {
   Object.assign(filters, defaultFilters())
 }
@@ -342,8 +473,21 @@ const applyFilters = () => {
   panelMode.value = selectedId.value ? 'detail' : 'dashboard'
 }
 
-const goCreate = () => navigateTo('/admin/dashboard/ownerblock/new')
-const goEdit = id => navigateTo(`/admin/dashboard/ownerblock/${id}/edit`)
+const submitEdit = async () => {
+  if (selectedId.value == null)
+    return
+
+  try {
+    await ownerBlocks.save(selectedId.value, { ...form })
+    panelMode.value = 'detail'
+    resetPanelScroll()
+    if (!ownerBlocks.usingMocks)
+      await ownerBlocks.load()
+  }
+  catch {
+    // Validation errors are exposed by the store.
+  }
+}
 
 const askDelete = id => {
   confirmDelete.open = true
@@ -399,7 +543,21 @@ watch(() => filters.region_id, () => {
   filters.subregion_id = null
 })
 
-onMounted(() => ownerBlocks.load())
+onMounted(async () => {
+  await Promise.all([
+    ownerBlocks.load(),
+    properties.load(),
+  ])
+
+  if (route.query.create === '1' || route.query.create === 'true') {
+    openCreatePanel()
+
+    return
+  }
+
+  if (route.query.edit != null && route.query.edit !== '')
+    openEditPanel(route.query.edit)
+})
 
 definePageMeta({ middleware: 'auth' })
 </script>
@@ -417,12 +575,6 @@ definePageMeta({ middleware: 'auth' })
           label="Export"
           prepend-icon="bx-export"
           @click="exportBlocks"
-        />
-        <BaseButton
-          color="primary"
-          label="Add new block"
-          prepend-icon="bx-plus"
-          @click="goCreate"
         />
       </template>
     </PageHeader>
@@ -468,13 +620,42 @@ definePageMeta({ middleware: 'auth' })
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
                 />
+                <BaseButton
+                  v-if="!isDetailLayout"
+                  size="small"
+                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
+                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  label="Create"
+                  prepend-icon="bx-plus"
+                  @click="openPanel('create')"
+                />
                 <VBtn
-                  v-if="isDetailLayout"
+                  v-if="panelMode === 'edit'"
+                  icon
+                  variant="text"
+                  size="small"
+                  aria-label="Close edit owner block"
+                  @click="cancelEdit"
+                >
+                  <VIcon icon="bx-x" />
+                </VBtn>
+                <VBtn
+                  v-else-if="panelMode === 'detail' && selectedBlock"
                   icon
                   variant="text"
                   size="small"
                   aria-label="Close block details"
                   @click="closeDetail"
+                >
+                  <VIcon icon="bx-x" />
+                </VBtn>
+                <VBtn
+                  v-else-if="panelMode === 'create'"
+                  icon
+                  variant="text"
+                  size="small"
+                  aria-label="Close create owner block"
+                  @click="cancelCreate"
                 >
                   <VIcon icon="bx-x" />
                 </VBtn>
@@ -491,7 +672,25 @@ definePageMeta({ middleware: 'auth' })
               mode="out-in"
             >
               <div
-                v-if="isDetailLayout && selectedBlock"
+                v-if="panelMode === 'edit' && selectedBlock"
+                :key="`edit-${selectedBlock.id}`"
+              >
+                <AppAlert :errors="ownerBlocks.errors" />
+                <OwnerBlockForm
+                  :model-value="form"
+                  mode="edit"
+                  submit-label="Update"
+                  :property-options="propertyOptions"
+                  :loading="ownerBlocks.loading"
+                  :errors="ownerBlocks.errors"
+                  @update:model-value="onFormUpdate"
+                  @submit="submitEdit"
+                  @cancel="cancelEdit"
+                />
+              </div>
+
+              <div
+                v-else-if="panelMode === 'detail' && selectedBlock"
                 :key="`detail-${selectedBlock.id}`"
                 class="owner-block-detail-minimal"
               >
@@ -606,7 +805,7 @@ definePageMeta({ middleware: 'auth' })
                       block
                       label="Edit block"
                       prepend-icon="bx-edit"
-                      @click="goEdit(selectedBlock.id)"
+                      @click="openEditPanel(selectedBlock.id)"
                     />
                   </VCol>
                   <VCol cols="6">
@@ -620,6 +819,24 @@ definePageMeta({ middleware: 'auth' })
                     />
                   </VCol>
                 </VRow>
+              </div>
+
+              <div
+                v-else-if="panelMode === 'create'"
+                key="create"
+              >
+                <AppAlert :errors="ownerBlocks.errors" />
+                <OwnerBlockForm
+                  :model-value="form"
+                  mode="create"
+                  submit-label="Save block"
+                  :property-options="propertyOptions"
+                  :loading="ownerBlocks.loading"
+                  :errors="ownerBlocks.errors"
+                  @update:model-value="onFormUpdate"
+                  @submit="submitCreate"
+                  @cancel="cancelCreate"
+                />
               </div>
 
               <div
@@ -810,7 +1027,7 @@ definePageMeta({ middleware: 'auth' })
                   density="compact"
                   class="mt-4"
                 >
-                  Select a block to open a summary on the right. Create and edit use separate pages.
+                  Select a block to open a summary on the right. Use Create to add a block in this panel.
                 </VAlert>
               </div>
             </Transition>

@@ -566,10 +566,15 @@ const goView = () => {
   if (!event)
     return
 
-  if (event.kind === 'block')
-    navigateTo(`/admin/dashboard/ownerblock/${event.recordId}/edit`)
-  else
+  if (event.kind === 'block') {
+    navigateTo({
+      path: '/admin/dashboard/ownerblock/all',
+      query: { edit: String(event.recordId) },
+    })
+  }
+  else {
     navigateTo(`/admin/bookings/${event.recordId}`)
+  }
 }
 
 const askCancel = () => {
@@ -740,7 +745,7 @@ onMounted(async () => {
           color="primary"
           label="Add new block"
           prepend-icon="bx-plus"
-          to="/admin/dashboard/ownerblock/new"
+          to="/admin/dashboard/ownerblock/all?create=1"
         />
       </template>
     </PageHeader>
