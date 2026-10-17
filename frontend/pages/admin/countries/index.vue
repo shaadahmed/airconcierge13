@@ -398,16 +398,13 @@ definePageMeta({ middleware: 'auth' })
               <div class="text-h6">
                 Countries ({{ filteredCountries.length }})
               </div>
-              <VBtn
-                icon
+              <BaseButton
                 size="small"
                 color="primary"
-                rounded="circle"
-                aria-label="Create country"
+                label="Create"
+                prepend-icon="bx-plus"
                 @click="openCreateCountry"
-              >
-                <VIcon icon="bx-plus" />
-              </VBtn>
+              />
             </div>
 
             <BaseInput
@@ -516,17 +513,14 @@ definePageMeta({ middleware: 'auth' })
                   ({{ filteredStates.length }})
                 </span>
               </div>
-              <VBtn
-                icon
+              <BaseButton
                 size="small"
                 color="primary"
-                rounded="circle"
+                label="Create"
+                prepend-icon="bx-plus"
                 :disabled="!selectedCountry"
-                aria-label="Create state"
                 @click="openCreateState"
-              >
-                <VIcon icon="bx-plus" />
-              </VBtn>
+              />
             </div>
 
             <BaseInput
@@ -636,17 +630,14 @@ definePageMeta({ middleware: 'auth' })
                   ({{ filteredCities.length }})
                 </span>
               </div>
-              <VBtn
-                icon
+              <BaseButton
                 size="small"
                 color="primary"
-                rounded="circle"
+                label="Create"
+                prepend-icon="bx-plus"
                 :disabled="!selectedState"
-                aria-label="Create city"
                 @click="openCreateCity"
-              >
-                <VIcon icon="bx-plus" />
-              </VBtn>
+              />
             </div>
 
             <BaseInput

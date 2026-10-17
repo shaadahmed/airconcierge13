@@ -28,11 +28,10 @@ onMounted(async () => {
 
 <template>
   <div>
-    <PageHeader :title="title" :subtitle="subtitle">
-      <template v-if="exportable" #actions>
-        <BaseButton label="Download export" @click="download" />
-      </template>
-    </PageHeader>
+    <PageHeader
+      :title="title"
+      :subtitle="subtitle"
+    />
     <AppAlert :errors="entities.errors" />
     <DataTableShell
       :title="title"
@@ -42,15 +41,41 @@ onMounted(async () => {
       :empty-colspan="columns.length"
       empty-title="No records found"
     >
+      <template
+        v-if="exportable"
+        #actions
+      >
+        <BaseButton
+          size="small"
+          color="primary-light"
+          variant="flat"
+          label="Export"
+          prepend-icon="bx-export"
+          @click="download"
+        />
+      </template>
       <template #head>
         <thead>
           <tr>
-            <th v-for="column in columns" :key="column">{{ label(column) }}</th>
+            <th
+              v-for="column in columns"
+              :key="column"
+            >
+              {{ label(column) }}
+            </th>
           </tr>
         </thead>
       </template>
-      <tr v-for="(row, index) in rows" :key="row.id || index">
-        <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+      <tr
+        v-for="(row, index) in rows"
+        :key="row.id || index"
+      >
+        <td
+          v-for="column in columns"
+          :key="column"
+        >
+          {{ row[column] ?? '—' }}
+        </td>
       </tr>
     </DataTableShell>
   </div>

@@ -7,9 +7,6 @@ const statements = useOwnerStatementsStore()
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
 
-/** @type {import('vue').Ref<'dashboard' | 'filter'>} */
-const panelMode = ref('dashboard')
-
 const defaultFilters = () => ({
   property_id: '',
   date_range: 'this_month',
@@ -331,12 +328,6 @@ function filterLines(source, definitions) {
     .filter(line => line.amount !== 0)
 }
 
-const openFilter = () => {
-  panelMode.value = panelMode.value === 'filter' ? 'dashboard' : 'filter'
-  if (panelMode.value === 'filter')
-    Object.assign(draftFilters, filters)
-}
-
 const clearFilters = () => {
   const next = defaultFilters()
   if (properties.value[0])
@@ -378,7 +369,6 @@ const applyFilters = async () => {
   })
 
   await runReport()
-  panelMode.value = 'dashboard'
 }
 
 const exportCsv = () => {
@@ -433,35 +423,7 @@ definePageMeta({ middleware: 'auth' })
     <PageHeader
       title="P&L Owner Statements"
       subtitle="Profit and loss for a property and date range"
-    >
-      <template #actions>
-        <BaseButton
-          class="d-print-none"
-          size="small"
-          :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-          :color="panelMode === 'filter' ? 'primary' : undefined"
-          label="Filter"
-          prepend-icon="bx-filter-alt"
-          @click="openFilter"
-        />
-        <BaseButton
-          class="d-print-none"
-          label="Export"
-          variant="tonal"
-          prepend-icon="bx-export"
-          :disabled="!report || statements.loading"
-          @click="exportCsv"
-        />
-        <BaseButton
-          class="d-print-none"
-          label="Print"
-          variant="tonal"
-          prepend-icon="bx-printer"
-          :disabled="!report"
-          @click="printStatement"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="statements.usingMocks"
@@ -485,96 +447,107 @@ definePageMeta({ middleware: 'auth' })
       {{ exportNotice }}
     </VAlert>
 
-    <VCard
-      v-if="panelMode === 'filter'"
-      class="mb-6 d-print-none"
-    >
-      <VCardItem>
-        <VCardTitle>Filter statement</VCardTitle>
-      </VCardItem>
-      <VCardText>
-        <VForm @submit.prevent="applyFilters">
-          <VRow>
+    <VCard class="mb-4 d-print-none owner-statements-filter">
+      <VForm @submit.prevent="applyFilters">
+        <VCardItem class="pb-2">
+          <VCardTitle>Filter statement</VCardTitle>
+          <template #append>
+            <div class="d-flex flex-wrap gap-2 align-center">
+              <BaseButton
+                type="button"
+                size="small"
+                color="primary-light"
+                variant="flat"
+                label="Clear filters"
+                @click="clearFilters"
+              />
+              <BaseButton
+                type="submit"
+                size="small"
+                color="primary"
+                label="Apply filters"
+                :loading="statements.loading"
+              />
+              <BaseButton
+                :href="bookingsHref"
+                target="_blank"
+                rel="noopener"
+                size="small"
+                color="primary-light"
+                variant="flat"
+                label="View bookings"
+                prepend-icon="bx-search-alt"
+              />
+            </div>
+          </template>
+        </VCardItem>
+        <VCardText>
+          <VRow dense>
             <VCol
               cols="12"
+              sm="6"
               md="4"
+              lg="3"
             >
               <BaseSelect
                 v-model="draftFilters.property_id"
                 label="Property"
+                size="small"
+                hide-details="auto"
                 :items="propertyItems"
                 :error="statements.errors.property_id"
               />
             </VCol>
             <VCol
               cols="12"
+              sm="6"
               md="4"
+              lg="3"
             >
               <BaseSelect
                 v-model="draftFilters.date_range"
                 label="Date options"
+                size="small"
+                hide-details="auto"
                 :items="dateRangeItems"
                 :error="statements.errors.date_range"
               />
             </VCol>
             <VCol
               v-if="draftFilters.date_range === 'specific_month'"
-              cols="12"
-              sm="6"
+              cols="6"
+              sm="4"
               md="2"
+              lg="2"
             >
               <BaseSelect
                 v-model="draftFilters.year"
                 label="Year"
+                size="small"
+                hide-details="auto"
                 :items="yearItems"
                 :error="statements.errors.year"
               />
             </VCol>
             <VCol
               v-if="draftFilters.date_range === 'specific_month' && draftFilters.year"
-              cols="12"
-              sm="6"
+              cols="6"
+              sm="4"
               md="2"
+              lg="2"
             >
               <BaseSelect
                 v-model="draftFilters.month"
                 label="Month"
+                size="small"
+                hide-details="auto"
                 :items="monthItems"
                 :error="statements.errors.month"
               />
             </VCol>
           </VRow>
-
-          <div class="d-flex flex-wrap gap-2 mt-2">
-            <BaseButton
-              type="button"
-              variant="tonal"
-              label="Clear filters"
-              @click="clearFilters"
-            />
-            <BaseButton
-              type="submit"
-              color="primary"
-              label="Apply filters"
-              :loading="statements.loading"
-            />
-            <BaseButton
-              type="button"
-              variant="text"
-              label="Close"
-              @click="panelMode = 'dashboard'"
-            />
-            <BaseButton
-              :href="bookingsHref"
-              target="_blank"
-              rel="noopener"
-              variant="text"
-              label="View bookings in this range"
-              prepend-icon="bx-search-alt"
-            />
-          </div>
-        </VForm>
-      </VCardText>
+        </VCardText>
+      </VForm>
     </VCard>
 
     <AppAlert
@@ -588,17 +561,25 @@ definePageMeta({ middleware: 'auth' })
       class="mb-4"
     />
 
-    <EmptyState
+    <div
       v-if="!report && !statements.loading"
-      title="No statement loaded"
-      description="Use Filter to choose a property and date range."
-    />
+      class="mb-4"
+    >
+      <EmptyState
+        title="No statement loaded"
+        description="Choose a property and date range, then Apply filters."
+      />
+    </div>
 
-    <EmptyState
+    <div
       v-else-if="report && !hasStatementData && !statements.loading"
-      title="No booking found for selected search filters"
-      description="Try another property or date range."
-    />
+      class="mb-4"
+    >
+      <EmptyState
+        title="No booking found for selected search filters"
+        description="Try another property or date range."
+      />
+    </div>
 
     <template v-else-if="hasStatementData">
       <div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-4">
@@ -624,6 +605,17 @@ definePageMeta({ middleware: 'auth' })
           <VCard class="h-100">
             <VCardItem>
               <VCardTitle>Statement overview</VCardTitle>
+              <template #append>
+                <BaseButton
+                  class="d-print-none"
+                  size="small"
+                  color="primary-light"
+                  variant="flat"
+                  label="Print"
+                  prepend-icon="bx-printer"
+                  @click="printStatement"
+                />
+              </template>
             </VCardItem>
 
             <VCardText>
@@ -721,6 +713,18 @@ definePageMeta({ middleware: 'auth' })
           <VCard class="h-100">
             <VCardItem>
               <VCardTitle>Income & expenses</VCardTitle>
+              <template #append>
+                <BaseButton
+                  class="d-print-none"
+                  size="small"
+                  color="primary-light"
+                  variant="flat"
+                  label="Export"
+                  prepend-icon="bx-export"
+                  :disabled="statements.loading"
+                  @click="exportCsv"
+                />
+              </template>
             </VCardItem>
 
             <VCardText>

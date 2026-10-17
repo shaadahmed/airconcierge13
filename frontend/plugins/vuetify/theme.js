@@ -15,6 +15,7 @@ const semanticColors = {
   'on-primary': '#fff',
   'primary-darken-1': staticPrimaryDarkenColor,
   'primary-light': COLOR_PRIMARY.light,
+  'on-primary-light': COLOR_PRIMARY.normal,
   'secondary': COLOR_SECONDARY.normal,
   'on-secondary': '#fff',
   'secondary-darken-1': '#5a6268',

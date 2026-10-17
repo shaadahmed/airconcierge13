@@ -603,24 +603,7 @@ definePageMeta({ middleware: 'auth' })
     <PageHeader
       title="Regions & Subregions"
       subtitle="Manage property regions and municipality rules"
-    >
-      <template #actions>
-        <BaseButton
-          v-if="isSubregionView"
-          color="primary"
-          label="Add subregion"
-          prepend-icon="bx-plus"
-          @click="openCreateSubregion(selectedRegion)"
-        />
-        <BaseButton
-          v-else
-          color="primary"
-          label="Create region"
-          prepend-icon="bx-plus"
-          @click="openPanel('create')"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="regions.usingMocks || subregions.usingMocks"
@@ -711,15 +694,14 @@ definePageMeta({ middleware: 'auth' })
                   >
                     <BaseButton
                       size="small"
-                      variant="tonal"
+                      color="primary-light"
+                      variant="flat"
                       label="Edit"
                       class="me-2"
                       @click="edit(region)"
                     />
                     <BaseButton
                       size="small"
-                      variant="tonal"
-                      color="error"
                       label="Delete"
                       @click="askDelete(region.id, 'region')"
                     />
@@ -836,15 +818,14 @@ definePageMeta({ middleware: 'auth' })
                   >
                     <BaseButton
                       size="small"
-                      variant="tonal"
+                      color="primary-light"
+                      variant="flat"
                       label="Edit"
                       class="me-2"
                       @click="editSubregion(row, selectedRegion)"
                     />
                     <BaseButton
                       size="small"
-                      variant="tonal"
-                      color="error"
                       label="Delete"
                       @click="askDelete(row.id, 'subregion')"
                     />
@@ -868,8 +849,8 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isSubregionView"
                   size="small"
-                  :variant="panelMode === 'filter' && panelEntity === 'region' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' && panelEntity === 'region' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
@@ -877,8 +858,7 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isSubregionView"
                   size="small"
-                  :variant="panelMode === 'create' && panelEntity === 'region' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' && panelEntity === 'region' ? 'primary' : undefined"
+                  color="primary"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
@@ -886,7 +866,8 @@ definePageMeta({ middleware: 'auth' })
                 <template v-if="panelMode === 'detail' && selectedSubregion">
                   <BaseButton
                     size="small"
-                    color="primary"
+                    color="primary-light"
+                    variant="flat"
                     label="Edit"
                     prepend-icon="bx-edit"
                     @click="editSubregion(selectedSubregion, selectedRegion)"
@@ -904,8 +885,7 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-else-if="isSubregionView"
                   size="small"
-                  :variant="panelMode === 'create' && panelEntity === 'subregion' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' && panelEntity === 'subregion' ? 'primary' : undefined"
+                  color="primary"
                   label="Add subregion"
                   prepend-icon="bx-plus"
                   @click="openCreateSubregion(selectedRegion)"

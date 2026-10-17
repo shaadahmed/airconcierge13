@@ -542,16 +542,15 @@ definePageMeta({ middleware: 'auth' })
               <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' && !editingId ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' && !editingId ? 'primary' : undefined"
+                  color="primary"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
@@ -559,15 +558,14 @@ definePageMeta({ middleware: 'auth' })
                 <template v-if="panelMode === 'detail' && selectedManager">
                   <BaseButton
                     size="small"
-                    color="primary"
+                    color="primary-light"
+                    variant="flat"
                     label="Edit"
                     prepend-icon="bx-edit"
                     @click="edit(selectedManager)"
                   />
                   <BaseButton
                     size="small"
-                    variant="tonal"
-                    color="error"
                     label="Delete"
                     prepend-icon="bx-trash"
                     @click="askDelete(selectedManager.id)"
@@ -900,10 +898,12 @@ definePageMeta({ middleware: 'auth' })
 
 .staff-panel-body {
   overflow-y: auto;
+  /* Extra room so the first outlined label is not clipped by overflow. */
+  padding-block-start: 1.25rem;
 }
 
 .staff-filter-form {
-  padding-top: 4px;
+  padding-top: 0.25rem;
 }
 
 .staff-list {

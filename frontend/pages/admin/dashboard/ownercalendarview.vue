@@ -731,24 +731,9 @@ onMounted(async () => {
   <div class="owner-calendar-page">
     <PageHeader
       class="flex-shrink-0"
-      title="Owner Calendar View"
-      subtitle="Dashboard · Calendar View"
-    >
-      <template #actions>
-        <BaseButton
-          variant="tonal"
-          label="Blocks list"
-          prepend-icon="bx-list-ul"
-          to="/admin/dashboard/ownerblock/all"
-        />
-        <BaseButton
-          color="primary"
-          label="Add new block"
-          prepend-icon="bx-plus"
-          to="/admin/dashboard/ownerblock/all?create=1"
-        />
-      </template>
-    </PageHeader>
+      title="Calendar View"
+      subtitle="Guest bookings and owner blocks calendar view."
+    />
 
     <VAlert
       v-if="usingMocks"
@@ -779,16 +764,26 @@ onMounted(async () => {
           <VCardItem class="flex-shrink-0">
             <VCardTitle>{{ panelTitle }}</VCardTitle>
             <template #append>
-              <VBtn
-                v-if="isDetailLayout"
-                icon
-                variant="text"
-                size="small"
-                aria-label="Close details"
-                @click="closeDetail"
-              >
-                <VIcon icon="bx-x" />
-              </VBtn>
+              <div class="d-flex flex-wrap gap-2 align-center">
+                <BaseButton
+                  v-if="!isDetailLayout"
+                  size="small"
+                  color="primary"
+                  label="Create"
+                  prepend-icon="bx-plus"
+                  to="/admin/dashboard/ownerblock/all?create=1"
+                />
+                <VBtn
+                  v-if="isDetailLayout"
+                  icon
+                  variant="text"
+                  size="small"
+                  aria-label="Close details"
+                  @click="closeDetail"
+                >
+                  <VIcon icon="bx-x" />
+                </VBtn>
+              </div>
             </template>
           </VCardItem>
 
@@ -926,7 +921,8 @@ onMounted(async () => {
                 <VRow dense>
                   <VCol :cols="canCancelSelected ? 12 : 6">
                     <BaseButton
-                      color="primary"
+                      color="primary-light"
+                      variant="flat"
                       block
                       :label="isOwnerBlock ? 'View block' : 'View booking'"
                       prepend-icon="bx-show"
@@ -938,8 +934,9 @@ onMounted(async () => {
                     cols="6"
                   >
                     <BaseButton
-                      variant="tonal"
+                      intent="none"
                       color="warning"
+                      variant="tonal"
                       block
                       label="Cancel"
                       prepend-icon="bx-calendar-x"
@@ -948,8 +945,6 @@ onMounted(async () => {
                   </VCol>
                   <VCol cols="6">
                     <BaseButton
-                      variant="tonal"
-                      color="error"
                       block
                       label="Delete"
                       prepend-icon="bx-trash"
@@ -1029,7 +1024,8 @@ onMounted(async () => {
             <div class="owner-calendar-toolbar">
               <div class="d-flex flex-wrap align-center gap-2">
                 <BaseButton
-                  variant="tonal"
+                  color="primary-light"
+                  variant="flat"
                   size="small"
                   label="Today"
                   @click="goToday"
@@ -1379,6 +1375,11 @@ onMounted(async () => {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Extra room so the first outlined label is not clipped by overflow. */
+.owner-calendar-panel-body {
+  padding-block-start: 1.25rem;
 }
 
 .owner-calendar-panel-fade-enter-active,

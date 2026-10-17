@@ -404,16 +404,7 @@ definePageMeta({ middleware: 'auth' })
       class="flex-shrink-0"
       title="Properties"
       subtitle="Manage listings and owner links"
-    >
-      <template #actions>
-        <BaseButton
-          color="primary"
-          label="Create property"
-          prepend-icon="bx-plus"
-          @click="openCreatePanel"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="properties.usingMocks || usingMocks"
@@ -533,16 +524,15 @@ definePageMeta({ middleware: 'auth' })
               <div class="d-flex flex-wrap gap-2 align-center">
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  color="primary"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
@@ -550,14 +540,16 @@ definePageMeta({ middleware: 'auth' })
                 <template v-if="panelMode === 'detail' && selectedProperty">
                   <BaseButton
                     size="small"
-                    variant="tonal"
+                    color="primary-light"
+                    variant="flat"
                     label="View"
                     prepend-icon="bx-show"
                     @click="goViewProperty(selectedProperty.id)"
                   />
                   <BaseButton
                     size="small"
-                    color="primary"
+                    color="primary-light"
+                    variant="flat"
                     label="Edit"
                     prepend-icon="bx-edit"
                     @click="goEditProperty(selectedProperty.id)"
@@ -964,6 +956,8 @@ definePageMeta({ middleware: 'auth' })
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Extra room so the first outlined label is not clipped by overflow. */
+  padding-block-start: 1.25rem;
 }
 
 .property-list {

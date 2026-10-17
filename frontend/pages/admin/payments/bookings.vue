@@ -545,28 +545,7 @@ definePageMeta({ middleware: 'auth' })
       class="flex-shrink-0"
       title="Costs & Expenses"
       subtitle="Property and booking payment / expense records"
-    >
-      <template #actions>
-        <BaseButton
-          variant="tonal"
-          label="Export Excel"
-          prepend-icon="bx-export"
-          @click="exportExcel"
-        />
-        <BaseButton
-          variant="tonal"
-          label="Export PDF"
-          prepend-icon="bx-file"
-          @click="exportPdf"
-        />
-        <BaseButton
-          color="primary"
-          label="Add New Payment"
-          prepend-icon="bx-plus"
-          @click="goCreate"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="payments.usingMocks"
@@ -606,14 +585,24 @@ definePageMeta({ middleware: 'auth' })
           <VCardItem class="flex-shrink-0">
             <VCardTitle>All costs & expenses</VCardTitle>
             <template #append>
-              <BaseButton
-                size="small"
-                :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                :color="panelMode === 'filter' ? 'primary' : undefined"
-                label="Filter"
-                prepend-icon="bx-filter-alt"
-                @click="openPanel('filter')"
-              />
+              <div class="d-flex flex-wrap gap-2 align-center">
+                <BaseButton
+                  size="small"
+                  color="primary-light"
+                  variant="flat"
+                  label="Export Excel"
+                  prepend-icon="bx-export"
+                  @click="exportExcel"
+                />
+                <BaseButton
+                  size="small"
+                  color="primary-light"
+                  variant="flat"
+                  label="Export PDF"
+                  prepend-icon="bx-file"
+                  @click="exportPdf"
+                />
+              </div>
             </template>
           </VCardItem>
 
@@ -746,11 +735,19 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isDetailLayout"
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
+                />
+                <BaseButton
+                  v-if="!isDetailLayout"
+                  size="small"
+                  color="primary"
+                  label="Add New Payment"
+                  prepend-icon="bx-plus"
+                  @click="goCreate"
                 />
                 <VBtn
                   v-if="isDetailLayout"
@@ -1289,6 +1286,8 @@ definePageMeta({ middleware: 'auth' })
   flex: 1;
   overflow: auto;
   max-height: calc(100vh - 14rem);
+  /* Extra room so the first outlined label is not clipped by overflow. */
+  padding-block-start: 1.25rem;
 }
 
 .costs-list-wrap {

@@ -404,15 +404,14 @@ definePageMeta({ middleware: 'auth' })
             <td class="text-no-wrap">
               <BaseButton
                 size="small"
-                variant="tonal"
+                color="primary-light"
+                variant="flat"
                 label="Edit"
                 class="me-2"
                 @click="edit(guest)"
               />
               <BaseButton
                 size="small"
-                variant="tonal"
-                color="error"
                 label="Delete"
                 @click="askDelete(guest.id)"
               />
@@ -432,16 +431,15 @@ definePageMeta({ middleware: 'auth' })
               <div class="d-flex flex-wrap gap-2">
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
                 />
                 <BaseButton
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  color="primary"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"

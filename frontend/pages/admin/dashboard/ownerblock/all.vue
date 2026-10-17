@@ -568,16 +568,7 @@ definePageMeta({ middleware: 'auth' })
       class="flex-shrink-0"
       title="Owner blocks"
       subtitle="Calendar blocks requested by property owners"
-    >
-      <template #actions>
-        <BaseButton
-          variant="tonal"
-          label="Export"
-          prepend-icon="bx-export"
-          @click="exportBlocks"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="ownerBlocks.usingMocks"
@@ -614,8 +605,8 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isDetailLayout"
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
@@ -623,8 +614,7 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isDetailLayout"
                   size="small"
-                  :variant="panelMode === 'create' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'create' ? 'primary' : undefined"
+                  color="primary"
                   label="Create"
                   prepend-icon="bx-plus"
                   @click="openPanel('create')"
@@ -801,7 +791,8 @@ definePageMeta({ middleware: 'auth' })
                 <VRow dense>
                   <VCol cols="6">
                     <BaseButton
-                      color="primary"
+                      color="primary-light"
+                      variant="flat"
                       block
                       label="Edit block"
                       prepend-icon="bx-edit"
@@ -810,8 +801,6 @@ definePageMeta({ middleware: 'auth' })
                   </VCol>
                   <VCol cols="6">
                     <BaseButton
-                      variant="tonal"
-                      color="error"
                       block
                       label="Delete"
                       prepend-icon="bx-trash"
@@ -928,7 +917,8 @@ definePageMeta({ middleware: 'auth' })
                   <div class="d-flex flex-wrap gap-2 mt-4">
                     <BaseButton
                       type="button"
-                      variant="tonal"
+                      color="primary-light"
+                      variant="flat"
                       label="Clear All"
                       @click="clearFilters"
                     />
@@ -939,7 +929,8 @@ definePageMeta({ middleware: 'auth' })
                     />
                     <BaseButton
                       type="button"
-                      variant="text"
+                      color="primary-light"
+                      variant="flat"
                       label="Back to overview"
                       @click="panelMode = selectedId ? 'detail' : 'dashboard'"
                     />
@@ -1045,16 +1036,14 @@ definePageMeta({ middleware: 'auth' })
 
           <VCardItem class="flex-shrink-0">
             <VCardTitle>Blocks list</VCardTitle>
-            <template
-              v-if="isDetailLayout"
-              #append
-            >
+            <template #append>
               <BaseButton
                 size="small"
-                variant="tonal"
-                label="Filter"
-                prepend-icon="bx-filter-alt"
-                @click="openPanel('filter')"
+                color="primary-light"
+                variant="flat"
+                label="Export"
+                prepend-icon="bx-export"
+                @click="exportBlocks"
               />
             </template>
           </VCardItem>
@@ -1278,6 +1267,8 @@ definePageMeta({ middleware: 'auth' })
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Extra room so the first outlined label is not clipped by overflow. */
+  padding-block-start: 1.25rem;
 }
 
 .owner-block-list {

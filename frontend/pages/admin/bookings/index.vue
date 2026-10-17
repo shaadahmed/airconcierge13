@@ -532,16 +532,7 @@ definePageMeta({ middleware: 'auth' })
       class="flex-shrink-0"
       title="Bookings"
       subtitle="Reservations across properties"
-    >
-      <template #actions>
-        <BaseButton
-          color="primary"
-          label="Create booking"
-          prepend-icon="bx-plus"
-          @click="goCreate"
-        />
-      </template>
-    </PageHeader>
+    />
 
     <VAlert
       v-if="bookings.usingMocks"
@@ -567,11 +558,19 @@ definePageMeta({ middleware: 'auth' })
                 <BaseButton
                   v-if="!isDetailLayout"
                   size="small"
-                  :variant="panelMode === 'filter' ? 'flat' : 'tonal'"
-                  :color="panelMode === 'filter' ? 'primary' : undefined"
+                  color="primary-light"
+                  variant="flat"
                   label="Filter"
                   prepend-icon="bx-filter-alt"
                   @click="openPanel('filter')"
+                />
+                <BaseButton
+                  v-if="!isDetailLayout"
+                  size="small"
+                  color="primary"
+                  label="Create"
+                  prepend-icon="bx-plus"
+                  @click="goCreate"
                 />
                 <VBtn
                   v-if="isDetailLayout"
@@ -695,7 +694,8 @@ definePageMeta({ middleware: 'auth' })
               <VRow dense>
                 <VCol cols="6">
                   <BaseButton
-                    color="primary"
+                    color="primary-light"
+                    variant="flat"
                     block
                     label="View booking"
                     prepend-icon="bx-show"
@@ -704,7 +704,8 @@ definePageMeta({ middleware: 'auth' })
                 </VCol>
                 <VCol cols="6">
                   <BaseButton
-                    variant="tonal"
+                    color="primary-light"
+                    variant="flat"
                     block
                     label="Edit booking"
                     prepend-icon="bx-edit"
@@ -714,8 +715,9 @@ definePageMeta({ middleware: 'auth' })
                 <VCol cols="6">
                   <BaseButton
                     v-if="bookingStatusLabel(selectedBooking) !== 'Cancelled'"
-                    variant="tonal"
+                    intent="none"
                     color="warning"
+                    variant="tonal"
                     block
                     label="Cancel booking"
                     prepend-icon="bx-calendar-x"
@@ -723,8 +725,8 @@ definePageMeta({ middleware: 'auth' })
                   />
                   <BaseButton
                     v-else
-                    variant="tonal"
-                    color="primary"
+                    color="primary-light"
+                    variant="flat"
                     block
                     label="Resolve dispute"
                     prepend-icon="bx-check-circle"
@@ -733,8 +735,6 @@ definePageMeta({ middleware: 'auth' })
                 </VCol>
                 <VCol cols="6">
                   <BaseButton
-                    variant="tonal"
-                    color="error"
                     block
                     label="Delete"
                     prepend-icon="bx-trash"
@@ -979,7 +979,8 @@ definePageMeta({ middleware: 'auth' })
                 <div class="d-flex flex-wrap gap-2 mt-4">
                   <BaseButton
                     type="button"
-                    variant="tonal"
+                    color="primary-light"
+                    variant="flat"
                     label="Clear All"
                     @click="clearFilters"
                   />
@@ -990,7 +991,8 @@ definePageMeta({ middleware: 'auth' })
                   />
                   <BaseButton
                     type="button"
-                    variant="text"
+                    color="primary-light"
+                    variant="flat"
                     label="Back to overview"
                     @click="panelMode = selectedId ? 'detail' : 'dashboard'"
                   />
@@ -1113,18 +1115,6 @@ definePageMeta({ middleware: 'auth' })
 
           <VCardItem class="flex-shrink-0">
             <VCardTitle>All bookings</VCardTitle>
-            <template
-              v-if="isDetailLayout"
-              #append
-            >
-              <BaseButton
-                size="small"
-                variant="tonal"
-                label="Filter"
-                prepend-icon="bx-filter-alt"
-                @click="openPanel('filter')"
-              />
-            </template>
           </VCardItem>
 
           <VCardText class="pb-2 flex-shrink-0">
@@ -1397,6 +1387,8 @@ definePageMeta({ middleware: 'auth' })
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Extra room so the first outlined label is not clipped by overflow. */
+  padding-block-start: 1.25rem;
 }
 
 .booking-list {

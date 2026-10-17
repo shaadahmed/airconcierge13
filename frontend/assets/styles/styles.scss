@@ -1,1 +1,20 @@
 // Write your overrides
+
+// Outlined Vuetify field labels sit astride the top border. `.v-row` negative
+// margins pull the first field into overflow:auto/hidden clip regions on panel
+// bodies (calendar, bookings, owners, …), truncating the floating label.
+.v-card-text {
+  > .v-row:first-child,
+  > .v-form > .v-row:first-child,
+  > form > .v-row:first-child,
+  > div > .v-row:first-child {
+    margin-block-start: 0;
+  }
+
+  > .v-input:first-child,
+  > .v-form > .v-input:first-child,
+  > form > .v-input:first-child,
+  > div > .v-input:first-child {
+    margin-block-start: 0.25rem;
+  }
+}
