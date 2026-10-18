@@ -18,7 +18,7 @@ export const MOCK_MANAGERS = [
     state: 'California',
     zip: '96150',
     regions: [
-      { id: 1, region_name: 'Lake Tahoe' },
+      { id: 1, name: 'Lake Tahoe' },
     ],
   },
   {
@@ -36,7 +36,7 @@ export const MOCK_MANAGERS = [
     state: 'California',
     zip: '94559',
     regions: [
-      { id: 2, region_name: 'Napa Valley' },
+      { id: 2, name: 'Napa Valley' },
     ],
   },
   {
@@ -54,8 +54,8 @@ export const MOCK_MANAGERS = [
     state: 'Nevada',
     zip: '89451',
     regions: [
-      { id: 1, region_name: 'Lake Tahoe' },
-      { id: 2, region_name: 'Napa Valley' },
+      { id: 1, name: 'Lake Tahoe' },
+      { id: 2, name: 'Napa Valley' },
     ],
   },
 ]

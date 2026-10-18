@@ -84,7 +84,7 @@ const regionOptions = computed(() => {
     if (id == null)
       continue
 
-    const name = property.region?.name || property.region?.region_name || `Region ${id}`
+    const name = property.region?.name || `Region ${id}`
     if (!map.has(id))
       map.set(id, { title: name, value: id })
   }
@@ -640,7 +640,7 @@ definePageMeta({ middleware: 'auth' })
                         size="18"
                         class="text-medium-emphasis"
                       />
-                      <span>{{ selectedProperty.region?.name || selectedProperty.region?.region_name || selectedProperty.region_id || '—' }}</span>
+                      <span>{{ selectedProperty.region?.name || selectedProperty.region_id || '—' }}</span>
                     </div>
                     <div
                       v-if="selectedProperty.street_address"

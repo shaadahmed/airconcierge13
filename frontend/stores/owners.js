@@ -25,7 +25,7 @@ export const useOwnersStore = defineStore('owners', {
             id: Date.now(),
             ...payload,
             region: payload.region || (payload.region_id
-              ? { id: payload.region_id, region_name: `Region #${payload.region_id}` }
+              ? { id: payload.region_id, name: `Region #${payload.region_id}` }
               : null),
           })
         }
@@ -43,7 +43,7 @@ export const useOwnersStore = defineStore('owners', {
           if (payload.region || payload.region_id) {
             next.region = payload.region || {
               id: payload.region_id,
-              region_name: `Region #${payload.region_id}`,
+              name: `Region #${payload.region_id}`,
             }
           }
 

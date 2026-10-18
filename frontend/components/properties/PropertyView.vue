@@ -95,7 +95,7 @@ const sections = computed(() => {
       title: 'Owners & location',
       items: [
         { label: 'Owners', value: ownerNames(property) },
-        { label: 'Region', value: property.region?.region_name || property.region?.name || property.region_id || '—' },
+        { label: 'Region', value: property.region?.name || property.region_id || '—' },
         { label: 'City / subregion', value: property.subregion?.name || property.subregion_id || '—' },
         { label: 'Property image URL', value: property.property_image_url || '—' },
       ],
@@ -223,7 +223,7 @@ const sections = computed(() => {
               size="18"
               class="text-medium-emphasis"
             />
-            <span>{{ property.region?.name || property.region?.region_name || '—' }}</span>
+            <span>{{ property.region?.name || '—' }}</span>
           </div>
         </div>
       </VCol>

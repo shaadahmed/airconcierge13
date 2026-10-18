@@ -63,7 +63,7 @@ export const usePropertyFormOptions = (formRef = null) => {
     const source = list.length ? list : MOCK_REGIONS
 
     return source.map(region => ({
-      title: region.region_name || region.name || `Region #${region.id}`,
+      title: region.name || `Region #${region.id}`,
       value: region.id,
       subregions: region.subregions || [],
     }))

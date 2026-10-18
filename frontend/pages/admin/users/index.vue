@@ -254,7 +254,7 @@ const regionList = computed(() => {
 })
 
 const regionOptions = computed(() => regionList.value.map(region => ({
-  title: region.region_name || region.name || `Region ${region.id}`,
+  title: region.name || `Region ${region.id}`,
   value: region.id,
 })))
 

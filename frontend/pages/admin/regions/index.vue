@@ -10,14 +10,14 @@ const panelEntity = ref('region')
 const panelMode = ref('dashboard')
 
 const form = reactive({
-  region_name: '',
-  shortcode: '',
+  name: '',
+  code: '',
   color: '',
 })
 
 const emptySubregionForm = () => ({
   region_id: '',
-  subregion_name: '',
+  name: '',
   transient_occupancy_tax: '',
   short_stay_len: '',
   business_license_account: '',
@@ -36,7 +36,7 @@ const subregionForm = reactive(emptySubregionForm())
 
 const filters = reactive({
   name: '',
-  shortcode: '',
+  code: '',
   has_subregions: null,
 })
 
@@ -77,18 +77,18 @@ const subregionCount = region => {
 
 const rows = computed(() => {
   const nameQuery = filters.name.trim().toLowerCase()
-  const shortcodeQuery = filters.shortcode.trim().toLowerCase()
+  const codeQuery = filters.code.trim().toLowerCase()
 
   return allRows.value.filter(region => {
     if (nameQuery) {
-      const name = String(region.region_name || '').toLowerCase()
+      const name = String(region.name || '').toLowerCase()
       if (!name.includes(nameQuery))
         return false
     }
 
-    if (shortcodeQuery) {
-      const shortcode = String(region.shortcode || '').toLowerCase()
-      if (!shortcode.includes(shortcodeQuery))
+    if (codeQuery) {
+      const code = String(region.code || '').toLowerCase()
+      if (!code.includes(codeQuery))
         return false
     }
 
@@ -110,7 +110,7 @@ const isSubregionView = computed(() => expandedRegionId.value != null)
 
 const listTitle = computed(() => {
   if (selectedRegion.value)
-    return `${selectedRegion.value.region_name}'s subregions`
+    return `${selectedRegion.value.name}'s subregions`
 
   return 'All regions'
 })
@@ -141,7 +141,7 @@ const activeSubregionRows = computed(() => {
     return list
 
   return list.filter(row => {
-    const name = String(row.subregion_name || row.name || '').toLowerCase()
+    const name = String(row.name || '').toLowerCase()
 
     return name.includes(nameQuery)
   })
@@ -212,7 +212,7 @@ const showNightsLimit = computed(() => showLimitFields.value && subregionForm.li
 
 const stats = computed(() => {
   const list = allRows.value
-  const withShortcode = list.filter(region => Boolean(region.shortcode))
+  const withCode = list.filter(region => Boolean(region.code))
   const withColor = list.filter(region => Boolean(region.color))
   const withSubregions = list.filter(region => subregionCount(region) > 0)
   const withoutSubregions = list.filter(region => subregionCount(region) === 0)
@@ -220,7 +220,7 @@ const stats = computed(() => {
 
   return {
     total: list.length,
-    withShortcode: withShortcode.length,
+    withCode: withCode.length,
     withColor: withColor.length,
     withSubregions: withSubregions.length,
     withoutSubregions: withoutSubregions.length,
@@ -233,10 +233,10 @@ const panelTitle = computed(() => {
     if (panelMode.value === 'create')
       return editingSubregionId.value ? 'Edit subregion' : 'Create subregion'
     if (panelMode.value === 'detail' && selectedSubregion.value)
-      return selectedSubregion.value.subregion_name || selectedSubregion.value.name || 'Subregion details'
+      return selectedSubregion.value.name || 'Subregion details'
 
     return selectedRegion.value
-      ? `${selectedRegion.value.region_name} overview`
+      ? `${selectedRegion.value.name} overview`
       : 'Subregion overview'
   }
 
@@ -289,7 +289,7 @@ const openPanel = mode => {
 const clearFilters = () => {
   Object.assign(filters, {
     name: '',
-    shortcode: '',
+    code: '',
     has_subregions: null,
   })
 }
@@ -297,8 +297,8 @@ const clearFilters = () => {
 const resetForm = () => {
   editingId.value = null
   Object.assign(form, {
-    region_name: '',
-    shortcode: '',
+    name: '',
+    code: '',
     color: '',
   })
 }
@@ -406,8 +406,8 @@ const openCreateSubregion = (region = null) => {
 const edit = region => {
   editingId.value = region.id
   Object.assign(form, {
-    region_name: region.region_name || '',
-    shortcode: region.shortcode || '',
+    name: region.name || '',
+    code: region.code || '',
     color: region.color || '',
   })
   panelEntity.value = 'region'
@@ -422,7 +422,7 @@ const editSubregion = (row, region = null) => {
   editingSubregionId.value = row.id
   Object.assign(subregionForm, {
     region_id: row.region_id || expandedRegionId.value || '',
-    subregion_name: row.subregion_name || '',
+    name: row.name || '',
     transient_occupancy_tax: row.transient_occupancy_tax ?? '',
     short_stay_len: row.short_stay_len ?? '',
     business_license_account: row.business_license_account === null || row.business_license_account === undefined || row.business_license_account === ''
@@ -458,7 +458,7 @@ const submit = async () => {
   try {
     const payload = {
       ...form,
-      shortcode: form.shortcode || null,
+      code: form.code || null,
       color: form.color || null,
     }
 
@@ -487,7 +487,7 @@ const buildSubregionPayload = () => {
 
   return {
     region_id: subregionForm.region_id || expandedRegionId.value || null,
-    subregion_name: subregionForm.subregion_name,
+    name: subregionForm.name,
     transient_occupancy_tax: subregionForm.transient_occupancy_tax === '' ? null : subregionForm.transient_occupancy_tax,
     short_stay_len: subregionForm.short_stay_len === '' ? null : subregionForm.short_stay_len,
     business_license_account: subregionForm.business_license_account === '' ? null : subregionForm.business_license_account,
@@ -670,13 +670,13 @@ definePageMeta({ middleware: 'auth' })
 
                   <div class="region-row__body">
                     <div class="region-row__name text-truncate">
-                      {{ region.region_name }}
+                      {{ region.name }}
                     </div>
                     <div class="region-row__meta">
                       <span
-                        v-if="region.shortcode"
+                        v-if="region.code"
                         class="region-row__chip"
-                      >{{ region.shortcode }}</span>
+                      >{{ region.code }}</span>
                       <span class="region-row__chip region-row__chip--muted">
                         {{ subregionCount(region) }}
                         {{ subregionCount(region) === 1 ? 'subregion' : 'subregions' }}
@@ -777,7 +777,7 @@ definePageMeta({ middleware: 'auth' })
                 >
                   <div class="subregion-row__main">
                     <div class="subregion-row__name text-truncate">
-                      {{ row.subregion_name || row.name }}
+                      {{ row.name }}
                     </div>
                     <div class="subregion-row__meta">
                       <span class="subregion-row__stat">
@@ -898,10 +898,10 @@ definePageMeta({ middleware: 'auth' })
             <template v-if="panelEntity === 'subregion' && panelMode === 'detail' && selectedSubregion">
               <div class="detail-hero mb-4">
                 <div class="text-h6 text-truncate">
-                  {{ selectedSubregion.subregion_name || selectedSubregion.name }}
+                  {{ selectedSubregion.name }}
                 </div>
                 <div class="text-body-2 text-medium-emphasis">
-                  {{ selectedRegion?.region_name || 'Subregion' }}
+                  {{ selectedRegion?.name || 'Subregion' }}
                 </div>
                 <div class="d-flex flex-wrap gap-2 mt-2">
                   <VChip
@@ -967,10 +967,10 @@ definePageMeta({ middleware: 'auth' })
                 @submit.prevent="submitSubregion"
               >
                 <BaseInput
-                  v-model="subregionForm.subregion_name"
+                  v-model="subregionForm.name"
                   label="Subregion name"
                   class="mb-2"
-                  :error="subregions.errors.subregion_name"
+                  :error="subregions.errors.name"
                 />
                 <BaseInput
                   v-model="subregionForm.transient_occupancy_tax"
@@ -1093,8 +1093,8 @@ definePageMeta({ middleware: 'auth' })
                   class="mb-2"
                 />
                 <BaseInput
-                  v-model="filters.shortcode"
-                  label="Shortcode contains"
+                  v-model="filters.code"
+                  label="Code contains"
                   class="mb-2"
                 />
                 <BaseSelect
@@ -1128,16 +1128,16 @@ definePageMeta({ middleware: 'auth' })
                 @submit.prevent="submit"
               >
                 <BaseInput
-                  v-model="form.region_name"
+                  v-model="form.name"
                   label="Region name"
                   class="mb-2"
-                  :error="regions.errors.region_name"
+                  :error="regions.errors.name"
                 />
                 <BaseInput
-                  v-model="form.shortcode"
-                  label="Shortcode"
+                  v-model="form.code"
+                  label="Code"
                   class="mb-2"
-                  :error="regions.errors.shortcode"
+                  :error="regions.errors.code"
                 />
                 <BaseInput
                   v-model="form.color"
@@ -1164,7 +1164,7 @@ definePageMeta({ middleware: 'auth' })
             <template v-else>
               <template v-if="isSubregionView">
                 <p class="text-body-2 text-medium-emphasis mb-4">
-                  Subregion rules for {{ selectedRegion?.region_name }}
+                  Subregion rules for {{ selectedRegion?.name }}
                 </p>
 
                 <VRow dense class="mb-2">
@@ -1240,10 +1240,10 @@ definePageMeta({ middleware: 'auth' })
                   <VCol cols="6">
                     <div class="entity-stat-tile entity-stat-tile--primary pa-3 rounded">
                       <div class="text-caption text-medium-emphasis">
-                        With shortcode
+                        With code
                       </div>
                       <div class="text-h5">
-                        {{ stats.withShortcode }}
+                        {{ stats.withCode }}
                       </div>
                     </div>
                   </VCol>

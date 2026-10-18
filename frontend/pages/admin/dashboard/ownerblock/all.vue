@@ -79,7 +79,7 @@ const monthFilterItems = [
 const regionFilterItems = [
   { title: 'All', value: null },
   ...MOCK_REGIONS.map(region => ({
-    title: region.region_name || region.name,
+    title: region.name,
     value: region.id,
   })),
 ]
@@ -91,7 +91,7 @@ const subregionFilterItems = computed(() => {
   return [
     { title: 'All', value: null },
     ...subregions.map(subregion => ({
-      title: subregion.subregion_name || subregion.name,
+      title: subregion.name,
       value: subregion.id,
     })),
   ]

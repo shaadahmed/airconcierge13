@@ -67,7 +67,7 @@ const propertiesCount = owner => {
   return 0
 }
 
-const ownerRegion = owner => owner?.region?.region_name || owner?.region?.name || (owner?.region_id ? `Region #${owner.region_id}` : 'No region')
+const ownerRegion = owner => owner?.region?.name || (owner?.region_id ? `Region #${owner.region_id}` : 'No region')
 
 const paymentMethodLabel = value => {
   const match = paymentMethodItems.find(item => item.value === value)
@@ -163,7 +163,7 @@ const regionOptions = computed(() => {
 
   for (const region of regionList.value) {
     map.set(region.id, {
-      title: region.region_name || `Region ${region.id}`,
+      title: region.name || `Region ${region.id}`,
       value: region.id,
     })
   }
@@ -173,7 +173,7 @@ const regionOptions = computed(() => {
     if (id == null || map.has(id))
       continue
 
-    const name = owner.region?.region_name || owner.region?.name || `Region ${id}`
+    const name = owner.region?.name || `Region ${id}`
     map.set(id, { title: name, value: id })
   }
 
@@ -308,7 +308,7 @@ const submit = async () => {
 
     const region = regionList.value.find(item => Number(item.id) === Number(payload.region_id))
     if (region)
-      payload.region = { id: region.id, region_name: region.region_name }
+      payload.region = { id: region.id, name: region.name }
 
     if (editingId.value)
       await owners.update(editingId.value, payload)

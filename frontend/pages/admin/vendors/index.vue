@@ -82,9 +82,9 @@ const allRows = computed(() => {
 
 const displayName = vendor => vendor?.full_name || vendor?.name || '—'
 
-const vendorRegion = vendor => vendor?.region?.region_name || vendor?.region?.name || (vendor?.region_id ? `Region #${vendor.region_id}` : 'No region')
+const vendorRegion = vendor => vendor?.region?.name || (vendor?.region_id ? `Region #${vendor.region_id}` : 'No region')
 
-const vendorCity = vendor => vendor?.subregion?.subregion_name || vendor?.subregion?.name || vendor?.city || (vendor?.subregion_id ? `City #${vendor.subregion_id}` : '—')
+const vendorCity = vendor => vendor?.subregion?.name || vendor?.city || (vendor?.subregion_id ? `City #${vendor.subregion_id}` : '—')
 
 const hiredByLabel = value => {
   if (value == null || value === '')
@@ -234,7 +234,7 @@ const regionOptions = computed(() => {
 
   for (const region of regionList.value) {
     map.set(region.id, {
-      title: region.region_name || `Region ${region.id}`,
+      title: region.name || `Region ${region.id}`,
       value: region.id,
     })
   }
@@ -245,7 +245,7 @@ const regionOptions = computed(() => {
       continue
 
     map.set(id, {
-      title: vendor.region?.region_name || vendor.region?.name || `Region ${id}`,
+      title: vendor.region?.name || `Region ${id}`,
       value: id,
     })
   }
@@ -261,7 +261,7 @@ const formSubregionOptions = computed(() => {
   return subregionList.value
     .filter(item => regionId === null || Number(item.region_id) === regionId)
     .map(item => ({
-      title: item.subregion_name || item.name || `City ${item.id}`,
+      title: item.name || `City ${item.id}`,
       value: item.id,
     }))
 })
@@ -463,12 +463,12 @@ const submit = async () => {
     }
 
     if (region)
-      payload.region = { id: region.id, region_name: region.region_name }
+      payload.region = { id: region.id, name: region.name }
 
     if (subregion) {
       payload.subregion = {
         id: subregion.id,
-        subregion_name: subregion.subregion_name || subregion.name,
+        name: subregion.name,
       }
     }
 

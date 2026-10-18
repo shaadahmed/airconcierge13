@@ -24,7 +24,7 @@ export const useSubregionsStore = defineStore('subregions', {
           return mockCreate(this, {
             id: Date.now(),
             ...payload,
-            region: payload.region || { id: payload.region_id, region_name: `Region #${payload.region_id}` },
+            region: payload.region || { id: payload.region_id, name: `Region #${payload.region_id}` },
           })
         }
 

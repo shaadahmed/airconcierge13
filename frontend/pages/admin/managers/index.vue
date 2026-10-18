@@ -102,7 +102,7 @@ const regionsLabel = manager => {
   if (!list.length)
     return 'No regions'
 
-  return list.map(region => region.region_name || region.name || `Region #${region.id}`).join(', ')
+  return list.map(region => region.name || `Region #${region.id}`).join(', ')
 }
 
 const managerInitials = manager => {
@@ -195,7 +195,7 @@ const regionOptions = computed(() => {
 
   for (const region of regionList.value) {
     map.set(region.id, {
-      title: region.region_name || `Region ${region.id}`,
+      title: region.name || `Region ${region.id}`,
       value: region.id,
     })
   }
@@ -206,7 +206,7 @@ const regionOptions = computed(() => {
         continue
 
       map.set(region.id, {
-        title: region.region_name || region.name || `Region ${region.id}`,
+        title: region.name || `Region ${region.id}`,
         value: region.id,
       })
     }
@@ -333,7 +333,7 @@ const submit = async () => {
   try {
     const selectedRegions = regionList.value
       .filter(region => form.region_ids.map(Number).includes(Number(region.id)))
-      .map(region => ({ id: region.id, region_name: region.region_name }))
+      .map(region => ({ id: region.id, name: region.name }))
 
     const payload = {
       first_name: form.first_name || null,

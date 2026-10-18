@@ -22,6 +22,9 @@ return new class extends Migration
             $table->string('contact_code', 10)->nullable()->index();
             $table->timestamps();
             $table->softDeletes();
+
+            // Cities need not be globally unique — unique within a state (and thus country).
+            $table->unique(['state_id', 'name']);
         });
     }
 

@@ -6,8 +6,7 @@ export const MOCK_SUBREGIONS = [
   {
     id: 11,
     region_id: 1,
-    region: { id: 1, region_name: 'Lake Tahoe' },
-    subregion_name: 'South Lake Tahoe',
+    region: { id: 1, name: 'Lake Tahoe', code: 'LT' },
     name: 'South Lake Tahoe',
     transient_occupancy_tax: 12,
     short_stay_len: 30,
@@ -26,8 +25,7 @@ export const MOCK_SUBREGIONS = [
   {
     id: 12,
     region_id: 1,
-    region: { id: 1, region_name: 'Lake Tahoe' },
-    subregion_name: 'Incline Village',
+    region: { id: 1, name: 'Lake Tahoe', code: 'LT' },
     name: 'Incline Village',
     transient_occupancy_tax: 13,
     short_stay_len: 28,
@@ -46,8 +44,7 @@ export const MOCK_SUBREGIONS = [
   {
     id: 21,
     region_id: 2,
-    region: { id: 2, region_name: 'Napa Valley' },
-    subregion_name: 'Napa',
+    region: { id: 2, name: 'Napa Valley', code: 'NV' },
     name: 'Napa',
     transient_occupancy_tax: 12.5,
     short_stay_len: 30,
@@ -66,8 +63,7 @@ export const MOCK_SUBREGIONS = [
   {
     id: 22,
     region_id: 2,
-    region: { id: 2, region_name: 'Napa Valley' },
-    subregion_name: 'St. Helena',
+    region: { id: 2, name: 'Napa Valley', code: 'NV' },
     name: 'St. Helena',
     transient_occupancy_tax: 12,
     short_stay_len: 30,

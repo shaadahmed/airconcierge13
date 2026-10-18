@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('subregions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('region_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('subregion_name')->nullable();
+            $table->string('name')->nullable();
             $table->decimal('transient_occupancy_tax', 11, 2)->nullable();
             $table->smallInteger('short_stay_len')->nullable();
             $table->timestamps();
